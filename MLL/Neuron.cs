@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace MLL;
+﻿namespace MLL;
 
 public class Neuron
 {
@@ -17,10 +15,10 @@ public class Neuron
         _weights = new double[weightCount];
     }
 
-    public Neuron FillRandomValues(Random random)
+    public Neuron FillRandomValues(Random random, double range = 4)
     {
         for (int i = 0; i < _weights.Length; i++)
-            _weights[i] = random.NextDouble() * 4 - 4;
+            _weights[i] = random.NextDouble() * range - range;
 
         return this;
     }
