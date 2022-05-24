@@ -5,6 +5,8 @@ public readonly struct ImageDataSetOptions
     public int Width { get; }
     public int Height { get; }
 
+    public static ImageDataSetOptions Default => new ImageDataSetOptions(128, 128);
+
     public ImageDataSetOptions(int width, int height)
     {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));

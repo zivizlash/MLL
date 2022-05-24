@@ -8,45 +8,44 @@ public interface IImageDataSetProvider
     IImageDataSet GetDataSet(string name, object value);
 }
 
-public interface IImageDataSet
+public interface IImageDataSet //: IEnumerable<ImageData>
 {
+    public object Value { get; }
+    public int Length { get; }
     ImageDataSetOptions Options { get; }
+    ImageData this[int index] { get; }
 }
 
-public class FolderImageDataSet : IImageDataSet, IEnumerable<ImageData>
+public class FolderImageDataSet : IImageDataSet
 {
-    private readonly ImageData[] _images;
+    private readonly List<string> _files;
+    private readonly Dictionary<string, ImageData> _fileToImage;
 
     public ImageDataSetOptions Options { get; }
+
     public object Value { get; }
-    public int Length => _images.Length;
+    public int Length => _files.Count;
+
+    public ImageData this[int index] => GetOrLoad(index);
 
     public FolderImageDataSet(string folder, object value, ImageDataSetOptions options)
     {
         Options = options;
         Value = value ?? throw new ArgumentNullException(nameof(value));
 
-        _images = Directory
-            .EnumerateFiles(folder)
-            .Select(file => FileToImage(file, options))
-            .ToArray();
+        _fileToImage = new Dictionary<string, ImageData>();
+        _files = Directory.EnumerateFiles(folder).ToList();
     }
 
-    public ImageData FileToImage(string file, ImageDataSetOptions options)
+    private ImageData GetOrLoad(int index)
     {
-        var magickImage = new MagickImage(new FileInfo(file));
-        magickImage.Resize(new MagickGeometry(options.Width, options.Height));
+        var filename = _files[index];
 
-        var rgbPixels = magickImage.GetPixels().ToByteArray(PixelMapping.RGB)
-            ?? throw new InvalidOperationException();
-        
-        return new ImageData(Value, ImageTools.RgbToGreyscale(rgbPixels));
+        if (_fileToImage.TryGetValue(filename, out var imageData))
+            return imageData;
+
+        return _fileToImage[filename] = ImageTools.LoadImageData(Value, filename, Options);
     }
-
-    public IEnumerator<ImageData> GetEnumerator() => 
-        _images.AsEnumerable().GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 public class FolderNameDataSetProvider : IImageDataSetProvider
@@ -76,5 +75,22 @@ public class FolderNameDataSetProvider : IImageDataSetProvider
         imageDataSet = new FolderImageDataSet(folder, value, _options);
         _dataSets[folder] = imageDataSet;
         return imageDataSet;
+    }
+}
+
+public static class ImageDataSetProviderExtensions
+{
+    private static readonly Dictionary<int, (string, object)> Cache;
+
+    static ImageDataSetProviderExtensions() => 
+        Cache = new Dictionary<int, (string, object)>();
+
+    public static IImageDataSet GetDataSet(this IImageDataSetProvider provider, int value)
+    {
+        if (!Cache.ContainsKey(value)) 
+            Cache[value] = (value.ToString(), value);
+
+        var (name, objValue) = Cache[value];
+        return provider.GetDataSet(name, objValue);
     }
 }

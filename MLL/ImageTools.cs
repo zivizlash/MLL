@@ -1,4 +1,6 @@
-﻿namespace MLL;
+﻿using ImageMagick;
+
+namespace MLL;
 
 public static class ImageTools
 {
@@ -13,6 +15,22 @@ public static class ImageTools
         }
 
         return greyscale;
+    }
+
+    public static double[] LoadImageDataRaw(string filepath, ImageDataSetOptions options)
+    {
+        var magickImage = new MagickImage(new FileInfo(filepath));
+        magickImage.Resize(new MagickGeometry(options.Width, options.Height));
+
+        var rgbPixels = magickImage.GetPixels().ToByteArray(PixelMapping.RGB)
+            ?? throw new InvalidOperationException();
+
+        return RgbToGreyscale(rgbPixels);
+    }
+
+    public static ImageData LoadImageData(object value, string filepath, ImageDataSetOptions options)
+    {
+        return new ImageData(value, LoadImageDataRaw(filepath, options));
     }
 
     // not tested

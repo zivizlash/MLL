@@ -1,76 +1,173 @@
-﻿namespace MLL;
+﻿using Newtonsoft.Json;
+
+namespace MLL;
+
+public static class NeuronWeightsSaver
+{
+    public static void Save(Neuron[] neurons)
+    {
+        var json = JsonConvert.SerializeObject(neurons);
+        File.WriteAllText("neurons.json", json);
+    }
+
+    public static Neuron[] Load()
+    {
+        var json = File.ReadAllText("neurons.json");
+        return JsonConvert.DeserializeObject<Neuron[]>(json)!;
+    }
+}
 
 public class Program
 {
-    private static void Train(IReadOnlyList<Neuron> neurons, IReadOnlyList<ImageData> images)
+    private static void Train(IImageDataSetProvider imageProvider, IReadOnlyList<Neuron> neurons)
     {
-        for (int epoch = 0; epoch < 100; epoch++)
+        var errors = new Dictionary<int, double>(neurons.Count);
+
+        for (int i = 0; i < neurons.Count; i++) errors[i] = 0;
+
+        void ClearErrors()
+        {
+            foreach (var key in errors!.Keys) errors[key] = 0;
+        }
+
+        for (int epoch = 0; epoch < 200; epoch++)
         {
             Console.WriteLine($"Epoch: {epoch}");
 
             bool hasError = false;
 
-            foreach (var image in images)
+            for (int number = 0; number < 10; number++)
             {
-                for (int neuronIndex = 0; neuronIndex < neurons.Count; neuronIndex++)
+                var neuron = neurons[number];
+
+                for (int imageNumber = 0; imageNumber < 10; imageNumber++)
                 {
-                    var neuron = neurons[neuronIndex];
-                    var expected = neuronIndex.Equals(image.Value) ? 1 : 0;
+                    var imagesSet = imageProvider.GetDataSet(imageNumber);
+                    var expected = number == imageNumber ? 1 : 0;
 
-                    var error = neuron.Train(image.Data, expected);
-                    var errorQ = error != 0 ? neuron.LastError : error;
+                    for (int imageIndex = 0; imageIndex < 20; imageIndex++)
+                    {
+                        var image = imagesSet[imageIndex];
+                        var error = neuron.Train(image.Data, expected);
 
-                    hasError |= error != 0;
-                    Console.Write($"{errorQ} ");
+                        errors[number] += Math.Abs(error);
+                        hasError |= error != 0;
+                    }
                 }
-
-                Console.WriteLine();
+            }
+            
+            for (var i = 0; i < neurons.Count; i++)
+            {
+                var neuron = errors[i];
+                Console.WriteLine($"Neuron: {i}; Whole error: {neuron}");
             }
 
+            ClearErrors();
             Console.WriteLine();
             if (!hasError) break;
         }
-    }   
+    }
 
-    private static void Test(Neuron[] neurons, ImageData imageData)
+    private static void Test(Neuron[] neurons, IImageDataSet imageSet)
     {
-        for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
+        var count = 0;
+        var error = 0;
+
+        for (int i = 0; i < 20; i++)
         {
-            var neuron = neurons[neuronIndex];
-            var predict = neuron.Predict(imageData.Data);
-            
-            if (neuronIndex.Equals(imageData.Value))
+            var imageData = imageSet[i];
+
+            for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
             {
-                Console.WriteLine(Math.Abs(predict - 1) < 0.001
-                    ? $"Определение числа {neuronIndex} отработало правильно"
-                    : $"Определение числа {neuronIndex} отработало неправильно");
-            }
-            else
-            {
-                if (predict != 0) Console.WriteLine($"Число {neuronIndex} отработало неправильно");
+                count++;
+
+                var neuron = neurons[neuronIndex];
+                var predict = neuron.Predict(imageData.Data);
+
+                if (neuronIndex.Equals(imageData.Value))
+                {
+                    if (Math.Abs(predict - 1) < 0.001)
+                    {
+                        //Console.WriteLine($"Определение числа {neuronIndex} отработало правильно");
+                    }
+                    else
+                    {
+                        //Console.WriteLine($"Определение числа {neuronIndex} отработало неправильно");
+                        error++;
+                    }
+                }
+                else
+                {
+                    var isNotRight = predict != 0;
+
+                    if (isNotRight)
+                    {
+                        //Console.WriteLine($"Число {neuronIndex} отработало неправильно");
+                        error++;
+                    }
+                }
             }
         }
+
+        Console.WriteLine($"Predicted: {1.0 - error / (double)count}");
     }
+
+    private static string NameToFolder(string name) => 
+        $"C:\\Auto\\datasets\\Font\\Font\\Sample{int.Parse(name) + 1:d3}";
 
     public static void Main()
     {
-        var images = ImageLoader.Load("Images")
-            .OrderBy(image => (int)image.Value)
-            .ToList();
+        ConsoleKeyInfo key;
 
-        foreach (var image in images)
-            Console.WriteLine($"Image loaded: {image.Value}");
+        do
+        {
+            Console.WriteLine("Load - R; Learn - T; Test - U");
+            key = Console.ReadKey(true);
+        } 
+        while (key.Key is not (ConsoleKey.R or ConsoleKey.T or ConsoleKey.U));
 
-        var neurons = new Neuron[10];
-        var random = new Random(150345340);
-        
-        for (int i = 0; i < neurons.Length; i++)
-            neurons[i] = new Neuron(15, 3, 0.1).FillRandomValues(random);
+        var test = key.Key == ConsoleKey.U;
+        var load = test || key.Key == ConsoleKey.R;
 
-        Train(neurons, images);
+        var imageProvider = new FolderNameDataSetProvider(
+            NameToFolder, new ImageDataSetOptions(128, 128));
 
-        Console.WriteLine("Сетка обучена\n");
+        Neuron[] neurons;
 
-        for (int i = 0; i <= 9; i++) Test(neurons, images[i]);
+        if (load)
+        {
+            neurons = NeuronWeightsSaver.Load();
+        }
+        else
+        {
+            neurons = new Neuron[10];
+            var random = new Random();
+
+            for (int i = 0; i < neurons.Length; i++)
+                neurons[i] = new Neuron(128 * 128, 10, 0.01).FillRandomValues(random);
+
+            Train(imageProvider, neurons);
+
+            Console.WriteLine("Сетка обучена\n");
+        }
+
+        for (int i = 0; i <= 9; i++) 
+            Test(neurons, imageProvider.GetDataSet(i));
+
+        if (test)
+        {
+            Console.WriteLine("Enter image path: ");
+            var path = Console.ReadLine() ?? throw new ArgumentNullException();
+
+            var image = ImageTools.LoadImageDataRaw(path, ImageDataSetOptions.Default);
+
+            for (var i = 0; i < neurons.Length; i++)
+            {
+                var neuron = neurons[i];
+                Console.WriteLine($"Neuron: {i}; Value: {neuron.Predict(image)}");
+            }
+        }
+
+        if (!load) NeuronWeightsSaver.Save(neurons);
     }
 }
