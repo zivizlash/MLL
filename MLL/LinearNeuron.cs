@@ -13,10 +13,16 @@ public interface INeuron
 public class LinearNeuron : INeuron
 {
     private readonly double _bias;
-    private readonly double _learningRate;
+    private double _learningRate;
     private double[] _weights;
     
     public double LastError { get; private set; }
+
+    public double LearningRate
+    {
+        get => _learningRate;
+        set => _learningRate = value;
+    }
 
     public double[] Weights
     {
@@ -29,6 +35,7 @@ public class LinearNeuron : INeuron
         _bias = bias;
         _learningRate = learningRate;
         _weights = new double[weightCount];
+        _learningRate = 0.005;
     }
 
     public INeuron FillRandomValues(Random random, double range = 4)

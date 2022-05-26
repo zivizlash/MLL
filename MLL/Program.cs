@@ -46,13 +46,14 @@ public class Program
 
         var imageSetTestProvider = CreateTestDataSetProvider();
 
-        for (int i = 0; i <= 9; i++) 
-            net.Test(neurons, imageSetTestProvider.GetDataSet(i));
+        if (!args.CheckRecognition)
+            for (int i = 0; i <= 9; i++) 
+                net.Test(neurons, imageSetTestProvider.GetDataSet(i));
 
         if (args.CheckRecognition)
             net.CheckRecognition(neurons);
 
-        if (!args.LoadFromDisk) 
+        if (args.Train)
             NeuronWeightsSaver.Save(neurons);
     }
 

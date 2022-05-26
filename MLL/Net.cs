@@ -1,4 +1,5 @@
-﻿using MLL.ImageLoader;
+﻿using System.Text;
+using MLL.ImageLoader;
 
 namespace MLL;
 
@@ -7,21 +8,32 @@ public class Net
     public void Train(IImageDataSetProvider imageProvider, IReadOnlyList<INeuron> neurons)
     {
         var errors = new Dictionary<int, double>(neurons.Count);
-
-        for (int i = 0; i < neurons.Count; i++) errors[i] = 0;
-
+        
         void ClearErrors()
         {
-            foreach (var key in errors.Keys) errors[key] = 0;
+            for (int i = 0; i < neurons.Count; i++)
+                errors[i] = 0;
         }
 
-        for (int epoch = 0; epoch < 200; epoch++)
+        var keys = Enumerable.Range(0, 10).ToList();
+        var count = imageProvider.GetLargestImageDataSetCount(keys);
+        ImageDataSetProviderExtensions.EnsureKeys(count);
+        imageProvider.LoadAllImages(keys);
+
+        var parallelOptions = new ParallelOptions
         {
-            Console.WriteLine($"Epoch: {epoch}");
+            MaxDegreeOfParallelism = 10
+        };
 
-            bool hasError = false;
+        ClearErrors();
 
-            for (int number = 0; number < 10; number++)
+        var messageBuilder = new StringBuilder();
+
+        for (int epoch = 0; epoch < 700; epoch++)
+        {
+            messageBuilder.AppendLine($"Epoch: {epoch}");
+            
+            Parallel.For(0, 10, parallelOptions, number =>
             {
                 var neuron = neurons[number];
 
@@ -30,25 +42,27 @@ public class Net
                     var imagesSet = imageProvider.GetDataSet(imageNumber);
                     var expected = number == imageNumber ? 1 : 0;
 
-                    for (int imageIndex = 0; imageIndex < 20; imageIndex++)
+                    for (int imageIndex = 0; imageIndex < imagesSet.Count; imageIndex++)
                     {
                         var image = imagesSet[imageIndex];
                         var error = neuron.Train(image.Data, expected);
-
                         errors[number] += Math.Abs(error);
-                        hasError |= error != 0;
                     }
                 }
-            }
-
+            });
+            
             for (var i = 0; i < neurons.Count; i++)
             {
                 var neuron = errors[i];
-                Console.WriteLine($"Neuron: {i}; Whole error: {neuron}");
+                messageBuilder.AppendLine($"Neuron: {i}; Error: {neuron}");
             }
+            
+            var hasError = errors.Values.Sum() != 0;
 
             ClearErrors();
-            Console.WriteLine();
+            Console.WriteLine(messageBuilder.ToString());
+            messageBuilder.Clear();
+
             if (!hasError) break;
         }
 
@@ -60,7 +74,7 @@ public class Net
         var count = 0;
         var error = 0;
 
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < imageSet.Count; i++)
         {
             var imageData = imageSet[i];
 
