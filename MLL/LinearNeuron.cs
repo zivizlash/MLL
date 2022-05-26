@@ -1,12 +1,21 @@
 ﻿namespace MLL;
 
-public class Neuron
+public interface INeuron
+{
+    public double LastError { get; }
+    public double[] Weights { get; set; }
+
+    INeuron FillRandomValues(Random random, double range = 4);
+    double Predict(double[] input);
+    double Train(double[] input, double expected);
+}
+
+public class LinearNeuron : INeuron
 {
     private readonly double _bias;
     private readonly double _learningRate;
     private double[] _weights;
-    private double[]? _results;
-
+    
     public double LastError { get; private set; }
 
     public double[] Weights
@@ -15,14 +24,14 @@ public class Neuron
         set => _weights = value;
     }
 
-    public Neuron(int weightCount, double bias, double learningRate)
+    public LinearNeuron(int weightCount, double bias, double learningRate)
     {
         _bias = bias;
         _learningRate = learningRate;
         _weights = new double[weightCount];
     }
 
-    public Neuron FillRandomValues(Random random, double range = 4)
+    public INeuron FillRandomValues(Random random, double range = 4)
     {
         for (int i = 0; i < _weights.Length; i++)
             _weights[i] = random.NextDouble() * range - range;
@@ -34,13 +43,12 @@ public class Neuron
     {
         if (_weights.Length != input.Length)
             throw new InvalidOperationException();
-
-        _results ??= new double[input.Length];
         
-        for (int i = 0; i < input.Length; i++)
-            _results[i] = _weights[i] * input[i];
+        double sum = 0;
 
-        var sum = _results.Sum();
+        for (int i = 0; i < input.Length; i++)
+            sum += _weights[i] * input[i];
+        
         LastError = _bias - sum;
         return sum >= _bias ? 1 : 0;
     }
@@ -51,7 +59,6 @@ public class Neuron
             throw new InvalidOperationException();
 
         var rawError = expected - Predict(input);
-
         var error = rawError;
         
         for (int i = 0; i < input.Length; i++)

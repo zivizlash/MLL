@@ -1,6 +1,6 @@
 ﻿using ImageMagick;
 
-namespace MLL;
+namespace MLL.ImageLoader;
 
 public static class ImageTools
 {
@@ -17,9 +17,8 @@ public static class ImageTools
         return greyscale;
     }
 
-    public static double[] LoadImageDataRaw(string filepath, ImageDataSetOptions options)
+    private static double[] NormalizeAndConvert(MagickImage magickImage, ImageDataSetOptions options)
     {
-        var magickImage = new MagickImage(new FileInfo(filepath));
         magickImage.Resize(new MagickGeometry(options.Width, options.Height));
 
         var rgbPixels = magickImage.GetPixels().ToByteArray(PixelMapping.RGB)
@@ -28,11 +27,12 @@ public static class ImageTools
         return RgbToGreyscale(rgbPixels);
     }
 
-    public static ImageData LoadImageData(object value, string filepath, ImageDataSetOptions options)
-    {
-        return new ImageData(value, LoadImageDataRaw(filepath, options));
-    }
+    public static double[] LoadImageData(Stream stream, ImageDataSetOptions options) =>
+        NormalizeAndConvert(new MagickImage(stream), options);
 
+    public static double[] LoadImageData(string filepath, ImageDataSetOptions options) =>
+        NormalizeAndConvert(new MagickImage(new FileInfo(filepath)), options);
+    
     // not tested
     public static void NormalizePixels(double[] pixels)
     {

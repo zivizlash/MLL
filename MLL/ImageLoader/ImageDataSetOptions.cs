@@ -1,11 +1,11 @@
-﻿namespace MLL;
+﻿namespace MLL.ImageLoader;
 
 public readonly struct ImageDataSetOptions
 {
     public int Width { get; }
     public int Height { get; }
-
-    public static ImageDataSetOptions Default => new ImageDataSetOptions(128, 128);
+    
+    public static readonly ImageDataSetOptions Default = new(128, 128);
 
     public ImageDataSetOptions(int width, int height)
     {

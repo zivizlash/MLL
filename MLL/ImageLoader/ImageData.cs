@@ -1,4 +1,4 @@
-﻿namespace MLL;
+﻿namespace MLL.ImageLoader;
 
 public class ImageData
 {
