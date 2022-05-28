@@ -20,8 +20,8 @@ public class Program
 
         for (int i = 0; i < neurons.Length; i++)
         {
-            neurons[i] = new LinearNeuron(weightsCount, options.Bias, options.LearningRate);
-            neurons[i].FillRandomValues(random);
+            var neuron = new LinearNeuron(weightsCount, options.Bias, options.LearningRate);
+            neurons[i] = neuron.FillRandomValues(random);
         }
         
         return neurons;
@@ -44,11 +44,18 @@ public class Program
         if (args.Train)
             net.Train(CreateTrainDataSetProvider(), neurons);
 
-        var imageSetTestProvider = CreateTestDataSetProvider();
-
         if (!args.CheckRecognition)
-            for (int i = 0; i <= 9; i++) 
-                net.Test(neurons, imageSetTestProvider.GetDataSet(i));
+        {
+            var imageSetTestProvider = CreateTestDataSetProvider();
+
+            double recognizedPercents = 0;
+
+            for (int i = 0; i < 10; i++)
+                recognizedPercents += net.Test(neurons, imageSetTestProvider.GetDataSet(i));
+
+            Console.WriteLine();
+            Console.WriteLine($"Overall recognized percents: {recognizedPercents / 10.0}");
+        }
 
         if (args.CheckRecognition)
             net.CheckRecognition(neurons);

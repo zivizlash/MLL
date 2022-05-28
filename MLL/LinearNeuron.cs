@@ -35,7 +35,6 @@ public class LinearNeuron : INeuron
         _bias = bias;
         _learningRate = learningRate;
         _weights = new double[weightCount];
-        _learningRate = 0.005;
     }
 
     public INeuron FillRandomValues(Random random, double range = 4)
