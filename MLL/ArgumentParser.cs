@@ -1,42 +1,50 @@
 ﻿namespace MLL;
 
+using Key = ConsoleKey;
+
 public class ArgumentParser
 {
     public bool LoadFromDisk { get; }
     public bool CheckRecognition { get; }
     public bool Train { get; }
+    public bool TestImageNormalizing { get; }
 
-    public ArgumentParser(bool loadFromDisk, bool checkRecognition, bool train)
+    public ArgumentParser(bool loadFromDisk, bool checkRecognition, bool train, bool testImageNormalizing)
     {
         LoadFromDisk = loadFromDisk;
         CheckRecognition = checkRecognition;
         Train = train;
+        TestImageNormalizing = testImageNormalizing;
     }
 
     public static ArgumentParser GetArguments()
     {
-        ConsoleKey key;
+        Key key;
+
+        var allowedKeys = new [] { Key.L, Key.T, Key.C, Key.R, Key.I };
 
         do
         {
-            Console.WriteLine("Load - L; Retrain - R; Check - C; Train - T");
+            Console.WriteLine("Load - L; Retrain - R; Check - C; Train - T; Image Normalizing - I");
             key = Console.ReadKey(true).Key;
         }
-        while (key is not (ConsoleKey.L or ConsoleKey.T or ConsoleKey.C or ConsoleKey.R));
+        while (!allowedKeys.Contains(key));
 
         Console.WriteLine(key switch
         {
-            ConsoleKey.L => "Loading weights from disk",
-            ConsoleKey.T => "Training",
-            ConsoleKey.C => "Check recognition",
-            ConsoleKey.R => "Retrain",
+            Key.L => "Loading weights from disk",
+            Key.T => "Training",
+            Key.C => "Check recognition",
+            Key.R => "Retrain",
+            Key.I => "Image normalizing test",
             _ => throw new InvalidOperationException()
         });
 
         return new ArgumentParser(
-            loadFromDisk: key is ConsoleKey.L or ConsoleKey.C or ConsoleKey.T,
-            checkRecognition: key is ConsoleKey.C,
-            train: key is ConsoleKey.R or ConsoleKey.T);
+            loadFromDisk: key is Key.L or Key.C or Key.T,
+            checkRecognition: key is Key.C,
+            train: key is Key.R or Key.T,
+            testImageNormalizing: key is Key.I);
     }
 
     public static string GetImagePath()

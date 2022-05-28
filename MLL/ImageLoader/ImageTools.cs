@@ -20,7 +20,7 @@ public static class ImageTools
     private static double[] NormalizeAndConvert(MagickImage magickImage, ImageDataSetOptions options)
     {
         magickImage.Resize(new MagickGeometry(options.Width, options.Height));
-
+        
         var rgbPixels = magickImage.GetPixels().ToByteArray(PixelMapping.RGB)
             ?? throw new InvalidOperationException();
 

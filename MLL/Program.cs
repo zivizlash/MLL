@@ -1,4 +1,5 @@
-﻿using MLL.ImageLoader;
+﻿using ImageMagick;
+using MLL.ImageLoader;
 
 namespace MLL;
 
@@ -44,7 +45,7 @@ public class Program
         if (args.Train)
             net.Train(CreateTrainDataSetProvider(), neurons);
 
-        if (!args.CheckRecognition)
+        if (!args.CheckRecognition && !args.TestImageNormalizing)
         {
             var imageSetTestProvider = CreateTestDataSetProvider();
 
@@ -62,6 +63,28 @@ public class Program
 
         if (args.Train)
             NeuronWeightsSaver.Save(neurons);
+
+        if (args.TestImageNormalizing)
+        {
+            var imagePath = ArgumentParser.GetImagePath();
+            var imageData = ImageTools.LoadImageData(imagePath, ImageDataSetOptions.Default);
+
+            byte[] imageBytes = new byte[imageData.Length * 3];
+
+            for (int di = 0, bi = 0; di < imageData.Length; di++, bi += 3)
+            {
+                byte byteValue = (byte) (imageData[di] * 255);
+                imageBytes[bi + 0] = byteValue;
+                imageBytes[bi + 1] = byteValue;
+                imageBytes[bi + 2] = byteValue;
+            }
+            
+            var settings = new PixelReadSettings(128, 128, StorageType.Char, PixelMapping.RGB);
+            using var image = new MagickImage(imageBytes, settings);
+
+            image.Format = MagickFormat.Png;
+            image.Write("test.png");
+        }
     }
 
     private static string NameToFolder(string name) =>
