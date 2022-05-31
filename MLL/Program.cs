@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using ImageMagick;
 using MLL.ImageLoader;
@@ -52,11 +53,11 @@ public class Program
             accVector = Vector.Add(accVector, v);
         }
         
-        double result = Vector.Dot(accVector, Vector<double>.One);
+        double result = Vector.Sum(accVector);
 
         for (; i < values.Length; i++)
             result += values[i];
-
+        
         Console.WriteLine($"IsHardwareAccelerated: {Vector.IsHardwareAccelerated}");
         Console.WriteLine($"VectorSize<double>: {vectorSize}");
         Console.WriteLine($"ZeroVector: {accVector}");
