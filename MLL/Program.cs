@@ -1,7 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-using ImageMagick;
+﻿using ImageMagick;
 using MLL.ImageLoader;
 
 namespace MLL;
@@ -37,38 +34,9 @@ public class Program
 
     private static IImageDataSetProvider CreateTestDataSetProvider() => CreateDataSetProvider(false);
     private static IImageDataSetProvider CreateTrainDataSetProvider() => CreateDataSetProvider(true);
-
-    private static void VectorTest()
-    {
-        var vectorSize = Vector<double>.Count;
-        var accVector = Vector<double>.Zero;
-
-        double[] values = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
-
-        int i;
-
-        for (i = 0; i < values.Length - vectorSize; i += vectorSize)
-        {
-            var v = new Vector<double>(values, i);
-            accVector = Vector.Add(accVector, v);
-        }
-        
-        double result = Vector.Sum(accVector);
-
-        for (; i < values.Length; i++)
-            result += values[i];
-        
-        Console.WriteLine($"IsHardwareAccelerated: {Vector.IsHardwareAccelerated}");
-        Console.WriteLine($"VectorSize<double>: {vectorSize}");
-        Console.WriteLine($"ZeroVector: {accVector}");
-        Console.WriteLine($"Result: {result}");
-    }
-
+    
     public static void Main()
     {
-        VectorTest();
-
-        return;
         var args = ArgumentParser.GetArguments();
         
         var neurons = GetNeurons(args.LoadFromDisk, ImageRecognitionOptions.Default);
@@ -98,8 +66,9 @@ public class Program
 
         if (args.TestImageNormalizing)
         {
+            var options = ImageDataSetOptions.Default;
             var imagePath = ArgumentParser.GetImagePath();
-            var imageData = ImageTools.LoadImageData(imagePath, ImageDataSetOptions.Default);
+            var imageData = ImageTools.LoadImageData(imagePath, options);
 
             byte[] imageBytes = new byte[imageData.Length * 3];
 
@@ -111,9 +80,9 @@ public class Program
                 imageBytes[bi + 2] = byteValue;
             }
             
-            var settings = new PixelReadSettings(128, 128, StorageType.Char, PixelMapping.RGB);
+            var settings = new PixelReadSettings(options.Width, options.Height, StorageType.Char, PixelMapping.RGB);
             using var image = new MagickImage(imageBytes, settings);
-
+            
             image.Format = MagickFormat.Png;
             image.Write("test.png");
         }

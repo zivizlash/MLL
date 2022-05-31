@@ -5,7 +5,7 @@ public readonly struct ImageDataSetOptions
     public int Width { get; }
     public int Height { get; }
     
-    public static readonly ImageDataSetOptions Default = new(128, 128);
+    public static readonly ImageDataSetOptions Default = new(64, 64);
 
     public ImageDataSetOptions(int width, int height)
     {

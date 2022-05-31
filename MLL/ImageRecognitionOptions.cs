@@ -18,5 +18,5 @@ public readonly struct ImageRecognitionOptions
         RandomSeed = randomSeed;
     }
 
-    public static readonly ImageRecognitionOptions Default = new(128, 128, 10, 0.100000, 2357678);
+    public static readonly ImageRecognitionOptions Default = new(64, 64, 10, 0.010000, 2357678);
 }

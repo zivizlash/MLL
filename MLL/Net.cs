@@ -20,7 +20,8 @@ public class Net
     public void Train(IImageDataSetProvider imageProvider, IReadOnlyList<INeuron> neurons)
     {
         var errors = new Dictionary<int, double>(neurons.Count);
-        
+        var dt = DateTime.Now;
+
         void ClearErrors()
         {
             for (int i = 0; i < neurons.Count; i++)
@@ -31,6 +32,8 @@ public class Net
         ClearErrors();
 
         var message = new StringBuilder(512);
+
+
         var options = new ParallelOptions { MaxDegreeOfParallelism = 10 };
 
         for (int epoch = 0; epoch < 500; epoch++)
@@ -69,7 +72,7 @@ public class Net
             if (!hasError) break;
         }
 
-        Console.WriteLine("Training ended\n");
+        Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");
     }
 
     public double Test2(INeuron[] neurons, IImageDataSet imageSet)

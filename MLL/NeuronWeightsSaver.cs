@@ -4,7 +4,7 @@ namespace MLL;
 
 public static class NeuronWeightsSaver
 {
-    private const string Filename = "sigmoidneurons.json";
+    private const string Filename = "sigmoid64x64weights.json";
 
     public static void Save(INeuron[] neurons)
     {
