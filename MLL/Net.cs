@@ -1,4 +1,5 @@
-﻿using MLL.ImageLoader;
+﻿using System.Runtime.Intrinsics;
+using MLL.ImageLoader;
 using System.Text;
 
 namespace MLL;
@@ -26,34 +27,35 @@ public class Net
                 errors[i] = 0;
         }
 
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 10 };
-
         PrepareTraining(imageProvider);
         ClearErrors();
 
         var message = new StringBuilder(512);
+        var options = new ParallelOptions { MaxDegreeOfParallelism = 10 };
 
-        for (int epoch = 0; epoch < 700; epoch++)
+        for (int epoch = 0; epoch < 500; epoch++)
         {
             message.AppendLine($"Epoch: {epoch}");
             
-            Parallel.For(0, 10, parallelOptions, number =>
+            Parallel.For(0, 10, options, neuronNumber =>
             {
-                var neuron = neurons[number];
+                var neuron = neurons[neuronNumber];
 
                 for (int imageNumber = 0; imageNumber < 10; imageNumber++)
                 {
                     var imagesSet = imageProvider.GetDataSet(imageNumber);
-                    var expected = number == imageNumber ? 1 : 0;
+                    var expected = neuronNumber == imageNumber ? 1 : 0;
 
                     for (int imageIndex = 0; imageIndex < imagesSet.Count; imageIndex++)
                     {
                         var image = imagesSet[imageIndex];
                         var error = neuron.Train(image.Data, expected);
-                        errors[number] += Math.Abs(error);
+                        errors[neuronNumber] += Math.Abs(error);
                     }
                 }
             });
+
+            var v = Vector256<double>.Zero;
             
             for (var i = 0; i < neurons.Count; i++)
                 message.AppendLine($"Neuron: {i}; Error: {errors[i]}");
@@ -70,9 +72,46 @@ public class Net
         Console.WriteLine("Training ended\n");
     }
 
+    public double Test2(INeuron[] neurons, IImageDataSet imageSet)
+    {
+        var error = 0;
+        var results = new double[neurons.Length];
+
+        for (int i = 0; i < imageSet.Count; i++)
+        {
+            var imageData = imageSet[i];
+
+            for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
+                results[neuronIndex] = neurons[neuronIndex].Predict(imageData.Data);
+
+            var max = results[0];
+            var index = 0;
+            
+            for (int resultIndex = 1; resultIndex < neurons.Length; resultIndex++)
+            {
+                var value = results[resultIndex];
+
+                if (value > max)
+                {
+                    max = value;
+                    index = resultIndex;
+                }
+            }
+
+            if (!index.Equals(imageSet.Value))
+                error++;
+        }
+
+        var successPercents = (1.0 - error / (double) imageSet.Count) * 100;
+        var successString = successPercents.ToString("F3").Replace(',', '.');
+
+        Console.WriteLine($"{imageSet.Value}: {successString}");
+        return successPercents;
+    }
+
     public double Test(INeuron[] neurons, IImageDataSet imageSet)
     {
-        var count = 0;
+        var count = neurons.Length * imageSet.Count;
         var error = 0;
 
         for (int i = 0; i < imageSet.Count; i++)
@@ -81,27 +120,25 @@ public class Net
 
             for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
             {
-                count++;
-
                 var neuron = neurons[neuronIndex];
                 var predict = neuron.Predict(imageData.Data);
 
                 if (neuronIndex.Equals(imageData.Value))
                 {
-                    if (Math.Abs(predict - 1) > 0.001) error++;
+                    if (predict <= 0.975) error++;
                 }
                 else
                 {
-                    if (predict != 0) error++;
+                    if (predict > 0.975) error++;
                 }
             }
         }
 
-        var errorPercents = (1.0 - error / (double) count) * 100;
-        var errorString = errorPercents.ToString("F3").Replace(',', '.');
+        var successPercents = (1.0 - error / (double) count) * 100;
+        var successString = successPercents.ToString("F3").Replace(',', '.');
 
-        Console.WriteLine($"{imageSet.Value}: {errorString}");
-        return errorPercents;
+        Console.WriteLine($"{imageSet.Value}: {successString}");
+        return successPercents;
     }
 
     public void CheckRecognition(INeuron[] neurons)
@@ -111,7 +148,8 @@ public class Net
         for (var i = 0; i < neurons.Length; i++)
         {
             var neuron = neurons[i];
-            Console.WriteLine($"Neuron: {i}; Value: {neuron.Predict(image)}");
+            var predict = neuron.Predict(image);
+            Console.WriteLine($"Neuron: {i}; Value: {predict:F3}");
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using ImageMagick;
+﻿using System.Numerics;
+using System.Runtime.Intrinsics.X86;
+using ImageMagick;
 using MLL.ImageLoader;
 
 namespace MLL;
@@ -9,7 +11,7 @@ public class Program
     {
         // ReSharper disable once CoVariantArrayConversion
         if (loadFromDisk)
-            return NeuronWeightsSaver.Load<LinearNeuron>();
+            return NeuronWeightsSaver.Load<SigmoidNeuron>();
         
         var neurons = new INeuron[10];
 
@@ -21,8 +23,8 @@ public class Program
 
         for (int i = 0; i < neurons.Length; i++)
         {
-            var neuron = new LinearNeuron(weightsCount, options.Bias, options.LearningRate);
-            neurons[i] = neuron.FillRandomValues(random);
+            var neuron = new SigmoidNeuron(weightsCount, options.LearningRate);
+            neurons[i] = neuron; // .FillRandomValues(random, 0.5);
         }
         
         return neurons;
@@ -35,8 +37,37 @@ public class Program
     private static IImageDataSetProvider CreateTestDataSetProvider() => CreateDataSetProvider(false);
     private static IImageDataSetProvider CreateTrainDataSetProvider() => CreateDataSetProvider(true);
 
+    private static void VectorTest()
+    {
+        var vectorSize = Vector<double>.Count;
+        var accVector = Vector<double>.Zero;
+
+        double[] values = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
+
+        int i;
+
+        for (i = 0; i < values.Length - vectorSize; i += vectorSize)
+        {
+            var v = new Vector<double>(values, i);
+            accVector = Vector.Add(accVector, v);
+        }
+        
+        double result = Vector.Dot(accVector, Vector<double>.One);
+
+        for (; i < values.Length; i++)
+            result += values[i];
+
+        Console.WriteLine($"IsHardwareAccelerated: {Vector.IsHardwareAccelerated}");
+        Console.WriteLine($"VectorSize<double>: {vectorSize}");
+        Console.WriteLine($"ZeroVector: {accVector}");
+        Console.WriteLine($"Result: {result}");
+    }
+
     public static void Main()
     {
+        VectorTest();
+
+        return;
         var args = ArgumentParser.GetArguments();
         
         var neurons = GetNeurons(args.LoadFromDisk, ImageRecognitionOptions.Default);
@@ -44,15 +75,15 @@ public class Program
 
         if (args.Train)
             net.Train(CreateTrainDataSetProvider(), neurons);
-
+        
         if (!args.CheckRecognition && !args.TestImageNormalizing)
         {
             var imageSetTestProvider = CreateTestDataSetProvider();
 
             double recognizedPercents = 0;
-
+            
             for (int i = 0; i < 10; i++)
-                recognizedPercents += net.Test(neurons, imageSetTestProvider.GetDataSet(i));
+                recognizedPercents += net.Test2(neurons, imageSetTestProvider.GetDataSet(i));
 
             Console.WriteLine();
             Console.WriteLine($"Overall recognized percents: {recognizedPercents / 10.0}");
