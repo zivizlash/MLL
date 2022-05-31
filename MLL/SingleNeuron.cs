@@ -1,4 +1,6 @@
-﻿namespace MLL;
+﻿using System.Numerics;
+
+namespace MLL;
 
 public interface INeuron
 {
@@ -30,10 +32,22 @@ public abstract class Neuron : INeuron
     {
         if (Weights.Length != input.Length)
             throw new InvalidOperationException();
+        
+        var vectorSize = Vector<double>.Count;
+        var accVector = Vector<double>.Zero;
 
-        double sum = 0;
+        int i;
 
-        for (int i = 0; i < input.Length; i++)
+        for (i = 0; i < Weights.Length - vectorSize; i += vectorSize)
+        {
+            var v1 = new Vector<double>(Weights, i);
+            var v2 = new Vector<double>(input, i);
+            accVector = Vector.Add(accVector, Vector.Multiply(v1, v2));
+        }
+
+        double sum = Vector.Sum(accVector);
+
+        for (; i < Weights.Length; i++)
             sum += Weights[i] * input[i];
 
         return sum;
