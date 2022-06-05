@@ -2,7 +2,7 @@
 
 using Key = ConsoleKey;
 
-public class ArgumentParser
+public struct ArgumentParser
 {
     public bool LoadFromDisk { get; }
     public bool CheckRecognition { get; }

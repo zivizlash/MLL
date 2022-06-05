@@ -1,5 +1,4 @@
-﻿using System.Runtime.Intrinsics;
-using MLL.ImageLoader;
+﻿using MLL.ImageLoader;
 using System.Text;
 
 namespace MLL;
@@ -32,14 +31,10 @@ public class Net
         ClearErrors();
 
         var message = new StringBuilder(512);
-
-
         var options = new ParallelOptions { MaxDegreeOfParallelism = 10 };
 
-        for (int epoch = 0; epoch < 500; epoch++)
+        for (int epoch = 0; epoch < 6000; epoch++)
         {
-            message.AppendLine($"Epoch: {epoch}");
-            
             Parallel.For(0, 10, options, neuronNumber =>
             {
                 var neuron = neurons[neuronNumber];
@@ -58,18 +53,17 @@ public class Net
                 }
             });
 
-            var v = Vector256<double>.Zero;
-            
-            for (var i = 0; i < neurons.Count; i++)
-                message.AppendLine($"Neuron: {i}; Error: {errors[i]}");
+            if (epoch % 50 == 0)
+            {
+                message.AppendLine($"Epoch: {epoch}");
 
-            var hasError = errors.Values.Sum() != 0;
-
-            ClearErrors();
-            Console.WriteLine(message.ToString());
-            message.Clear();
-
-            if (!hasError) break;
+                for (var i = 0; i < neurons.Count; i++)
+                    message.AppendLine($"Neuron: {i}; Error: {errors[i]}");
+                
+                ClearErrors();
+                Console.WriteLine(message.ToString());
+                message.Clear();
+            }
         }
 
         Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");
