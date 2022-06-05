@@ -1,5 +1,12 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Columns;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Running;
 
 namespace MLL.Benchmark;
@@ -38,7 +45,7 @@ public class NaiveVsVectorBench
     }
 
     [Benchmark]
-    public double Vector2Test()
+    public double VectorTest2()
     {
         var vectorSize = Vector<double>.Count;
         
@@ -60,7 +67,47 @@ public class NaiveVsVectorBench
     }
 
     [Benchmark]
-    public double Vector1Test()
+    public unsafe double Avx2Test()
+    {
+        int vectorSize = 256 / (Marshal.SizeOf<double>() * 8);
+        var accVector = Vector256<double>.Zero;
+
+        int i;
+        var weightsArr = _weights;
+        var inputArr = _input;
+
+        //Avx2.LoadVector256()
+
+        fixed (double* weightsPtr = weightsArr)
+        {
+            fixed (double* inputPtr = inputArr)
+            {
+                for (i = 0; i < weightsArr.Length - vectorSize; i++)
+                {
+                    var v1 = Avx2.LoadVector256(weightsPtr + i);
+                    var v2 = Avx2.LoadVector256(inputPtr + i);
+                    accVector = Avx2.Add(accVector, Avx2.Multiply(v1, v2));
+                }
+            }
+        }
+
+        double result = 0;
+
+        var temp = stackalloc double[vectorSize];
+
+        Avx2.Store(temp, accVector);
+        
+        for (int j = 0; j < vectorSize; j++)
+            result += temp[j];
+
+        for (; i < weightsArr.Length; i++)
+            result += weightsArr[i];
+
+        return result;
+    }
+
+    [Benchmark]
+    public double VectorTest1()
     {
         var vectorSize = Vector<double>.Count;
         var accVector = Vector<double>.Zero;
@@ -83,10 +130,25 @@ public class NaiveVsVectorBench
     }
 }
 
+public class BenchConfig : ManualConfig
+{
+    public BenchConfig()
+    {
+        AddJob(Job.Default.WithId("Default"));
+
+        AddJob(Job.Default.WithId("Dynamic PGO")
+            .WithEnvironmentVariables(
+                new EnvironmentVariable("DOTNET_TieredPGO", "1"),
+                new EnvironmentVariable("DOTNET_TC_QuickJitForLoops", "1"),
+                new EnvironmentVariable("DOTNET_ReadyToRun", "0")));
+    }
+}
+
 public class Program
 {
     public static void Main()
     {
-        BenchmarkRunner.Run<NaiveVsVectorBench>();
+        var config = ManualConfig.Union(DefaultConfig.Instance, new BenchConfig());
+        BenchmarkRunner.Run<NaiveVsVectorBench>(config);
     }
 }
