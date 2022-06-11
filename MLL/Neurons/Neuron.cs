@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace MLL;
+namespace MLL.Neurons;
 
 public abstract class Neuron
 {
@@ -38,17 +38,17 @@ public abstract class Neuron
 
         return sum;
     }
-    
+
     protected float CalculateWeightMultiplySum(float[] input)
     {
         if (Weights.Length != input.Length)
             throw new InvalidOperationException();
-        
+
         var vectorSize = Vector<float>.Count;
         var accVector = Vector<float>.Zero;
 
         int i;
-        
+
         for (i = 0; i < Weights.Length - vectorSize; i += vectorSize)
         {
             var v1 = new Vector<float>(Weights, i);

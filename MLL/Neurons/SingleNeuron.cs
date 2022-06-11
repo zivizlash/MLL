@@ -1,4 +1,4 @@
-﻿namespace MLL;
+﻿namespace MLL.Neurons;
 
 //public class SingleNeuron : Neuron
 //{
@@ -9,7 +9,7 @@
 //    {
 //        _bias = bias;
 //    }
-    
+
 //    public override double Predict(double[] input)
 //    {
 //        var sum = CalculateWeightMultiplySum(input);
@@ -21,7 +21,7 @@
 //    {
 //        var rawError = expected - Predict(input);
 //        var error = rawError;
-        
+
 //        for (int i = 0; i < input.Length; i++)
 //            Weights[i] += error * input[i] * LearningRate;
 

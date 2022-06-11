@@ -1,4 +1,4 @@
-﻿namespace MLL.ImageLoader;
+﻿namespace MLL.Options;
 
 public readonly struct ImageDataSetOptions
 {

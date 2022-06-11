@@ -1,4 +1,6 @@
 ﻿using MLL.ImageLoader;
+using MLL.Neurons;
+using MLL.Saving;
 
 namespace MLL;
 
@@ -12,20 +14,12 @@ public class NetMethods
         _net = net;
         
         _expectedValues = Enumerable
-            .Range(0, 10)
-            .Select(v =>
+            .Range(0, 10).Select(v =>
             {
                 var values = new float[10];
-
-                //for (int i = 0; i < values.Length; i++)
-                //{
-                //    values[i] = -1;
-                //}
-
                 values[v] = 1;
                 return values;
-            })
-            .ToArray();
+            }).ToArray();
     }
 
     private static void PrepareTraining(IImageDataSetProvider imageProvider)
@@ -36,7 +30,7 @@ public class NetMethods
 
         Console.WriteLine("Loading and process images...");
         imageProvider.LoadAllImages(keys);
-        Console.WriteLine("Images loaded\n");
+        Console.WriteLine("Images loaded");
     }
 
     public void Train(IImageDataSetProvider imageProvider)

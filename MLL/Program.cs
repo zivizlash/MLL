@@ -1,6 +1,10 @@
-﻿using System.Runtime.CompilerServices;
-using ImageMagick;
+﻿using ImageMagick;
+using MLL.Builders;
 using MLL.ImageLoader;
+using MLL.Neurons;
+using MLL.Options;
+using MLL.Saving;
+using MLL.Tools;
 
 namespace MLL;
 
@@ -27,20 +31,10 @@ public class Program
 
     private static Net CreateWithHiddenLayers(ImageRecognitionOptions options)
     {
-        static LayerDefinition CreateLayer(int count, int weights, bool useActivation = true) => 
-            LayerDefinition.CreateSingle(count, weights, useActivation);
-        
         const int numbersCount = 10;
 
         var imageWeightsCount = options.ImageWidth * options.ImageHeight;
-
-        //var layers = new[]
-        //{
-        //    CreateLayer(numbersCount, imageWeightsCount),
-        //    CreateLayer(numbersCount * 2, numbersCount),
-        //    CreateLayer(numbersCount, numbersCount * 2, false)
-        //};
-
+        
         var layers = LayerDefinition.Builder
             .WithLearningRate(options.LearningRate)
             .WithInput(numbersCount, imageWeightsCount)

@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
+using MLL.Tools;
 
-namespace MLL;
+namespace MLL.Neurons;
 
 public class SigmoidNeuron : Neuron
 {
@@ -17,7 +18,7 @@ public class SigmoidNeuron : Neuron
     {
         _useActivationFunc = useActivationFunc;
     }
-    
+
     public override float Predict(float[] input)
     {
         var sum = CalculateWeightMultiplySum(input);
@@ -36,7 +37,7 @@ public class SigmoidNeuron : Neuron
             Weights[i] -= deltaWeight * input[i];
         }
     }
-    
+
     public NeuronError CalculateError(float[] input, float expected)
     {
         var output = Predict(input);

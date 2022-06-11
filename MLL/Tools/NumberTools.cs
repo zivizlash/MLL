@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace MLL;
+namespace MLL.Tools;
 
 public static class NumberTools
 {

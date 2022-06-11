@@ -1,4 +1,6 @@
-﻿namespace MLL;
+﻿using MLL.Builders;
+
+namespace MLL.Neurons;
 
 public class Net
 {

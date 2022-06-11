@@ -1,6 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using MLL.Neurons;
+using Newtonsoft.Json;
 
-namespace MLL;
+namespace MLL.Saving;
 
 public static class NeuronWeightsSaver
 {

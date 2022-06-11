@@ -1,4 +1,4 @@
-﻿namespace MLL;
+﻿namespace MLL.Neurons;
 
 public class NeuronLayer
 {

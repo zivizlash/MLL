@@ -1,4 +1,4 @@
-﻿namespace MLL;
+﻿namespace MLL.Options;
 
 using Key = ConsoleKey;
 

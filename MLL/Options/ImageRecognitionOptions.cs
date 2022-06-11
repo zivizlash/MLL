@@ -1,4 +1,4 @@
-﻿namespace MLL;
+﻿namespace MLL.Options;
 
 public readonly struct ImageRecognitionOptions
 {

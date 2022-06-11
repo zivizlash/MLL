@@ -1,6 +1,7 @@
 ﻿using ImageMagick;
+using MLL.Options;
 
-namespace MLL.ImageLoader;
+namespace MLL.Tools;
 
 public static class ImageTools
 {

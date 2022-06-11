@@ -1,4 +1,4 @@
-﻿namespace MLL;
+﻿namespace MLL.Builders;
 
 public struct LayerDefinition
 {
