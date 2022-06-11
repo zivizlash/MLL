@@ -1,4 +1,5 @@
-﻿using ImageMagick;
+﻿using System.Runtime.CompilerServices;
+using ImageMagick;
 using MLL.ImageLoader;
 
 namespace MLL;
@@ -10,13 +11,11 @@ public class Program
 
     private static Net GetNeurons(bool loadFromDisk, ImageRecognitionOptions options, bool fillRandom = false)
     {
-        // ReSharper disable once CoVariantArrayConversion
-        if (loadFromDisk)
-        {
-            return NeuronWeightsSaver.Load();
-        }
+        var net = loadFromDisk
+            ? NeuronWeightsSaver.Load()
+            : CreateWithHiddenLayers(options);
 
-        return CreateWithHiddenLayers(options);
+        return net.UpdateLearningRate(options.LearningRate);
     }
     
     private static IImageDataSetProvider CreateDataSetProvider(bool isEven) =>
@@ -35,26 +34,31 @@ public class Program
 
         var imageWeightsCount = options.ImageWidth * options.ImageHeight;
 
-        var layers = new[]
-        {
-            CreateLayer(numbersCount, imageWeightsCount),
-            CreateLayer(numbersCount * 2, numbersCount),
-            CreateLayer(numbersCount, numbersCount * 2, false)
-        };
+        //var layers = new[]
+        //{
+        //    CreateLayer(numbersCount, imageWeightsCount),
+        //    CreateLayer(numbersCount * 2, numbersCount),
+        //    CreateLayer(numbersCount, numbersCount * 2, false)
+        //};
 
-        return new Net(options.LearningRate, layers).FillRandomValues(GetRandomBySeed(options.RandomSeed), 0.1);
+        var layers = LayerDefinition.Builder
+            .WithLearningRate(options.LearningRate)
+            .WithInput(numbersCount, imageWeightsCount)
+            .WithHiddenLayers(numbersCount * 2)
+            .WithOutput(numbersCount, false)
+            .Build();
+
+        return new Net(options.LearningRate, layers)
+            .FillRandomValues(GetRandomBySeed(options.RandomSeed), 0.1);
     }
     
     public static void Main()
     {
         var args = ArgumentParser.GetArguments();
-
         var imageOptions = ImageRecognitionOptions.Default;
 
         var net = GetNeurons(args.LoadFromDisk, imageOptions);
         
-        net.UpdateLearningRate(imageOptions.LearningRate);
-
         var netMethods = new NetMethods(net);
 
         if (args.Train)
@@ -70,10 +74,10 @@ public class Program
             NeuronWeightsSaver.Save(net);
 
         if (args.TestImageNormalizing)
-            TestNormalizing();
+            TestImageNormalizing();
     }
 
-    private static void TestNormalizing()
+    private static void TestImageNormalizing()
     {
         var options = ImageDataSetOptions.Default;
         var imagePath = ArgumentParser.GetImagePath();
