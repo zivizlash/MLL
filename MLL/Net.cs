@@ -1,152 +1,185 @@
-﻿using MLL.ImageLoader;
-using System.Text;
-
-namespace MLL;
+﻿namespace MLL;
 
 public class Net
 {
-    private static void PrepareTraining(IImageDataSetProvider imageProvider)
+    private readonly NeuronLayer[] _layers;
+
+    public int OutputNeuronCount { get; }
+    
+    public Net(double learningRate, params LayerDefinition[] definitions)
     {
-        var keys = Enumerable.Range(0, 10).ToList();
-        var count = imageProvider.GetLargestImageDataSetCount(keys);
-        ImageDataSetProviderExtensions.EnsureKeys(count);
+        _layers = new NeuronLayer[definitions.Sum(d => d.Layers)];
 
-        Console.WriteLine("Loading and process images...");
-        imageProvider.LoadAllImages(keys);
-        Console.WriteLine("Images loaded\n");
-    }
+        int index = 0;
 
-    public void Train(IImageDataSetProvider imageProvider, IReadOnlyList<INeuron> neurons)
-    {
-        var errors = new Dictionary<int, double>(neurons.Count);
-        var dt = DateTime.Now;
-
-        void ClearErrors()
+        foreach (var definition in definitions)
         {
-            for (int i = 0; i < neurons.Count; i++)
-                errors[i] = 0;
-        }
-
-        PrepareTraining(imageProvider);
-        ClearErrors();
-
-        var message = new StringBuilder(512);
-        var options = new ParallelOptions { MaxDegreeOfParallelism = 10 };
-
-        for (int epoch = 0; epoch < 6000; epoch++)
-        {
-            Parallel.For(0, 10, options, neuronNumber =>
+            for (int layer = 0; layer < definition.Layers; layer++)
             {
-                var neuron = neurons[neuronNumber];
-
-                for (int imageNumber = 0; imageNumber < 10; imageNumber++)
-                {
-                    var imagesSet = imageProvider.GetDataSet(imageNumber);
-                    var expected = neuronNumber == imageNumber ? 1 : 0;
-
-                    for (int imageIndex = 0; imageIndex < imagesSet.Count; imageIndex++)
-                    {
-                        var image = imagesSet[imageIndex];
-                        var error = neuron.Train(image.Data, expected);
-                        errors[neuronNumber] += Math.Abs(error);
-                    }
-                }
-            });
-
-            if (epoch % 50 == 0)
-            {
-                message.AppendLine($"Epoch: {epoch}");
-
-                for (var i = 0; i < neurons.Count; i++)
-                    message.AppendLine($"Neuron: {i}; Error: {errors[i]}");
-                
-                ClearErrors();
-                Console.WriteLine(message.ToString());
-                message.Clear();
+                _layers[index++] = new NeuronLayer(definition.NeuronsCount,
+                    definition.WeightsCount, learningRate, definition.UseActivationFunc);
             }
         }
 
-        Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");
+        OutputNeuronCount = _layers[^1].Count;
     }
 
-    public double Test2(INeuron[] neurons, IImageDataSet imageSet)
+    public double[] Predict(double[] input)
     {
-        var error = 0;
-        var results = new double[neurons.Length];
+        var output = input;
 
-        for (int i = 0; i < imageSet.Count; i++)
+        foreach (var neuronLayer in _layers)
+            output = neuronLayer.Predict(output);
+
+        return output;
+    }
+
+    private double[][] PredictWithOutputs(double[] input)
+    {
+        var outputs = new double[_layers.Length][];
+        var currentOutput = input;
+
+        for (var i = 0; i < _layers.Length; i++)
         {
-            var imageData = imageSet[i];
+            var neuronLayer = _layers[i];
+            currentOutput = neuronLayer.Predict(currentOutput);
+            outputs[i] = currentOutput;
+        }
 
-            for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
-                results[neuronIndex] = neurons[neuronIndex].Predict(imageData.Data);
+        return outputs;
+    }
 
-            var max = results[0];
-            var index = 0;
+    private static double[] GetLastLayerErrors(NeuronError[] errors)
+    {
+        var lastLayerErrors = new double[errors.Length];
+
+        for (int i = 0; i < errors.Length; i++)
+            lastLayerErrors[i] = errors[i].Error;
+
+        return lastLayerErrors;
+    }
+
+    private static double[][] CreateNeuronInputModel(double[][] layersOutputs, double[] firstLayerInput)
+    {
+        var outputs = new double[layersOutputs.Length][];
+        outputs[0] = firstLayerInput;
+
+        for (int i = 0; i < layersOutputs.Length - 1; i++)
+            outputs[i + 1] = layersOutputs[i];
+
+        return outputs;
+    }
+
+    public void PrintWeights()
+    {
+        for (var layerIndex = 0; layerIndex < _layers.Length; layerIndex++)
+        {
+            var layer = _layers[layerIndex];
+
+            Console.WriteLine($"Layer: {layerIndex}");
+
+            foreach (var neuron in layer.Neurons)
+            {
+                Console.Write($"{string.Join(", ", neuron.Weights)};");
+            }
+
+            Console.WriteLine();
+        }
+    }
+
+    public double[] Train(double[] input, double[] expected)
+    {
+        var outputsWith = PredictWithOutputs(input);
+        var outputs = CreateNeuronInputModel(outputsWith, input);
+
+        // Количество ошибок последнего слоя = количеству нейронов.
+        var errors = CalculateLayerErrorsAndCompensate(_layers[^1], outputs[^1], expected);
+        
+        // Мы берем ошибку, и смотрим насколько текущие веса
+        // влияют на конечный результат вычислений нейрона.
+        for (int layerIndex = _layers.Length - 2; layerIndex >= 0; layerIndex--)
+        {
+            // errors тут хранит ошибки предпоследнего слоя.
+            var layer = _layers[layerIndex];
+
+            double[] localInput = outputs[layerIndex];
+            double[] localOutput = outputs[layerIndex + 1];
+
+            // Ошибки с последнего слоя. В данном случае количество элементов - 1.
+            for (int i = 0; i < localOutput.Length; i++)
+                errors[i].Output = localOutput[i];
             
-            for (int resultIndex = 1; resultIndex < neurons.Length; resultIndex++)
-            {
-                var value = results[resultIndex];
-
-                if (value > max)
-                {
-                    max = value;
-                    index = resultIndex;
-                }
-            }
-
-            if (!index.Equals(imageSet.Value))
-                error++;
+            errors = CalculateAndCompensateErrors(layer, errors, localInput);
         }
 
-        var successPercents = (1.0 - error / (double) imageSet.Count) * 100;
-        var successString = successPercents.ToString("F3").Replace(',', '.');
-
-        Console.WriteLine($"{imageSet.Value}: {successString}");
-        return successPercents;
+        return outputsWith[^1];
     }
 
-    public double Test(INeuron[] neurons, IImageDataSet imageSet)
+    public void FillRandomValues(Random random, double range = 0.5)
     {
-        var count = neurons.Length * imageSet.Count;
-        var error = 0;
-
-        for (int i = 0; i < imageSet.Count; i++)
+        foreach (var layer in _layers)
         {
-            var imageData = imageSet[i];
-
-            for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
-            {
-                var neuron = neurons[neuronIndex];
-                var predict = neuron.Predict(imageData.Data);
-
-                if (neuronIndex.Equals(imageData.Value))
-                {
-                    if (predict <= 0.975) error++;
-                }
-                else
-                {
-                    if (predict > 0.975) error++;
-                }
-            }
+            foreach (var neuron in layer.Neurons)
+                neuron.FillRandomValues(random, range);
         }
-
-        var successPercents = (1.0 - error / (double) count) * 100;
-        var successString = successPercents.ToString("F3").Replace(',', '.');
-
-        Console.WriteLine($"{imageSet.Value}: {successString}");
-        return successPercents;
     }
 
-    public void CheckRecognition(INeuron[] neurons)
+    private static NeuronError[] CalculateAndCompensateErrors(NeuronLayer layer, NeuronError[] errors, double[] input)
     {
-        var image = ImageTools.LoadImageData(ArgumentParser.GetImagePath(), ImageDataSetOptions.Default);
-
-        for (var i = 0; i < neurons.Length; i++)
+        // Тут мы считаем, что все нейроны имеет одинаковые 
+        int weightsCount = layer.Neurons[0].Weights.Length;
+        var nextLayerErrors = new NeuronError[weightsCount];
+        
+        // Мы берем ошибку, и смотрим насколько текущие веса
+        // влияют на конечный результат вычислений нейрона.
+        for (int i = 0; i < layer.Neurons.Length; i++)
         {
-            var neuron = neurons[i];
-            var predict = neuron.Predict(image);
-            Console.WriteLine($"Neuron: {i}; Value: {predict:F3}");
+            var neuron = layer.Neurons[i];
+            var error = errors[i];
+
+            double weightsSum = neuron.CalculateWeightsSum();
+            
+            for (int weightIndex = 0; weightIndex < neuron.Weights.Length; weightIndex++)
+            {
+                var weightValue = neuron.Weights[weightIndex];
+                var errorPart = weightValue / weightsSum * error.Error;
+                nextLayerErrors[weightIndex].Error += errorPart;
+            }
+            
+            // Так как у нас в зависимости есть входные данные, то нам надо их предоставить.
+            // Получается так, что входные данные этого нейрона это выход предыдущих нейронов.
+            neuron.CompensateError(input, error);
         }
+
+        return nextLayerErrors;
+    }
+
+    private static NeuronError[] CalculateLayerErrorsAndCompensate(
+        NeuronLayer layer, double[] previousInput, double[] expected)
+    {
+        var neurons = layer.Neurons;
+        var weightsCount = neurons[0].Weights.Length;
+        var errors = new NeuronError[weightsCount];
+        
+        for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
+        {
+            var neuron = neurons[neuronIndex];
+            var neuronExpected = expected[neuronIndex];
+
+            var error = neuron.CalculateError(previousInput, neuronExpected);
+            double weightsSum = neuron.CalculateWeightsSum();
+            
+            neuron.CompensateError(previousInput, error);
+            
+            for (int weightIndex = 0; weightIndex < weightsCount; weightIndex++)
+            {
+                double weightValue = neuron.Weights[weightIndex];
+                double errorPart = Math.Abs(weightValue) / weightsSum * error.Error;
+                errors[weightIndex].Error += errorPart;
+                errors[weightIndex].Output = previousInput[weightIndex];
+            }
+        }
+        
+        return errors;
     }
 }
