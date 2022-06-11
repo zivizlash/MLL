@@ -2,10 +2,10 @@
 
 public struct NeuronError
 {
-    public double Error;
-    public double Output;
+    public float Error;
+    public float Output;
     
-    public NeuronError(double error, double output)
+    public NeuronError(float error, float output)
     {
         Error = error;
         Output = output;

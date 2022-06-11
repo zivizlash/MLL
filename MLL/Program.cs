@@ -13,26 +13,10 @@ public class Program
         // ReSharper disable once CoVariantArrayConversion
         if (loadFromDisk)
         {
-            throw new NotImplementedException();
-            //return NeuronWeightsSaver.Load<SigmoidNeuron>();
+            return NeuronWeightsSaver.Load();
         }
 
-        return CreateWithHiddenLayers();
-
-        //var neurons = new Neuron[10];
-        //var random = GetRandomBySeed(options.RandomSeed);
-
-        //var weightsCount = options.ImageWidth * options.ImageHeight;
-
-        //for (int i = 0; i < neurons.Length; i++)
-        //{
-        //    var neuron = new SigmoidNeuron(weightsCount, options.LearningRate);
-        //    neurons[i] = fillRandom ? neuron.FillRandomValues(random) : neuron;
-        //}
-
-        ////var net = new Net()
-        
-        //return neurons;
+        return CreateWithHiddenLayers(options);
     }
     
     private static IImageDataSetProvider CreateDataSetProvider(bool isEven) =>
@@ -42,112 +26,51 @@ public class Program
     private static IImageDataSetProvider CreateTestDataSetProvider() => CreateDataSetProvider(false);
     private static IImageDataSetProvider CreateTrainDataSetProvider() => CreateDataSetProvider(true);
 
-    private const int NumbersCount = 10;
-
-    private static Net CreateWithHiddenLayers()
+    private static Net CreateWithHiddenLayers(ImageRecognitionOptions options)
     {
-        static LayerDefinition CreateLayer(int count, int weights) => LayerDefinition.CreateSingle(count, weights);
+        static LayerDefinition CreateLayer(int count, int weights, bool useActivation = true) => 
+            LayerDefinition.CreateSingle(count, weights, useActivation);
+        
+        const int numbersCount = 10;
 
-        var imageOptions = ImageRecognitionOptions.Default;
-        var imageWeightsCount = imageOptions.ImageWidth * imageOptions.ImageHeight;
+        var imageWeightsCount = options.ImageWidth * options.ImageHeight;
 
-        throw new NotImplementedException();
-
-        //return new Net(CreateLayer(10, imageWeightsCount), CreateLayer(NumbersCount, 10));
-    }
-
-    private static void Check(Net net, double[][] input, double[] results)
-    {
-        for (int i = 0; i < results.Length; i++)
+        var layers = new[]
         {
-            var result = net.Predict(input[i])[0];
-            var expected = results[i];
+            CreateLayer(numbersCount, imageWeightsCount),
+            CreateLayer(numbersCount * 2, numbersCount),
+            CreateLayer(numbersCount, numbersCount * 2, false)
+        };
 
-            Console.WriteLine($"{string.Join(' ', input[i])}: {expected}; actual: {result}");
-        }
+        return new Net(options.LearningRate, layers).FillRandomValues(GetRandomBySeed(options.RandomSeed), 0.1);
     }
-
+    
     public static void Main()
     {
-        //var args = ArgumentParser.GetArguments();
+        var args = ArgumentParser.GetArguments();
 
-        //var net = GetNeurons(args.LoadFromDisk, ImageRecognitionOptions.Default);
+        var imageOptions = ImageRecognitionOptions.Default;
+
+        var net = GetNeurons(args.LoadFromDisk, imageOptions);
         
-        var input = new[]
-        {
-            new double[] { 0, 0 }, 
-            new double[] { 1, 1 },
-            new double[] { 1, 0 }, 
-            new double[] { 0, 1 }
-        };
+        net.UpdateLearningRate(imageOptions.LearningRate);
 
-        var results = new double[] 
-        {
-            0, 0, 1, 1
-        };
-        
-        var net = new Net(0.1, 
-            LayerDefinition.CreateSingle(4, 2),
-            LayerDefinition.CreateSingle(4, 4),
-            LayerDefinition.CreateSingle(1, 4, false));
+        var netMethods = new NetMethods(net);
 
-        var random = new Random(600);
+        if (args.Train)
+            netMethods.Train(CreateTrainDataSetProvider());
 
-        net.FillRandomValues(random, 2);
+        if (!args.CheckRecognition && !args.TestImageNormalizing)
+            netMethods.FullTest(CreateTestDataSetProvider());
 
-        for (int epoch = 0; epoch < 6000; epoch++)
-        {
-            double generalError = 0;
+        if (args.CheckRecognition)
+            throw new NotImplementedException(); // netMethods.CheckRecognition();
 
-            Check(net, input, results);
-            
-            for (int resultIndex = 0; resultIndex < results.Length; resultIndex++)
-            {
-                var expectedNumber = results[resultIndex];
-                var expected = new[] { expectedNumber };
-                var output = net.Train(input[resultIndex], expected)[0];
+        if (args.Train)
+            NeuronWeightsSaver.Save(net);
 
-                var error = output - expectedNumber;
-                generalError += Math.Abs(error);
-            }
-            
-            Console.WriteLine($"General Error: {generalError:F5}\n");
-        }
-
-        for (int i = 0; i < results.Length; i++)
-        {
-            var result = net.Predict(input[i])[0];
-            var expected = results[i];
-
-            Console.WriteLine($"{string.Join(' ', input[i])}: {expected}; actual: {result}");
-        }
-
-        //var netMethods = new NetMethods();
-
-        //if (args.Train)
-        //    netMethods.Train(CreateTrainDataSetProvider(), net);
-
-        //if (!args.CheckRecognition && !args.TestImageNormalizing)
-        //{
-        //    var imageSetTestProvider = CreateTestDataSetProvider();
-
-        //    double recognizedPercents = 0;
-
-        //    for (int i = 0; i < 10; i++)
-        //        recognizedPercents += netMethods.Test2(net, imageSetTestProvider.GetDataSet(i));
-
-        //    Console.WriteLine();
-        //    Console.WriteLine($"Overall recognized percents: {recognizedPercents / 10.0}");
-        //}
-
-        //if (args.CheckRecognition)
-        //    netMethods.CheckRecognition(net);
-
-        //if (args.Train)
-        //    NeuronWeightsSaver.Save(net);
-
-        //if (args.TestImageNormalizing)
-        //    TestNormalizing();
+        if (args.TestImageNormalizing)
+            TestNormalizing();
     }
 
     private static void TestNormalizing()

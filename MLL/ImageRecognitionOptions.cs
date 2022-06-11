@@ -5,11 +5,11 @@ public readonly struct ImageRecognitionOptions
     public int ImageWidth { get; }
     public int ImageHeight { get; }
     public double Bias { get; }
-    public double LearningRate { get; }
+    public float LearningRate { get; }
     public int? RandomSeed { get; }
 
-    public ImageRecognitionOptions(int imageWidth, int imageHeight, double bias, 
-        double learningRate, int? randomSeed)
+    public ImageRecognitionOptions(int imageWidth, int imageHeight, 
+        double bias, float learningRate, int? randomSeed)
     {
         ImageWidth = imageWidth;
         ImageHeight = imageHeight;
@@ -18,5 +18,5 @@ public readonly struct ImageRecognitionOptions
         RandomSeed = randomSeed;
     }
 
-    public static readonly ImageRecognitionOptions Default = new(64, 64, 10, 0.100000, 2357678);
+    public static readonly ImageRecognitionOptions Default = new(32, 32, 10, 0.00015f, 2357678);
 }

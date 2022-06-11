@@ -3,9 +3,9 @@
 public class ImageData
 {
     public object Value { get; }
-    public double[] Data { get; }
+    public float[] Data { get; }
 
-    public ImageData(object value, double[] data)
+    public ImageData(object value, float[] data)
     {
         Value = value;
         Data = data;

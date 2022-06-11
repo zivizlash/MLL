@@ -4,15 +4,21 @@ namespace MLL;
 
 public class SigmoidNeuron : Neuron
 {
-    private readonly bool _useActivationFunc;
+    private bool _useActivationFunc;
 
-    public SigmoidNeuron(int weightCount, double learningRate, bool useActivationFunc)
+    public bool UseActivationFunc
+    {
+        get => _useActivationFunc;
+        set => _useActivationFunc = value;
+    }
+
+    public SigmoidNeuron(int weightCount, float learningRate, bool useActivationFunc)
         : base(weightCount, learningRate)
     {
         _useActivationFunc = useActivationFunc;
     }
     
-    public override double Predict(double[] input)
+    public override float Predict(float[] input)
     {
         var sum = CalculateWeightMultiplySum(input);
 
@@ -21,7 +27,7 @@ public class SigmoidNeuron : Neuron
             : sum;
     }
 
-    public void CompensateError(double[] input, NeuronError neuronError)
+    public void CompensateError(float[] input, NeuronError neuronError)
     {
         var deltaWeight = GetDeltaWeight(neuronError.Output, neuronError.Error);
 
@@ -31,14 +37,14 @@ public class SigmoidNeuron : Neuron
         }
     }
     
-    public NeuronError CalculateError(double[] input, double expected)
+    public NeuronError CalculateError(float[] input, float expected)
     {
         var output = Predict(input);
         var error = -(expected - output);
         return new NeuronError(error, output);
     }
 
-    public override double Train(double[] input, double expected)
+    public override float Train(float[] input, float expected)
     {
         var output = Predict(input);
         var error = -(expected - output);
@@ -55,11 +61,11 @@ public class SigmoidNeuron : Neuron
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private double GetDeltaWeight(double output, double error)
+    private float GetDeltaWeight(float output, float error)
     {
         if (_useActivationFunc)
         {
-            double sigmoid = output * (1.0 - output);
+            float sigmoid = output * (1.0f - output);
             return LearningRate * error * sigmoid;
         }
 

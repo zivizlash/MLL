@@ -4,20 +4,20 @@ namespace MLL.ImageLoader;
 
 public static class ImageTools
 {
-    public static double[] RgbToGreyscale(byte[] pixels)
+    public static float[] RgbToGreyscale(byte[] pixels)
     {
-        var greyscale = new double[pixels.Length / 3];
+        var greyscale = new float[pixels.Length / 3];
 
         for (int pi = 0, ri = 0; pi < pixels.Length; pi += 3, ri++)
         {
             var (r, g, b) = (pixels[pi], pixels[pi + 1], pixels[pi + 2]);
-            greyscale[ri] = (r + g + b) / (255.0 * 3);
+            greyscale[ri] = (r + g + b) / (255.0f * 3);
         }
 
         return greyscale;
     }
 
-    private static double[] NormalizeAndConvert(MagickImage magickImage, ImageDataSetOptions options)
+    private static float[] NormalizeAndConvert(MagickImage magickImage, ImageDataSetOptions options)
     {
         magickImage.Resize(new MagickGeometry(options.Width, options.Height));
         
@@ -27,12 +27,12 @@ public static class ImageTools
         return RgbToGreyscale(rgbPixels);
     }
 
-    public static double[] LoadImageData(Stream stream, ImageDataSetOptions options) =>
+    public static float[] LoadImageData(Stream stream, ImageDataSetOptions options) =>
         NormalizeAndConvert(new MagickImage(stream), options);
 
-    public static double[] LoadImageData(string filepath, ImageDataSetOptions options) =>
+    public static float[] LoadImageData(string filepath, ImageDataSetOptions options) =>
         NormalizeAndConvert(new MagickImage(new FileInfo(filepath)), options);
-    
+
     // not tested
     public static void NormalizePixels(double[] pixels)
     {

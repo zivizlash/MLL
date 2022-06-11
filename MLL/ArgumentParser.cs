@@ -17,19 +17,18 @@ public struct ArgumentParser
         TestImageNormalizing = testImageNormalizing;
     }
 
-    public static ArgumentParser GetArguments()
+    public static ArgumentParser GetArguments(Key defaultKey = default)
     {
-        Key key;
-
+        Key key = defaultKey;
+        
         var allowedKeys = new [] { Key.L, Key.T, Key.C, Key.R, Key.I };
 
-        do
+        while (!allowedKeys.Contains(key))
         {
             Console.WriteLine("Load - L; Retrain - R; Check - C; Train - T; Image Normalizing - I");
             key = Console.ReadKey(true).Key;
         }
-        while (!allowedKeys.Contains(key));
-
+        
         Console.WriteLine(key switch
         {
             Key.L => "Loading weights from disk",

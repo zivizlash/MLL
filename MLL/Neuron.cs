@@ -4,59 +4,59 @@ namespace MLL;
 
 public abstract class Neuron
 {
-    public double[] Weights { get; set; }
-    public double LearningRate { get; set; }
+    public float[] Weights { get; set; }
+    public float LearningRate { get; set; }
 
-    public double LastError { get; protected set; }
+    public float LastError { get; protected set; }
 
-    protected Neuron(int weightCount, double learningRate)
+    protected Neuron(int weightCount, float learningRate)
     {
         LearningRate = learningRate;
-        Weights = new double[weightCount];
+        Weights = new float[weightCount];
     }
 
-    public abstract double Predict(double[] input);
-    public abstract double Train(double[] input, double expected);
+    public abstract float Predict(float[] input);
+    public abstract float Train(float[] input, float expected);
 
-    public double CalculateWeightsSum()
+    public float CalculateWeightsSum()
     {
-        var vectorSize = Vector<double>.Count;
-        var accVector = Vector<double>.Zero;
+        var vectorSize = Vector<float>.Count;
+        var accVector = Vector<float>.Zero;
 
         int i;
 
         for (i = 0; i < Weights.Length - vectorSize; i += vectorSize)
         {
-            var v1 = new Vector<double>(Weights, i);
+            var v1 = new Vector<float>(Weights, i);
             accVector = Vector.Add(accVector, Vector.Abs(v1));
         }
 
-        double sum = Vector.Sum(accVector);
+        float sum = Vector.Sum(accVector);
 
         for (; i < Weights.Length; i++)
-            sum += Math.Abs(Weights[i]);
+            sum += MathF.Abs(Weights[i]);
 
         return sum;
     }
     
-    protected double CalculateWeightMultiplySum(double[] input)
+    protected float CalculateWeightMultiplySum(float[] input)
     {
         if (Weights.Length != input.Length)
             throw new InvalidOperationException();
         
-        var vectorSize = Vector<double>.Count;
-        var accVector = Vector<double>.Zero;
+        var vectorSize = Vector<float>.Count;
+        var accVector = Vector<float>.Zero;
 
         int i;
         
         for (i = 0; i < Weights.Length - vectorSize; i += vectorSize)
         {
-            var v1 = new Vector<double>(Weights, i);
-            var v2 = new Vector<double>(input, i);
+            var v1 = new Vector<float>(Weights, i);
+            var v2 = new Vector<float>(input, i);
             accVector = Vector.Add(accVector, Vector.Multiply(v1, v2));
         }
 
-        double sum = Vector.Sum(accVector);
+        float sum = Vector.Sum(accVector);
 
         for (; i < Weights.Length; i++)
             sum += Weights[i] * input[i];
@@ -67,7 +67,7 @@ public abstract class Neuron
     public Neuron FillRandomValues(Random random, double range = 1)
     {
         for (int i = 0; i < Weights.Length; i++)
-            Weights[i] = random.NextDouble() * range - range;
+            Weights[i] = (random.NextSingle() - 0.5f) * (float)range;
 
         return this;
     }

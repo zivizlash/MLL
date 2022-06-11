@@ -4,17 +4,17 @@ namespace MLL;
 
 public static class NeuronWeightsSaver
 {
-    private const string Filename = "sigmoid64x64weights.json";
+    private const string Filename = "hiddennetsig1.json";
 
-    public static void Save(Neuron[] neurons)
+    public static void Save(Net net)
     {
-        var json = JsonConvert.SerializeObject(neurons);
+        var json = JsonConvert.SerializeObject(net);
         File.WriteAllText(Filename, json);
     }
 
-    public static TNeuron[] Load<TNeuron>() where TNeuron : Neuron
+    public static Net Load()
     {
         var json = File.ReadAllText(Filename);
-        return JsonConvert.DeserializeObject<TNeuron[]>(json)!;
+        return JsonConvert.DeserializeObject<Net>(json)!;
     }
 }

@@ -8,10 +8,22 @@ public interface IFilesProviderFactory
 public class NotOrEvenFilesProviderFactory : IFilesProviderFactory
 {
     private readonly bool _isEven;
+    private readonly int? _maxFilesCount;
 
-    public NotOrEvenFilesProviderFactory(bool isEven) => _isEven = isEven;
+    public NotOrEvenFilesProviderFactory(bool isEven, int? maxFilesCount = default)
+    {
+        _isEven = isEven;
+        _maxFilesCount = maxFilesCount;
+    }
 
-    public IFilesProvider Create(string folder) => new FolderFilteredFilesProvider(folder, CreateFilter(_isEven));
+    public IFilesProvider Create(string folder)
+    {
+        var provider = new FolderFilteredFilesProvider(folder, CreateFilter(_isEven));
+
+        return _maxFilesCount.HasValue
+            ? new MaxFilesCountFilesProviderDecorator(provider, _maxFilesCount.Value)
+            : provider;
+    }
 
     private static Func<string, bool> CreateFilter(bool isEven)
     {
