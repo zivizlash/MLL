@@ -1,9 +1,8 @@
-﻿using System.Runtime.CompilerServices;
-using MLL.Tools;
+﻿using MLL.Tools;
 
 namespace MLL.Neurons;
 
-public class SigmoidNeuron : Neuron
+public sealed class SigmoidNeuron : Neuron
 {
     private bool _useActivationFunc;
 
@@ -21,7 +20,7 @@ public class SigmoidNeuron : Neuron
 
     public override float Predict(float[] input)
     {
-        var sum = CalculateWeightMultiplySum(input);
+        float sum = CalculateWeightMultiplySum(input);
 
         return _useActivationFunc
             ? NumberTools.Sigmoid(sum)
@@ -30,12 +29,10 @@ public class SigmoidNeuron : Neuron
 
     public void CompensateError(float[] input, NeuronError neuronError)
     {
-        var deltaWeight = GetDeltaWeight(neuronError.Output, neuronError.Error);
+        var commonDeltaWeight = GetDeltaWeight(neuronError.Output, neuronError.Error);
 
         for (int i = 0; i < Weights.Length; i++)
-        {
-            Weights[i] -= deltaWeight * input[i];
-        }
+            Weights[i] -= commonDeltaWeight * input[i];
     }
 
     public NeuronError CalculateError(float[] input, float expected)
@@ -60,8 +57,7 @@ public class SigmoidNeuron : Neuron
 
         return error;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    
     private float GetDeltaWeight(float output, float error)
     {
         if (_useActivationFunc)

@@ -1,27 +1,27 @@
 ﻿using MLL.Builders;
+using MLL.Tools;
 
 namespace MLL.Neurons;
 
+// ReSharper disable SuggestBaseTypeForParameter
+
 public class Net
 {
-    private NeuronLayer[] _layers;
+    public NeuronLayer[] Layers { get; set; }
+    public NetMemoryBuffers Buffers { get; }
 
-    public NeuronLayer[] Layers
-    {
-        get => _layers;
-        set => _layers = value;
-    }
-
-    public int OutputNeuronCount => _layers[^1].Count;
+    // Use benchmark? 
+    private const int ThreadingThreshold = 500;
 
     public Net()
     {
-        _layers = Array.Empty<NeuronLayer>();
+        Layers = Array.Empty<NeuronLayer>();
+        Buffers = new NetMemoryBuffers();
     }
     
-    public Net(float learningRate, params LayerDefinition[] definitions)
+    public Net(float learningRate, params LayerDefinition[] definitions) : this()
     {
-        _layers = new NeuronLayer[definitions.Sum(d => d.Layers)];
+        Layers = new NeuronLayer[definitions.Sum(d => d.Layers)];
 
         int index = 0;
 
@@ -29,7 +29,7 @@ public class Net
         {
             for (int layer = 0; layer < definition.Layers; layer++)
             {
-                _layers[index++] = new NeuronLayer(definition.NeuronsCount,
+                Layers[index++] = new NeuronLayer(definition.NeuronsCount,
                     definition.WeightsCount, learningRate, definition.UseActivationFunc);
             }
         }
@@ -48,7 +48,7 @@ public class Net
     {
         var output = input;
 
-        foreach (var neuronLayer in _layers)
+        foreach (var neuronLayer in Layers)
             output = neuronLayer.Predict(output);
 
         return output;
@@ -56,12 +56,12 @@ public class Net
 
     private float[][] PredictWithOutputs(float[] input)
     {
-        var outputs = new float[_layers.Length][];
+        var outputs = Buffers.GetOutputsBuffer(Layers.Length);
         var currentOutput = input;
 
-        for (var i = 0; i < _layers.Length; i++)
+        for (var i = 0; i < Layers.Length; i++)
         {
-            var neuronLayer = _layers[i];
+            var neuronLayer = Layers[i];
             currentOutput = neuronLayer.Predict(currentOutput);
             outputs[i] = currentOutput;
         }
@@ -69,19 +69,129 @@ public class Net
         return outputs;
     }
 
-    private static float[] GetLastLayerErrors(NeuronError[] errors)
+    public float[] Train(float[] input, float[] expected)
     {
-        var lastLayerErrors = new float[errors.Length];
+        Buffers.EnsureNeuronErrorsCount(Layers.Length - 1);
 
-        for (int i = 0; i < errors.Length; i++)
-            lastLayerErrors[i] = errors[i].Error;
+        var outputsWith = PredictWithOutputs(input);
+        var intermediate = CreateIntermediateValuesModel(outputsWith, input);
 
+        var errors = CalculateGeneralErrorsAndCompensate(
+            Layers.Length - 2, Layers[^1], intermediate[^1], expected);
+
+        var lastLayerErrors = GetBufferedLastLayerError(errors);
+
+        for (int layerIndex = Layers.Length - 2; layerIndex >= 0; layerIndex--)
+        {
+            float[] localInput = intermediate[layerIndex];
+            float[] localOutput = intermediate[layerIndex + 1];
+            
+            bool isLastLayer = layerIndex == 0;
+
+            errors = CompensateAndReorganizeErrors(
+                layerIndex, Layers[layerIndex], errors, localOutput, localInput, isLastLayer)!;
+        }
+        
+        Buffers.ClearNeuronErrorsBuffers();
         return lastLayerErrors;
     }
 
-    private static float[][] CreateNeuronInputModel(float[][] layersOutputs, float[] firstLayerInput)
+    private float[] GetBufferedLastLayerError(float[] source)
     {
-        var outputs = new float[layersOutputs.Length][];
+        var buffer = Buffers.GetLastLayerBuffer(source.Length);
+        source.CopyTo(buffer.AsSpan());
+        return buffer;
+    }
+
+    private float[]? CompensateAndReorganizeErrors(int layerIndex, NeuronLayer layer, 
+        float[] previousErrors, float[] previousOutput, float[] input, bool isLastLayer)
+    {
+        int weightsCount = layer.Neurons[0].Weights.Length;
+
+        var nextLayerErrors = isLastLayer 
+            ? null 
+            : Buffers.GetErrorBuffer(layerIndex - 1, weightsCount);
+
+        if (weightsCount * layer.Count > ThreadingThreshold)
+        {
+            Parallel.For(0, layer.Neurons.Length, i =>
+            {
+                var neuron = layer.Neurons[i];
+                var error = new NeuronError(previousErrors[i], previousOutput[i]);
+
+                if (nextLayerErrors != null)
+                    UpdateLayerErrorsAtomic(neuron, error.Error, nextLayerErrors);
+
+                neuron.CompensateError(input, error);
+            });
+        }
+        else
+        {
+            for (int i = 0; i < layer.Neurons.Length; i++)
+            {
+                var neuron = layer.Neurons[i];
+                var error = new NeuronError(previousErrors[i], previousOutput[i]);
+
+                if (nextLayerErrors != null)
+                    UpdateLayerErrors(neuron, error.Error, nextLayerErrors);
+
+                neuron.CompensateError(input, error);
+            }
+        }
+        
+        return nextLayerErrors;
+    }
+
+    private float[] CalculateGeneralErrorsAndCompensate(
+        int layerIndex, NeuronLayer layer, float[] previousInput, float[] expected)
+    {
+        var neurons = layer.Neurons;
+        var weightsCount = neurons[0].Weights.Length;
+
+        var nextErrors = Buffers.GetErrorBuffer(layerIndex, weightsCount);
+
+        for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
+        {
+            var neuron = neurons[neuronIndex];
+            var error = neuron.CalculateError(previousInput, expected[neuronIndex]);
+
+            UpdateLayerErrors(neuron, error.Error, nextErrors);
+            neuron.CompensateError(previousInput, error);
+        }
+        
+        return nextErrors;
+    }
+
+    private static void UpdateLayerErrorsAtomic(SigmoidNeuron neuron,
+        float currentLayerError, float[] nextLayerErrors)
+    {
+        var weightsSum = neuron.CalculateWeightsSum();
+
+        for (int weightIndex = 0; weightIndex < neuron.Weights.Length; weightIndex++)
+        {
+            var weightValue = neuron.Weights[weightIndex];
+            var errorPart = Math.Abs(weightValue) / weightsSum * currentLayerError;
+            // There is no Interlocked.Add float overload
+            NumberTools.AtomicAdd(ref nextLayerErrors[weightIndex], errorPart);
+        }
+    }
+
+    private static void UpdateLayerErrors(SigmoidNeuron neuron, 
+        float currentLayerError, float[] nextLayerErrors)
+    {
+        var weightsSum = neuron.CalculateWeightsSum();
+
+        for (int weightIndex = 0; weightIndex < neuron.Weights.Length; weightIndex++)
+        {
+            var weightValue = neuron.Weights[weightIndex];
+            var errorPart = Math.Abs(weightValue) / weightsSum * currentLayerError;
+            nextLayerErrors[weightIndex] += errorPart;
+        }
+    }
+
+    private float[][] CreateIntermediateValuesModel(float[][] layersOutputs, float[] firstLayerInput)
+    {
+        var outputs = Buffers.GetIntermediateValuesBuffer(layersOutputs.Length);
         outputs[0] = firstLayerInput;
 
         for (int i = 0; i < layersOutputs.Length - 1; i++)
@@ -89,94 +199,15 @@ public class Net
 
         return outputs;
     }
-    
-    public float[] Train(float[] input, float[] expected)
-    {
-        var outputsWith = PredictWithOutputs(input);
-        var outputs = CreateNeuronInputModel(outputsWith, input);
-
-        // Количество ошибок последнего слоя = количеству нейронов.
-        var errors = CalculateGeneralErrorsAndCompensate(_layers[^1], outputs[^1], expected);
-
-        var lastLayerErrors = GetLastLayerErrors(errors);
-
-        // Мы берем ошибку, и смотрим насколько текущие веса
-        // влияют на конечный результат вычислений нейрона.
-        for (int layerIndex = _layers.Length - 2; layerIndex >= 0; layerIndex--)
-        {
-            // errors тут хранит ошибки предпоследнего слоя.
-            var layer = _layers[layerIndex];
-
-            float[] localInput = outputs[layerIndex];
-            float[] localOutput = outputs[layerIndex + 1];
-
-            // Ошибки с последнего слоя. В данном случае количество элементов - 1.
-            for (int i = 0; i < localOutput.Length; i++)
-                errors[i].Output = localOutput[i];
-            
-            errors = CompensateAndReorganizeErrors(layer, errors, localInput);
-        }
-
-        return lastLayerErrors;
-    }
 
     public Net FillRandomValues(Random random, double range = 0.5)
     {
-        foreach (var layer in _layers)
+        foreach (var layer in Layers)
         {
             foreach (var neuron in layer.Neurons)
                 neuron.FillRandomValues(random, range);
         }
 
         return this;
-    }
-
-    private static NeuronError[] CompensateAndReorganizeErrors(NeuronLayer layer, NeuronError[] errors, float[] input)
-    {
-        int weightsCount = layer.Neurons[0].Weights.Length;
-        var nextLayerErrors = new NeuronError[weightsCount];
-        
-        for (int i = 0; i < layer.Neurons.Length; i++)
-        {
-            var neuron = layer.Neurons[i];
-            var error = errors[i];
-            
-            UpdateLayerErrors(neuron, error, nextLayerErrors);
-            neuron.CompensateError(input, error);
-        }
-
-        return nextLayerErrors;
-    }
-
-    private static NeuronError[] CalculateGeneralErrorsAndCompensate(
-        NeuronLayer layer, float[] previousInput, float[] expected)
-    {
-        var neurons = layer.Neurons;
-        var weightsCount = neurons[0].Weights.Length;
-        var nextLayerErrors = new NeuronError[weightsCount];
-        
-        for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
-        {
-            var neuron = neurons[neuronIndex];
-            var error = neuron.CalculateError(previousInput, expected[neuronIndex]);
-
-            UpdateLayerErrors(neuron, error, nextLayerErrors);
-            neuron.CompensateError(previousInput, error);
-        }
-        
-        return nextLayerErrors;
-    }
-
-    private static void UpdateLayerErrors(SigmoidNeuron neuron,
-        NeuronError currentLayerError, NeuronError[] nextLayerErrors)
-    {
-        var weightsSum = neuron.CalculateWeightsSum();
-
-        for (int weightIndex = 0; weightIndex < neuron.Weights.Length; weightIndex++)
-        {
-            var weightValue = neuron.Weights[weightIndex];
-            var errorPart = Math.Abs(weightValue) / weightsSum * currentLayerError.Error;
-            nextLayerErrors[weightIndex].Error += errorPart;
-        }
     }
 }

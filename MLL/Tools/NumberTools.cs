@@ -15,4 +15,18 @@ public static class NumberTools
     {
         return 1.0f / (1.0f + MathF.Exp(-value));
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float AtomicAdd(ref float location, float value)
+    {
+        while (true)
+        {
+            float current = location;
+            float newValue = current + value;
+
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (Interlocked.CompareExchange(ref location, newValue, current) == newValue)
+                return newValue;
+        }
+    }
 }
