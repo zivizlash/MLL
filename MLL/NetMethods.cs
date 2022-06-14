@@ -40,10 +40,12 @@ public class NetMethods
 
         var count = imageProvider.GetDataSet(0).Count;
 
-        for (int epoch = 0; epoch < 2000; epoch++)
-        {
-            float errorAcc = 0;
+        float errorAcc = 0;
+        float previous = 0;
+        float recognized = 0;
 
+        for (int epoch = 0; epoch < 20000; epoch++)
+        {
             for (int imageIndex = 0; imageIndex < count; imageIndex++)
             {
                 for (int imageNumber = 0; imageNumber < 10; imageNumber++)
@@ -57,27 +59,42 @@ public class NetMethods
                 }
             }
             
-            Console.WriteLine($"Epoch {epoch:D4} Error: {errorAcc:F10}");
-
-            if (epoch % 20 == 0)
+            if (epoch % 20 == 0 && epoch != 0)
             {
-                FullTest(imageProvider);
-                NeuronWeightsSaver.Save(_net);
+                float delta = errorAcc - previous;
+                Console.WriteLine($"Epoch {epoch-50:D4}-{epoch:D4}; Error: {errorAcc:F10}; Delta: {delta:F5};");
+                previous = errorAcc;
+                errorAcc = 0;
+
+                recognized = FullTest(imageProvider, recognized);
+                Console.WriteLine();
+
+                if (epoch % 200 == 0)
+                    NeuronWeightsSaver.Save(_net);
             }
         }
 
         Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");
     }
 
-    public void FullTest(IImageDataSetProvider imageProvider)
+    public float FullTest(IImageDataSetProvider imageProvider, float? previous = default)
     {
         float recognizedPercents = 0;
     
         for (int i = 0; i < 10; i++)
+        {
             recognizedPercents += Test2(imageProvider.GetDataSet(i));
+            if (i == 4) Console.WriteLine();
+        }
 
         Console.WriteLine();
-        Console.WriteLine($"Overall recognized percents: {recognizedPercents / 10.0f}");
+        Console.Write($"Overall recognized percents: {recognizedPercents / 10.0f};");
+
+        if (previous.HasValue)
+            Console.WriteLine($" Delta: {recognizedPercents - previous.Value};");
+        
+        Console.WriteLine();
+        return recognizedPercents;
     }
 
     public float Test2(IImageDataSet imageSet)
@@ -110,7 +127,7 @@ public class NetMethods
         var successPercents = (1.0f - error / (float)imageSet.Count) * 100;
         var successString = successPercents.ToString("F3").Replace(',', '.');
 
-        Console.WriteLine($"{imageSet.Value}: {successString}");
+        Console.Write($"{imageSet.Value}: {successString}; ");
         return successPercents;
     }
 }
