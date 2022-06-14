@@ -5,17 +5,22 @@ namespace MLL.Saving;
 
 public static class NeuronWeightsSaver
 {
-    private const string Filename = "hiddennetsig1.json";
-
+    private const string DirPath = "../../../Data";
+    private const string Filename = "/hiddennetsig1.json";
+    
     public static void Save(Net net)
     {
+        Directory.CreateDirectory(DirPath);
+        var filename = Path.Combine(DirPath, Filename);
+
         var json = JsonConvert.SerializeObject(net);
-        File.WriteAllText(Filename, json);
+        File.WriteAllText(filename, json);
     }
 
     public static Net Load()
     {
-        var json = File.ReadAllText(Filename);
+        var filename = Path.Combine(DirPath, Filename);
+        var json = File.ReadAllText(filename);
         return JsonConvert.DeserializeObject<Net>(json)!;
     }
 }
