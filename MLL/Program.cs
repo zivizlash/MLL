@@ -1,127 +1,99 @@
 ﻿using ImageMagick;
+using MLL.Builders;
+using MLL.ImageLoader;
+using MLL.Neurons;
+using MLL.Options;
+using MLL.Saving;
+using MLL.Tools;
 
 namespace MLL;
 
-public class ImageData
-{
-    public int Number { get; }
-    public double[] Data { get; }
-
-    public ImageData(int number, double[] data)
-    {
-        Number = number;
-        Data = data;
-    }
-}
-
-public class ImageLoader
-{
-    public static IEnumerable<ImageData> Load(string path)
-    {
-        foreach (var file in Directory.EnumerateFiles(path))
-        {
-            var filename = Path.GetFileNameWithoutExtension(file);
-
-            if (!int.TryParse(filename, out var number) || number is < 0 or > 9) 
-                continue;
-
-            using var imageStream = new FileStream(Path.Combine(file), FileMode.Open);
-            using var image = new MagickImage(imageStream);
-
-            var pixels = image.GetPixels().ToByteArray(PixelMapping.RGB) 
-                ?? throw new InvalidOperationException();
-            
-            yield return new ImageData(number, RgbToGreyscale(pixels));
-        }
-    }
-
-    private static double[] RgbToGreyscale(byte[] pixels)
-    {
-        var greyscale = new double[pixels.Length / 3];
-
-        for (int pi = 0, ri = 0; pi < pixels.Length; pi += 3, ri++)
-        {
-            var (r, g, b) = (pixels[pi], pixels[pi + 1], pixels[pi + 2]);
-            greyscale[ri] = (r + g + b) / (255.0 * 3);
-        }
-
-        return greyscale;
-    }
-}
-
 public class Program
 {
-    private static void Train(IReadOnlyList<Neuron> neurons, IReadOnlyList<ImageData> images)
+    private static Random GetRandomBySeed(int? seed) =>
+        seed.HasValue ? new Random(seed.Value) : new Random();
+
+    private static Net GetNeurons(bool loadFromDisk, ImageRecognitionOptions options, bool fillRandom = false)
     {
-        for (int epoch = 0; epoch < 100; epoch++)
-        {
-            Console.WriteLine($"Epoch: {epoch}");
+        var net = loadFromDisk
+            ? NeuronWeightsSaver.Load()
+            : CreateWithHiddenLayers(options);
 
-            bool hasError = false;
-
-            foreach (var image in images)
-            {
-                for (int neuronIndex = 0; neuronIndex < neurons.Count; neuronIndex++)
-                {
-                    var neuron = neurons[neuronIndex];
-                    var expected = image.Number == neuronIndex ? 1 : 0;
-
-                    var error = neuron.Train(image.Data, expected);
-                    var errorQ = error != 0 ? neuron.LastError : error;
-
-                    hasError |= error != 0;
-
-                    Console.Write($"{errorQ} ");
-                }
-
-                Console.WriteLine();
-            }
-
-            Console.WriteLine();
-            if (!hasError) break;
-        }
-    }   
-
-    private static void Test(Neuron[] neurons, ImageData imageData)
-    {
-        for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
-        {
-            var neuron = neurons[neuronIndex];
-            var predict = neuron.Predict(imageData.Data);
-            
-            if (neuronIndex == imageData.Number)
-            {
-                Console.WriteLine(Math.Abs(predict - 1) < 0.001
-                    ? $"Определение числа {neuronIndex} отработало правильно"
-                    : $"Определение числа {neuronIndex} отработало неправильно");
-            }
-            else
-            {
-                if (predict != 0)
-                    Console.WriteLine($"Число {neuronIndex} отработало неправильно");
-            }
-        }
+        return net.UpdateLearningRate(options.LearningRate);
     }
+    
+    private static IImageDataSetProvider CreateDataSetProvider(bool isEven) =>
+        new FolderNameDataSetProvider(new NotOrEvenFilesProviderFactory(isEven), 
+            NameToFolder, ImageDataSetOptions.Default);
 
+    private static IImageDataSetProvider CreateTestDataSetProvider() => CreateDataSetProvider(false);
+    private static IImageDataSetProvider CreateTrainDataSetProvider() => CreateDataSetProvider(true);
+
+    private static Net CreateWithHiddenLayers(ImageRecognitionOptions options)
+    {
+        const int numbersCount = 10;
+
+        var imageWeightsCount = options.ImageWidth * options.ImageHeight;
+        
+        var layers = LayerDefinition.Builder
+            .WithLearningRate(options.LearningRate)
+            .WithInput(numbersCount, imageWeightsCount)
+            .WithHiddenLayers(numbersCount * 2)
+            .WithOutput(numbersCount, false)
+            .Build();
+
+        return new Net(options.LearningRate, layers)
+            .FillRandomValues(GetRandomBySeed(options.RandomSeed), 0.1);
+    }
+    
     public static void Main()
     {
-        var images = ImageLoader.Load("Images")
-            .OrderBy(image => image.Number)
-            .ToList();
+        var args = ArgumentParser.GetArguments();
+        var imageOptions = ImageRecognitionOptions.Default;
 
-        foreach (var image in images)
-            Console.WriteLine($"Image loaded: {image.Number}");
-
-        var neurons = new Neuron[10];
-        var random = new Random(150345340);
+        var net = GetNeurons(args.LoadFromDisk, imageOptions);
         
-        for (int i = 0; i < neurons.Length; i++)
-            neurons[i] = new Neuron(15, 3, 0.1).FillRandomValues(random);
+        var netMethods = new NetMethods(net);
 
-        Train(neurons, images);
+        if (args.Train)
+            netMethods.Train(CreateTrainDataSetProvider());
 
-        Console.WriteLine("Сетка обучена\n");
+        if (!args.CheckRecognition && !args.TestImageNormalizing)
+            netMethods.FullTest(CreateTestDataSetProvider());
 
-        for (int i = 0; i <= 9; i++) Test(neurons, images[i]);
+        if (args.CheckRecognition)
+            throw new NotImplementedException(); // netMethods.CheckRecognition();
+
+        if (args.Train)
+            NeuronWeightsSaver.Save(net);
+
+        if (args.TestImageNormalizing)
+            TestImageNormalizing();
     }
+
+    private static void TestImageNormalizing()
+    {
+        var options = ImageDataSetOptions.Default;
+        var imagePath = ArgumentParser.GetImagePath();
+        var imageData = ImageTools.LoadImageData(imagePath, options);
+
+        byte[] imageBytes = new byte[imageData.Length * 3];
+
+        for (int di = 0, bi = 0; di < imageData.Length; di++, bi += 3)
+        {
+            byte byteValue = (byte) (imageData[di] * 255);
+            imageBytes[bi + 0] = byteValue;
+            imageBytes[bi + 1] = byteValue;
+            imageBytes[bi + 2] = byteValue;
+        }
+
+        var settings = new PixelReadSettings(options.Width, options.Height, StorageType.Char, PixelMapping.RGB);
+        using var image = new MagickImage(imageBytes, settings);
+
+        image.Format = MagickFormat.Png;
+        image.Write("test.png");
+    }
+
+    private static string NameToFolder(string name) =>
+        $"C:\\Auto\\datasets\\Font\\Font\\Sample{int.Parse(name) + 1:d3}";
 }
