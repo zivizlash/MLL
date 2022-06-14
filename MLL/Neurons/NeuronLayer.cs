@@ -4,6 +4,10 @@ public class NeuronLayer
 {
     private SigmoidNeuron[] _neurons;
 
+    private float[]? _buffer;
+
+    private float[]? _lastInput;
+
     public SigmoidNeuron[] Neurons
     {
         get => _neurons;
@@ -24,18 +28,31 @@ public class NeuronLayer
         for (int i = 0; i < _neurons.Length; i++)
             _neurons[i] = new SigmoidNeuron(weightsCount, learningRate, useActivationFunc);
     }
-
-    // Метод берет данные и прогоняет по всем нейронам.
+    
     public float[] Predict(float[] input)
     {
-        var neuronOutputs = new float[_neurons.Length];
+        if (_buffer?.Length != _neurons.Length)
+            _buffer = new float[_neurons.Length];
 
-        for (var i = 0; i < _neurons.Length; i++)
+        if (false)
         {
-            var neuron = _neurons[i];
-            neuronOutputs[i] = neuron.Predict(input);
+            _lastInput = input;
+            Parallel.For(0, _neurons.Length, Calculate);
         }
+        else
+        {
+            for (var i = 0; i < _neurons.Length; i++)
+            {
+                var neuron = _neurons[i];
+                _buffer[i] = neuron.Predict(input);
+            }
+        }
+        
+        return _buffer;
+    }
 
-        return neuronOutputs;
+    private void Calculate(int index)
+    {
+        _buffer[index] = _neurons[index].Predict(_lastInput!);
     }
 }
