@@ -1,6 +1,7 @@
 ﻿using MLL.ImageLoader;
 using MLL.Neurons;
 using MLL.Saving;
+using MLL.Statistics;
 
 namespace MLL;
 
@@ -33,7 +34,7 @@ public class NetMethods
         Console.WriteLine("Images loaded");
     }
 
-    public void Train(IImageDataSetProvider imageProvider)
+    public void Train(IImageDataSetProvider imageProvider, IStatisticsManager stats)
     {
         var dt = DateTime.Now;
         PrepareTraining(imageProvider);
@@ -56,13 +57,15 @@ public class NetMethods
                     var image = imagesSet[imageIndex];
                     var errors = _net.Train(image.Data, expected);
                     foreach (var error in errors) errorAcc += MathF.Abs(error);
+
+                    stats.CollectOutputError(_net);
                 }
             }
             
-            if (epoch % 20 == 0 && epoch != 0)
+            if (epoch % 100 == 0 && epoch != 0)
             {
                 float delta = errorAcc - previous;
-                Console.WriteLine($"Epoch {epoch-50:D4}-{epoch:D4}; Error: {errorAcc:F10}; Delta: {delta:F5};");
+                Console.WriteLine($"Epoch {epoch-100:D4}-{epoch:D4}; Error: {errorAcc:F10}; Delta: {delta:F5};");
                 previous = errorAcc;
                 errorAcc = 0;
 
@@ -72,6 +75,8 @@ public class NetMethods
                 if (epoch % 200 == 0)
                     NeuronWeightsSaver.Save(_net);
             }
+
+            stats.CollectStats(epoch, _net);
         }
 
         Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");

@@ -4,6 +4,7 @@ using MLL.ImageLoader;
 using MLL.Neurons;
 using MLL.Options;
 using MLL.Saving;
+using MLL.Statistics;
 using MLL.Tools;
 
 namespace MLL;
@@ -12,12 +13,12 @@ public class Program
 {
     private static Random GetRandomBySeed(int? seed) =>
         seed.HasValue ? new Random(seed.Value) : new Random();
-
-    private static Net GetNeurons(bool loadFromDisk, ImageRecognitionOptions options, bool fillRandom = false)
+    
+    private static Net GetNeurons(bool loadFromDisk, ImageRecognitionOptions options, LayerDefinition[] layers)
     {
         var net = loadFromDisk
             ? NeuronWeightsSaver.Load()
-            : CreateWithHiddenLayers(options);
+            : CreateWithHiddenLayers(options, layers);
 
         return net.UpdateLearningRate(options.LearningRate);
     }
@@ -29,21 +30,20 @@ public class Program
     private static IImageDataSetProvider CreateTestDataSetProvider() => CreateDataSetProvider(false);
     private static IImageDataSetProvider CreateTrainDataSetProvider() => CreateDataSetProvider(true);
 
-    private static Net CreateWithHiddenLayers(ImageRecognitionOptions options)
+    private static Net CreateWithHiddenLayers(ImageRecognitionOptions options, LayerDefinition[] layers) =>
+        new Net(options.LearningRate, layers).FillRandomValues(GetRandomBySeed(options.RandomSeed), 0.1);
+
+    private static LayerDefinition[] GetLayersDefinition(ImageRecognitionOptions options)
     {
         const int numbersCount = 10;
-
         var imageWeightsCount = options.ImageWidth * options.ImageHeight;
-        
-        var layers = LayerDefinition.Builder
+
+        return LayerDefinition.Builder
             .WithLearningRate(options.LearningRate)
             .WithInput(numbersCount, imageWeightsCount)
             .WithHiddenLayers(numbersCount * 2)
             .WithOutput(numbersCount, false)
             .Build();
-
-        return new Net(options.LearningRate, layers)
-            .FillRandomValues(GetRandomBySeed(options.RandomSeed), 0.1);
     }
     
     public static void Main()
@@ -51,12 +51,19 @@ public class Program
         var args = ArgumentParser.GetArguments();
         var imageOptions = ImageRecognitionOptions.Default;
 
-        var net = GetNeurons(args.LoadFromDisk, imageOptions);
+        var layers = GetLayersDefinition(imageOptions);
+        var net = GetNeurons(args.LoadFromDisk, imageOptions, layers);
         
         var netMethods = new NetMethods(net);
 
         if (args.Train)
-            netMethods.Train(CreateTrainDataSetProvider());
+        {
+            var trainDataSet = CreateTrainDataSetProvider();
+            var testDataSet = CreateTestDataSetProvider();
+
+            var stats = new StatisticsManager(imageOptions, layers, testDataSet, trainDataSet);
+            netMethods.Train(trainDataSet, stats);
+        }
 
         if (!args.CheckRecognition && !args.TestImageNormalizing)
             netMethods.FullTest(CreateTestDataSetProvider());

@@ -75,6 +75,7 @@ public class FolderNameDataSetProvider : IImageDataSetProvider
 
     public IImageDataSet GetDataSet(string name, object value)
     {
+        // todo: remove string allocation
         var folder = _dataSetNameToFolder.Invoke(name);
 
         if (string.IsNullOrEmpty(folder))

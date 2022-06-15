@@ -15,6 +15,11 @@ public class NetMemoryBuffers
         return _lastLayerOutputBuffer;
     }
 
+    public float[] GetLastLayerBufferRaw()
+    {
+        return _lastLayerOutputBuffer;
+    }
+
     public float[][] GetOutputsBuffer(int length)
     {
         if (_outputsBuffer?.Length != length)
@@ -36,7 +41,7 @@ public class NetMemoryBuffers
         if (_neuronErrorsBuffers?.Length != count)
             _neuronErrorsBuffers = new float[count][];
     }
-
+    
     public float[] GetErrorBuffer(int layer, int count)
     {
         var buffer = _neuronErrorsBuffers[layer];
@@ -46,7 +51,7 @@ public class NetMemoryBuffers
 
         return buffer;
     }
-
+    
     public void ClearNeuronErrorsBuffers()
     {
         foreach (var neuronErrorBuffer in _neuronErrorsBuffers)

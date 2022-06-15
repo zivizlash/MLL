@@ -1,0 +1,47 @@
+﻿using MLL.ImageLoader;
+using MLL.Neurons;
+
+namespace MLL.Statistics;
+
+public struct RecognitionPercentCalculator
+{
+    public static void Calculate(Net net, IImageDataSetProvider dataSetProvider, Span<float> percentage)
+    {
+        if (percentage.Length != 10)
+            throw new ArgumentOutOfRangeException(nameof(percentage));
+
+        for (int imageNumber = 0; imageNumber < 10; imageNumber++)
+        {
+            var dataSet = dataSetProvider.GetDataSet(imageNumber);
+            
+            for (int imageIndex = 0; imageIndex < dataSet.Count; imageIndex++)
+            {
+                var result = net.Predict(dataSet[imageIndex].Data);
+
+                if (FindBiggestIndex(result) == imageNumber)
+                    percentage[imageNumber] += 1;
+            }
+
+            percentage[imageNumber] /= dataSet.Count;
+        }
+    }
+    
+    private static int FindBiggestIndex(float[] values)
+    {
+        int index = 0;
+        float value = values[0];
+
+        for (int i = 1; i < values.Length; i++)
+        {
+            float comparand = values[i];
+
+            if (comparand > value)
+            {
+                value = comparand;
+                index = i;
+            }
+        }
+
+        return index;
+    }
+}
