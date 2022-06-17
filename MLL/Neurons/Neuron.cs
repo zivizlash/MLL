@@ -2,13 +2,11 @@
 
 namespace MLL.Neurons;
 
-public abstract class Neuron
+public abstract class Neuron : ICloneable
 {
     public float[] Weights { get; set; }
     public float LearningRate { get; set; }
-
-    public float LastError { get; protected set; }
-
+    
     protected Neuron(int weightCount, float learningRate)
     {
         LearningRate = learningRate;
@@ -17,6 +15,9 @@ public abstract class Neuron
 
     public abstract float Predict(float[] input);
     public abstract float Train(float[] input, float expected);
+    public abstract void CompensateError(float[] input, NeuronError neuronError);
+    public abstract NeuronError CalculateError(float[] input, float expected);
+    public abstract Neuron Clone();
 
     public float CalculateWeightsSum()
     {
@@ -71,4 +72,6 @@ public abstract class Neuron
 
         return this;
     }
+
+    object ICloneable.Clone() => Clone();
 }

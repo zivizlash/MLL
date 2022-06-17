@@ -47,4 +47,27 @@ public static class ImageTools
         for (int i = 0; i < pixels.Length; i++)
             pixels[i] = (pixels[i] - max / 2) * delta + 0.5;
     }
+
+    public static void TestImageNormalizing()
+    {
+        var options = ImageDataSetOptions.Default;
+        var imagePath = ArgumentParser.GetImagePath();
+        var imageData = LoadImageData(imagePath, options);
+
+        byte[] imageBytes = new byte[imageData.Length * 3];
+
+        for (int di = 0, bi = 0; di < imageData.Length; di++, bi += 3)
+        {
+            byte byteValue = (byte)(imageData[di] * 255);
+            imageBytes[bi + 0] = byteValue;
+            imageBytes[bi + 1] = byteValue;
+            imageBytes[bi + 2] = byteValue;
+        }
+
+        var settings = new PixelReadSettings(options.Width, options.Height, StorageType.Char, PixelMapping.RGB);
+        using var image = new MagickImage(imageBytes, settings);
+
+        image.Format = MagickFormat.Png;
+        image.Write("test.png");
+    }
 }

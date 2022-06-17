@@ -25,7 +25,7 @@ public static class NumberTools
             float newValue = current + value;
 
             // ReSharper disable once CompareOfFloatsByEqualityOperator
-            if (Interlocked.CompareExchange(ref location, newValue, current) == newValue)
+            if (Interlocked.CompareExchange(ref location, newValue, current) == current)
                 return newValue;
         }
     }

@@ -1,5 +1,6 @@
 ﻿using MLL.ImageLoader;
 using MLL.Neurons;
+using MLL.Options;
 using MLL.Saving;
 using MLL.Statistics;
 
@@ -31,7 +32,7 @@ public class NetMethods
 
         Console.WriteLine("Loading and process images...");
         imageProvider.LoadAllImages(keys);
-        Console.WriteLine("Images loaded");
+        Console.WriteLine("Images loaded\n");
     }
 
     public void Train(IImageDataSetProvider imageProvider, IStatisticsManager stats)
@@ -40,43 +41,29 @@ public class NetMethods
         PrepareTraining(imageProvider);
 
         var count = imageProvider.GetDataSet(0).Count;
-
-        float errorAcc = 0;
-        float previous = 0;
-        float recognized = 0;
-
-        for (int epoch = 0; epoch < 20000; epoch++)
+        
+        for (int epoch = 0; epoch < 150000; epoch++)
         {
             for (int imageIndex = 0; imageIndex < count; imageIndex++)
             {
                 for (int imageNumber = 0; imageNumber < 10; imageNumber++)
                 {
-                    var imagesSet = imageProvider.GetDataSet(imageNumber);
                     var expected = _expectedValues[imageNumber];
+                    var imagesSet = imageProvider.GetDataSet(imageNumber);
 
                     var image = imagesSet[imageIndex];
                     var errors = _net.Train(image.Data, expected);
-                    foreach (var error in errors) errorAcc += MathF.Abs(error);
-
-                    stats.CollectOutputError(_net);
+                    stats.AddOutputError(errors);
                 }
-            }
-            
-            if (epoch % 100 == 0 && epoch != 0)
-            {
-                float delta = errorAcc - previous;
-                Console.WriteLine($"Epoch {epoch-100:D4}-{epoch:D4}; Error: {errorAcc:F10}; Delta: {delta:F5};");
-                previous = errorAcc;
-                errorAcc = 0;
-
-                recognized = FullTest(imageProvider, recognized);
-                Console.WriteLine();
-
-                if (epoch % 200 == 0)
-                    NeuronWeightsSaver.Save(_net);
             }
 
             stats.CollectStats(epoch, _net);
+
+            if (ArgumentParser.IsNeedExit())
+            {
+                Console.WriteLine($"Train stopped at {epoch} epoch");
+                return;
+            }
         }
 
         Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");
@@ -88,7 +75,7 @@ public class NetMethods
     
         for (int i = 0; i < 10; i++)
         {
-            recognizedPercents += Test2(imageProvider.GetDataSet(i));
+            recognizedPercents += Test(imageProvider.GetDataSet(i));
             if (i == 4) Console.WriteLine();
         }
 
@@ -102,7 +89,7 @@ public class NetMethods
         return recognizedPercents;
     }
 
-    public float Test2(IImageDataSet imageSet)
+    public float Test(IImageDataSet imageSet)
     {
         var error = 0;
         

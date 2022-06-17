@@ -27,7 +27,7 @@ public sealed class SigmoidNeuron : Neuron
             : sum;
     }
 
-    public void CompensateError(float[] input, NeuronError neuronError)
+    public override void CompensateError(float[] input, NeuronError neuronError)
     {
         var commonDeltaWeight = GetDeltaWeight(neuronError.Output, neuronError.Error);
 
@@ -35,7 +35,7 @@ public sealed class SigmoidNeuron : Neuron
             Weights[i] -= commonDeltaWeight * input[i];
     }
 
-    public NeuronError CalculateError(float[] input, float expected)
+    public override NeuronError CalculateError(float[] input, float expected)
     {
         var output = Predict(input);
         var error = -(expected - output);
@@ -57,7 +57,14 @@ public sealed class SigmoidNeuron : Neuron
 
         return error;
     }
-    
+
+    public override SigmoidNeuron Clone()
+    {
+        var copy = new SigmoidNeuron(Weights.Length, LearningRate, UseActivationFunc);
+        Weights.CopyTo(copy.Weights.AsSpan());
+        return copy;
+    }
+
     private float GetDeltaWeight(float output, float error)
     {
         if (_useActivationFunc)

@@ -12,11 +12,27 @@ public class Net
 
     // Use benchmark?
     private const int ThreadingThreshold = 500;
-
+    
     public Net()
     {
         Layers = Array.Empty<NeuronLayer>();
         Buffers = new NetMemoryBuffers();
+    }
+
+    public LayerDefinition[] GetDefinition()
+    {
+        var definition = new LayerDefinition[Layers.Length];
+
+        for (int i = 0; i < Layers.Length; i++)
+        {
+            var layer = Layers[i];
+            var neuron = layer.Neurons[0];
+
+            definition[i] = new LayerDefinition(1, layer.Count, 
+                neuron.Weights.Length, neuron.UseActivationFunc);
+        }
+
+        return definition;
     }
     
     public Net(float learningRate, params LayerDefinition[] definitions) : this()
@@ -103,7 +119,7 @@ public class Net
             ? null 
             : Buffers.GetErrorBuffer(layerIndex - 1, weightsCount);
 
-        if (weightsCount * layer.Count > ThreadingThreshold)
+        if (false) // weightsCount * layer.Count > ThreadingThreshold)
         {
             Parallel.For(0, layer.Neurons.Length, i =>
             {

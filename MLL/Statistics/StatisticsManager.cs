@@ -2,148 +2,145 @@
 using MLL.ImageLoader;
 using MLL.Neurons;
 using MLL.Options;
-using Newtonsoft.Json;
+using MLL.Statistics.Processors;
+using Newtonsoft.Json.Linq;
 
 namespace MLL.Statistics;
 
-public class StatContainer<T>
+public struct StatisticsJArrays
 {
-    public int Epoch { get; }
-    public T Value { get; }
+    public JArray Net;
+    public JArray TestRecognize;
+    public JArray TrainRecognize;
+    public JArray TrainErrors;
 
-    public StatContainer(int epoch, T value)
+    public StatisticsJArrays()
     {
-        Epoch = epoch;
-        Value = value;
+        Net = new JArray();
+        TestRecognize = new JArray();
+        TrainRecognize = new JArray();
+        TrainErrors = new JArray();
     }
 }
 
-public class NeuronErrorStats
+public class StatisticsCalculator
 {
-    public float[] Errors { get; }
+    private readonly IImageDataSetProvider _testSetProvider;
+    private readonly IImageDataSetProvider _trainSetProvider;
 
-    public NeuronErrorStats(float[] errors)
+    private float[]? _outputErrors;
+
+    public StatisticsCalculator(IImageDataSetProvider testSetProvider, 
+        IImageDataSetProvider trainSetProvider)
     {
-        Errors = errors;
+        _testSetProvider = testSetProvider;
+        _trainSetProvider = trainSetProvider;
+    }
+    
+    public StatisticsInfo Calculate(Net net, Range epochRange)
+    {
+        NormalizeErrorPerEpoch(_outputErrors!, epochRange);
+        var testRecognized = Recognize(net, _testSetProvider, true);
+        var trainRecognized = Recognize(net, _trainSetProvider, false);
+        var trainErrors = new NeuronErrorStats(_outputErrors!);
+        
+        return new StatisticsInfo(testRecognized, trainRecognized, 
+            trainErrors, epochRange, net);
+    }
+
+    public void Clear()
+    {
+        Array.Clear(_outputErrors!);
+    }
+
+    public void AddOutputError(float[] error)
+    {
+        _outputErrors ??= new float[error.Length];
+
+        for (var i = 0; i < error.Length; i++)
+            _outputErrors[i] += Math.Abs(error[i]);
+    }
+
+    private static void NormalizeErrorPerEpoch(float[] errors, Range epochRange)
+    {
+        var epochCount = GetDelta(epochRange);
+        if (epochCount == 0) return;
+
+        for (int i = 0; i < errors.Length; i++)
+            errors[i] /= epochCount;
+    }
+
+    // Мне пофиг, я так чувствую
+    private static int GetDelta(Range range) 
+    {
+        return Math.Abs(range.End.Value) - Math.Abs(range.Start.Value);
+    }
+
+    private static NeuronRecognizedStats Recognize(
+        Net net, IImageDataSetProvider provider, bool isTest)
+    {
+        var results = new float[10];
+        RecognitionPercentCalculator.Calculate(net, provider, results);
+        var general = results.Sum() / 10.0f;
+
+        return new NeuronRecognizedStats(results, general, isTest);
     }
 }
 
 public interface IStatisticsManager
 {
     void CollectStats(int epoch, Net net);
-    void CollectOutputError(Net net);
+    void AddOutputError(float[] error);
 }
 
 public class StatisticsManager : IStatisticsManager
 {
-    private readonly string _workingDirectory;
-    private readonly Dictionary<string, int> _counter;
+    private readonly StatisticsCalculator _calculator;
+    private readonly IStatProcessor[] _processors;
 
-    private readonly IImageDataSetProvider _testSetProvider;
-    private readonly IImageDataSetProvider _trainSetProvider;
+    private readonly object _locker = new();
 
-    private float[]? _outputErrors;
-    private int _epoch;
+    private Net? _netCopy;
 
-    public StatisticsManager(ImageRecognitionOptions recognitionOptions, LayerDefinition[] layers,
-        IImageDataSetProvider testSetProvider, IImageDataSetProvider trainSetProvider)
+    private int _delimmer = 20;
+
+    public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors, int delimmer)
     {
-        _testSetProvider = testSetProvider;
-        _trainSetProvider = trainSetProvider;
-        _counter = new Dictionary<string, int>();
-        _workingDirectory = Directory.CreateDirectory(GetFullPath()).FullName;
-
-        WriteOptions(recognitionOptions);
-        WriteLayers(layers);
+        _calculator = calculator;
+        _processors = processors;
+        _delimmer = delimmer;
     }
 
-    public void CollectOutputError(Net net)
+    public void AddOutputError(float[] error)
     {
-        var outputErrors = net.Buffers.GetLastLayerBufferRaw();
-
-        if (_outputErrors == null)
-            _outputErrors = new float[outputErrors.Length];
-
-        for (var i = 0; i < outputErrors.Length; i++)
-        {
-            var outputError = outputErrors[i];
-            _outputErrors[i] += Math.Abs(outputError);
-        }
+        _calculator.AddOutputError(error);
     }
 
     public void CollectStats(int epoch, Net net)
     {
-        _epoch = epoch;
+        if (epoch % _delimmer != 0 || epoch == 0)
+            return;
+        
+        var localCopy = _netCopy;
+        NetReplicator.Copy(net, ref localCopy);
 
-        if (epoch % 5 == 0)
+        var container = new StatContainer<Net>(epoch, localCopy);
+        _netCopy = localCopy;
+
+        ThreadPool.QueueUserWorkItem(Process, container, false);
+    }
+
+    private void Process(StatContainer<Net> net)
+    {
+        lock (_locker)
         {
-            if (epoch % 50 == 0)
-                WriteNetCopy(net);
+            var epoch = (net.Epoch - _delimmer)..net.Epoch;
+            var stats = _calculator.Calculate(net.Value, epoch);
 
-            var testRecognized = Create(net, _testSetProvider, true);
-            var trainRecognized = Create(net, _trainSetProvider, false);
+            foreach (var processor in _processors)
+                processor.Process(stats);
 
-            Write("test_recognize", testRecognized);
-            Write("train_recognize", trainRecognized);
-            
-            Write("train_errors", new NeuronErrorStats(_outputErrors!));
-
-            Array.Fill(_outputErrors!, 0f);
+            _calculator.Clear();
         }
     }
-    
-    private NeuronRecognizedStats Create(Net net, IImageDataSetProvider provider, bool isTest)
-    {
-        var buffer = new float[10];
-        RecognitionPercentCalculator.Calculate(net, provider, buffer);
-        return new NeuronRecognizedStats(buffer, buffer.Sum() / 10.0f, isTest);
-    }
-
-    private void WriteNetCopy(Net net)
-    {
-        Write("net.json", net);
-    }
-    
-    private void WriteOptions(ImageRecognitionOptions options)
-    {
-        WriteAndSerialize("net_options.json", options);
-    }
-
-    private void WriteLayers(LayerDefinition[] layers)
-    {
-        WriteAndSerialize("layers", layers);
-    }
-
-    private int GetCounterValueAndIncrement(string value)
-    {
-        if (_counter.TryGetValue(value, out var val))
-        {
-            _counter[value]++;
-            return val;
-        }
-
-        _counter[value] = 1;
-        return 0;
-    }
-
-    private void Write<T>(string name, T obj)
-    {
-        var counter = GetCounterValueAndIncrement(name);
-        WriteAndSerialize($"{name}{counter}.json", new StatContainer<T>(_epoch, obj));
-    }
-
-    private void WriteAndSerialize(string filename, object obj) =>
-        WriteFile(filename, JsonConvert.SerializeObject(obj));
-
-    private void WriteFile(string filename, string content) =>
-        File.WriteAllText(GetNewFilePath(filename), content);
-
-    private string GetNewFilePath(string filename) =>
-        Path.Combine(_workingDirectory, filename);
-
-    private static string GetFullPath() =>
-        Path.Combine(Environment.CurrentDirectory, "..", "..", "Stats", GetDirectoryName());
-
-    private static string GetDirectoryName() =>
-        $"{DateTime.Now:yyyy.M.d hh-mm-ss}";
 }

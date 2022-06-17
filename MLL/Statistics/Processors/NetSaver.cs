@@ -1,0 +1,18 @@
+﻿using MLL.Neurons;
+using MLL.Saving;
+
+namespace MLL.Statistics.Processors;
+
+public class NetSaver : IStatProcessor
+{
+    public void Process(StatisticsInfo stats)
+    {
+        if (stats.EpochRange.End.Value % 200 == 0)
+            Save(stats.Net);
+    }
+
+    public void Save(Net net)
+    {
+        NeuronWeightsSaver.Save(net);
+    }
+}

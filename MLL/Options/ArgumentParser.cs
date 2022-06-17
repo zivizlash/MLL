@@ -17,6 +17,11 @@ public struct ArgumentParser
         TestImageNormalizing = testImageNormalizing;
     }
 
+    public static bool IsNeedExit()
+    {
+        return Console.KeyAvailable && Console.ReadKey(true).Key == Key.Q;
+    }
+
     public static ArgumentParser GetArguments(Key defaultKey = default)
     {
         Key key = defaultKey;
