@@ -7,7 +7,7 @@ public class NetSaver : IStatProcessor
 {
     public void Process(StatisticsInfo stats)
     {
-        if (stats.EpochRange.End.Value % 200 == 0)
+        if (stats.EpochRange.End % 200 == 0)
             Save(stats.Net);
     }
 

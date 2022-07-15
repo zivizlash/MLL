@@ -37,7 +37,7 @@ public class StatisticsCalculator
         _trainSetProvider = trainSetProvider;
     }
     
-    public StatisticsInfo Calculate(Net net, Range epochRange)
+    public StatisticsInfo Calculate(Net net, EpochRange epochRange)
     {
         NormalizeErrorPerEpoch(_outputErrors!, epochRange);
         var testRecognized = Recognize(net, _testSetProvider, true);
@@ -61,7 +61,7 @@ public class StatisticsCalculator
             _outputErrors[i] += Math.Abs(error[i]);
     }
 
-    private static void NormalizeErrorPerEpoch(float[] errors, Range epochRange)
+    private static void NormalizeErrorPerEpoch(float[] errors, EpochRange epochRange)
     {
         var epochCount = GetDelta(epochRange);
         if (epochCount == 0) return;
@@ -69,11 +69,10 @@ public class StatisticsCalculator
         for (int i = 0; i < errors.Length; i++)
             errors[i] /= epochCount;
     }
-
-    // Мне пофиг, я так чувствую
-    private static int GetDelta(Range range) 
+    
+    private static int GetDelta(EpochRange range)
     {
-        return Math.Abs(range.End.Value) - Math.Abs(range.Start.Value);
+        return range.End - range.Start;
     }
 
     private static NeuronRecognizedStats Recognize(
@@ -91,6 +90,18 @@ public interface IStatisticsManager
 {
     void CollectStats(int epoch, Net net);
     void AddOutputError(float[] error);
+}
+
+public struct EpochRange
+{
+    public int Start { get; set; }
+    public int End { get; set; }
+
+    public EpochRange(int start, int end)
+    {
+        Start = start;
+        End = end;
+    }
 }
 
 public class StatisticsManager : IStatisticsManager
@@ -118,7 +129,7 @@ public class StatisticsManager : IStatisticsManager
 
     public void CollectStats(int epoch, Net net)
     {
-        if (epoch % _delimmer != 0 || epoch == 0)
+        if (epoch % _delimmer != 0)
             return;
         
         var localCopy = _netCopy;
@@ -134,7 +145,10 @@ public class StatisticsManager : IStatisticsManager
     {
         lock (_locker)
         {
-            var epoch = (net.Epoch - _delimmer)..net.Epoch;
+            EpochRange epoch = net.Epoch != 0
+                ? new(net.Epoch - _delimmer, net.Epoch)
+                : new();
+
             var stats = _calculator.Calculate(net.Value, epoch);
 
             foreach (var processor in _processors)

@@ -41,12 +41,12 @@ public class Net
 
         int index = 0;
 
-        foreach (var definition in definitions)
+        foreach (var def in definitions)
         {
-            for (int layer = 0; layer < definition.Layers; layer++)
+            for (int layer = 0; layer < def.Layers; layer++)
             {
-                Layers[index++] = new NeuronLayer(definition.NeuronsCount,
-                    definition.WeightsCount, learningRate, definition.UseActivationFunc);
+                Layers[index++] = new NeuronLayer(def.NeuronsCount,
+                    def.WeightsCount, learningRate, def.UseActivationFunc);
             }
         }
     }
@@ -87,13 +87,16 @@ public class Net
 
     public float[] Train(float[] input, float[] expected)
     {
-        Buffers.EnsureNeuronErrorsCount(Layers.Length - 1);
+        int neuronErrorsBufferCount = Math.Max(1, Layers.Length - 1);
+        Buffers.EnsureNeuronErrorsCount(neuronErrorsBufferCount);
 
         var outputsWith = PredictWithOutputs(input);
-        var intermediate = CreateIntermediateValuesModel(outputsWith, input);
+        var intermediate = CreateIntermediateValues(outputsWith, input);
+
+        var lastLayerBufferIndex = Math.Max(0, Layers.Length - 2);
 
         var (errors, outputError) = CalculateGeneralErrorsAndCompensate(
-            Layers.Length - 2, Layers[^1], intermediate[^1], expected);
+            lastLayerBufferIndex, Layers[^1], intermediate[^1], expected);
         
         for (int layerIndex = Layers.Length - 2; layerIndex >= 0; layerIndex--)
         {
@@ -199,7 +202,7 @@ public class Net
         }
     }
 
-    private float[][] CreateIntermediateValuesModel(float[][] layersOutputs, float[] firstLayerInput)
+    private float[][] CreateIntermediateValues(float[][] layersOutputs, float[] firstLayerInput)
     {
         var outputs = Buffers.GetIntermediateValuesBuffer(layersOutputs.Length);
         outputs[0] = firstLayerInput;

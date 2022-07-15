@@ -15,7 +15,7 @@ public class StatisticsConsoleWriter : IStatProcessor
         var errorAcc = stats.ErrorStats.Errors.Sum(Math.Abs);
         var delta = errorAcc - _previousError;
 
-        _st.Append($"Epoch {stats.EpochRange.Start.Value:D4}-{stats.EpochRange.End.Value:D4}; ");
+        _st.Append($"Epoch {stats.EpochRange.Start:D4}-{stats.EpochRange.End:D4}; ");
         _st.AppendLine($"Error: {errorAcc:F5}; Delta: {delta:F5}; ");
 
         _previousRec1 = Write(_st, stats.TestStats, _previousRec1);

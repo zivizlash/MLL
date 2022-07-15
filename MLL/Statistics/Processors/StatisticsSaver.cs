@@ -24,7 +24,8 @@ public class StatisticsSaver : IStatProcessor
 
     public void Process(StatisticsInfo stats)
     {
-        int epoch = stats.EpochRange.Start.Value;
+        int epoch = stats.EpochRange.Start;
+
         if (epoch % 100 == 0) 
             _stats.Net.Add(ToArrayElement(epoch, stats.Net));
 

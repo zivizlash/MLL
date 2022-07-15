@@ -8,10 +8,10 @@ public class StatisticsInfo
     public NeuronRecognizedStats TrainStats { get; }
     public NeuronErrorStats ErrorStats { get; }
     public Net Net { get; }
-    public Range EpochRange { get; }
+    public EpochRange EpochRange { get; }
 
     public StatisticsInfo(NeuronRecognizedStats testStats, NeuronRecognizedStats trainStats, 
-        NeuronErrorStats errorStats, Range epochRange, Net net)
+        NeuronErrorStats errorStats, EpochRange epochRange, Net net)
     {
         TestStats = testStats;
         TrainStats = trainStats;

@@ -1,7 +1,6 @@
 ﻿using MLL.ImageLoader;
 using MLL.Neurons;
 using MLL.Options;
-using MLL.Saving;
 using MLL.Statistics;
 
 namespace MLL;
@@ -38,11 +37,13 @@ public class NetMethods
     public void Train(IImageDataSetProvider imageProvider, IStatisticsManager stats)
     {
         var dt = DateTime.Now;
+        void DisplayTrainTime() => Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");
+
         PrepareTraining(imageProvider);
 
         var count = imageProvider.GetDataSet(0).Count;
         
-        for (int epoch = 0; epoch < 150000; epoch++)
+        for (int epoch = 0; epoch < 3000000; epoch++)
         {
             for (int imageIndex = 0; imageIndex < count; imageIndex++)
             {
@@ -62,11 +63,12 @@ public class NetMethods
             if (ArgumentParser.IsNeedExit())
             {
                 Console.WriteLine($"Train stopped at {epoch} epoch");
+                DisplayTrainTime();
                 return;
             }
         }
 
-        Console.WriteLine($"Training ended in {DateTime.Now - dt}\n");
+        DisplayTrainTime();
     }
 
     public float FullTest(IImageDataSetProvider imageProvider, float? previous = default)

@@ -24,7 +24,7 @@ public class Program
     }
 
     private static IImageDataSetProvider CreateDataSetProvider(bool isEven) =>
-        new FolderNameDataSetProvider(new NotOrEvenFilesProviderFactory(isEven, 20),
+        new FolderNameDataSetProvider(new NotOrEvenFilesProviderFactory(isEven, 512),
             NameToFolder, ImageRecognitionOptions.Default.ImageWidth, ImageRecognitionOptions.Default.ImageHeight);
 
     private static IImageDataSetProvider CreateTestDataSetProvider() => CreateDataSetProvider(false);
@@ -38,10 +38,12 @@ public class Program
         const int numbersCount = 10;
         var imageWeightsCount = options.ImageWidth * options.ImageHeight;
 
+        return new []{ LayerDefinition.CreateSingle(numbersCount, imageWeightsCount, false) }; 
+
         return LayerDefinition.Builder
             .WithLearningRate(options.LearningRate)
-            .WithInputLayer(numbersCount, imageWeightsCount)
-            .WithHiddenLayers(numbersCount, numbersCount)
+            .WithInputLayer(numbersCount * 3, imageWeightsCount)
+            .WithHiddenLayers(numbersCount * 2)
             .WithOutputLayer(numbersCount, false)
             .Build();
     }
@@ -82,7 +84,10 @@ public class Program
             var (netSaver, statSaver, stats) = CreateStatisticsManager(400, testDataSet, trainDataSet);
 
             netMethods.Train(trainDataSet, stats);
+
             netSaver.Save(net);
+            statSaver.WriteLayers(layers);
+            statSaver.WriteOptions(imageOptions);
             statSaver.Flush();
         }
 

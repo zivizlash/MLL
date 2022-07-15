@@ -21,6 +21,7 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
 
     public interface IBuilderOutputCount
     {
+        IBuilder WithoutOutputLayer();
         IBuilder WithOutputLayer(int neuronsCount, bool useActivationFunc);
     }
 
@@ -39,7 +40,7 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
     private int _inputNeuronsCount;
     private int _inputWeights;
     private readonly List<int> _hiddenLayersCounts;
-    private int _outputNeuronsCount;
+    private int? _outputNeuronsCount;
     private float _learningRate;
     private bool _useActivationFunc;
 
@@ -73,6 +74,12 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
         return this;
     }
 
+    public IBuilder WithoutOutputLayer()
+    {
+        _outputNeuronsCount = null;
+        return this;
+    }
+
     public IBuilder WithOutputLayer(int neuronsCount, bool useActivationFunc)
     {
         _outputNeuronsCount = neuronsCount;
@@ -85,7 +92,9 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
         if (_hiddenLayersCounts == null)
             throw new InvalidOperationException();
 
-        var layersCount = 2 + _hiddenLayersCounts.Count;
+        var layersCount = _hiddenLayersCounts.Count 
+            + 1 + (_outputNeuronsCount.HasValue ? 1 : 0);
+
         var definition = new LayerDefinition[layersCount];
 
         int lastOutputCount = _inputNeuronsCount;
@@ -94,7 +103,7 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
 
         definition[0] = new LayerDefinition(
             layersDefinitionCount, _inputNeuronsCount, _inputWeights, true);
-
+        
         for (int i = 0; i < _hiddenLayersCounts.Count; i++)
         {
             var neuronsCount = _hiddenLayersCounts[i];
@@ -104,9 +113,12 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
 
             lastOutputCount = neuronsCount;
         }
-
-        definition[^1] = new LayerDefinition(
-            1, _outputNeuronsCount, lastOutputCount, _useActivationFunc);
+        
+        if (_outputNeuronsCount.HasValue)
+        {
+            definition[^1] = new LayerDefinition(
+                1, _outputNeuronsCount.Value, lastOutputCount, _useActivationFunc);
+        }
 
         return definition;
     }
