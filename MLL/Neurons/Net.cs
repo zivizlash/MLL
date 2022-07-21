@@ -159,7 +159,7 @@ public class Net
         var weightsCount = neurons[0].Weights.Length;
 
         var outputErrorBuffer = Buffers.GetLastLayerBuffer(layer.Count);
-        var nextErrors = Buffers.GetErrorBuffer(layerIndex, weightsCount);
+        var nextErrorsBuffer = Buffers.GetErrorBuffer(layerIndex, weightsCount);
 
         for (int neuronIndex = 0; neuronIndex < neurons.Length; neuronIndex++)
         {
@@ -167,11 +167,11 @@ public class Net
             var error = neuron.CalculateError(previousInput, expected[neuronIndex]);
             outputErrorBuffer[neuronIndex] = error.Error;
 
-            UpdateLayerErrors(neuron, error.Error, nextErrors);
+            UpdateLayerErrors(neuron, error.Error, nextErrorsBuffer);
             neuron.CompensateError(previousInput, error);
         }
         
-        return (nextErrors, outputErrorBuffer);
+        return (nextErrorsBuffer, outputErrorBuffer);
     }
 
     private static void UpdateLayerErrorsAtomic(SigmoidNeuron neuron,

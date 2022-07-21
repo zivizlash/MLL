@@ -38,7 +38,6 @@ public class NeuronLayer
             _buffer[i] = neuron.Predict(input);
         }
     
-        
         return _buffer;
     }
 }
