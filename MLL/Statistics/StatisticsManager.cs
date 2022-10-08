@@ -1,8 +1,6 @@
-﻿using MLL.Builders;
-using MLL.ImageLoader;
+﻿using MLL.ImageLoader;
+using MLL.Layer;
 using MLL.Neurons;
-using MLL.Options;
-using MLL.Statistics.Processors;
 using Newtonsoft.Json.Linq;
 
 namespace MLL.Statistics;
@@ -37,15 +35,14 @@ public class StatisticsCalculator
         _trainSetProvider = trainSetProvider;
     }
     
-    public StatisticsInfo Calculate(Net net, EpochRange epochRange)
+    public StatisticsInfo Calculate(NetManager net, EpochRange epochRange)
     {
         NormalizeErrorPerEpoch(_outputErrors!, epochRange);
         var testRecognized = Recognize(net, _testSetProvider, true);
         var trainRecognized = Recognize(net, _trainSetProvider, false);
         var trainErrors = new NeuronErrorStats(_outputErrors!);
         
-        return new StatisticsInfo(testRecognized, trainRecognized, 
-            trainErrors, epochRange, net);
+        return new StatisticsInfo(testRecognized, trainRecognized, trainErrors, epochRange, net);
     }
 
     public void Clear()
@@ -53,7 +50,7 @@ public class StatisticsCalculator
         Array.Clear(_outputErrors!);
     }
 
-    public void AddOutputError(float[] error)
+    public void AddOutputError(ReadOnlySpan<float> error)
     {
         _outputErrors ??= new float[error.Length];
 
@@ -76,7 +73,7 @@ public class StatisticsCalculator
     }
 
     private static NeuronRecognizedStats Recognize(
-        Net net, IImageDataSetProvider provider, bool isTest)
+        NetManager net, IImageDataSetProvider provider, bool isTest)
     {
         var results = new float[10];
         RecognitionPercentCalculator.Calculate(net, provider, results);
@@ -88,8 +85,8 @@ public class StatisticsCalculator
 
 public interface IStatisticsManager
 {
-    void CollectStats(int epoch, Net net);
-    void AddOutputError(float[] error);
+    void CollectStats(int epoch, NetManager net);
+    void AddOutputError(ReadOnlySpan<float> error);
 }
 
 public struct EpochRange
@@ -110,49 +107,53 @@ public class StatisticsManager : IStatisticsManager
     private readonly IStatProcessor[] _processors;
 
     private readonly object _locker = new();
+    private readonly NetManager _computers;
 
-    private Net? _netCopy;
+    private LayerWeightsData[]? _netCopy;
 
     private int _delimmer = 20;
 
-    public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors, int delimmer)
+    public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors, 
+        int delimmer, NetManager computers)
     {
         _calculator = calculator;
         _processors = processors;
         _delimmer = delimmer;
+        _computers = computers;
     }
-
-    public void AddOutputError(float[] error)
+    
+    public void AddOutputError(ReadOnlySpan<float> error)
     {
         _calculator.AddOutputError(error);
     }
 
-    public void CollectStats(int epoch, Net net)
+    public void CollectStats(int epoch, NetManager net)
     {
-        if (epoch % _delimmer != 0)
-            return;
+        if (epoch % _delimmer != 0) return;
         
         var localCopy = _netCopy;
-        NetReplicator.Copy(net, ref localCopy);
+        var copy = NetReplicator.Copy(net, _computers, ref localCopy);
 
-        var container = new StatContainer<Net>(epoch, localCopy);
+        var container = new StatContainer<NetManager>(epoch, copy);
         _netCopy = localCopy;
 
         ThreadPool.QueueUserWorkItem(Process, container, false);
     }
 
-    private void Process(StatContainer<Net> net)
+    private void Process(StatContainer<NetManager> net)
     {
         lock (_locker)
         {
-            EpochRange epoch = net.Epoch != 0
-                ? new(net.Epoch - _delimmer, net.Epoch)
-                : new();
+             var epoch = net.Epoch != 0
+                ? new EpochRange(net.Epoch - _delimmer, net.Epoch)
+                : new EpochRange();
 
             var stats = _calculator.Calculate(net.Value, epoch);
 
             foreach (var processor in _processors)
+            {
                 processor.Process(stats);
+            }
 
             _calculator.Clear();
         }

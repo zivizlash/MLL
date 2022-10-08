@@ -1,14 +1,14 @@
 ﻿using MLL.ImageLoader;
 using MLL.Neurons;
+using MLL.Tools;
 
 namespace MLL.Statistics;
 
 public struct RecognitionPercentCalculator
 {
-    public static void Calculate(Net net, IImageDataSetProvider dataSetProvider, Span<float> percentage)
+    public static void Calculate(NetManager net, IImageDataSetProvider dataSetProvider, Span<float> percentage)
     {
-        if (percentage.Length != 10)
-            throw new ArgumentOutOfRangeException(nameof(percentage));
+        Check.LengthEqual(percentage.Length, 10, nameof(percentage));
 
         for (int imageNumber = 0; imageNumber < 10; imageNumber++)
         {
@@ -26,7 +26,7 @@ public struct RecognitionPercentCalculator
         }
     }
     
-    private static int FindBiggestIndex(float[] values)
+    private static int FindBiggestIndex(ReadOnlySpan<float> values)
     {
         int index = 0;
         float value = values[0];

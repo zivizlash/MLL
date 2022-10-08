@@ -38,7 +38,7 @@ public class StatisticsSaver : IStatProcessor
     {
         WriteContent("net.json", _stats.Net.ToString());
         WriteContent("train.json", _stats.TrainRecognize.ToString());
-        WriteContent("test.json", _stats.TestRecognize.ToString());
+        //WriteContent("test.json", _stats.TestRecognize.ToString());
         WriteContent("errors.json", _stats.TrainErrors.ToString());
     }
 

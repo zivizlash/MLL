@@ -11,8 +11,8 @@ public class NetSaver : IStatProcessor
             Save(stats.Net);
     }
 
-    public void Save(Net net)
+    public void Save(NetManager net)
     {
-        NeuronWeightsSaver.Save(net);
+        // NeuronWeightsSaver.Save(net);
     }
 }
