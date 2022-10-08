@@ -54,6 +54,9 @@ public class NetMemoryBuffers
     
     public void ClearNeuronErrorsBuffers()
     {
+        if (_neuronErrorsBuffers == null)
+            return;
+
         foreach (var neuronErrorBuffer in _neuronErrorsBuffers)
             Array.Fill(neuronErrorBuffer, 0);
     }

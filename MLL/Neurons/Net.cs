@@ -167,8 +167,8 @@ public class Net
             var error = neuron.CalculateError(previousInput, expected[neuronIndex]);
             outputErrorBuffer[neuronIndex] = error.Error;
 
-            UpdateLayerErrors(neuron, error.Error, nextErrorsBuffer);
             neuron.CompensateError(previousInput, error);
+            UpdateLayerErrors(neuron, error.Error, nextErrorsBuffer);
         }
         
         return (nextErrorsBuffer, outputErrorBuffer);
