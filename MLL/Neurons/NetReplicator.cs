@@ -52,6 +52,4 @@ public struct NetReplicator
             }
         }
     }
-
-    private static void ThrowOutOfRange() => throw new ArgumentOutOfRangeException();
 }

@@ -1,4 +1,6 @@
-﻿namespace MLL.Tools;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace MLL.Tools;
 
 public static class ListSelection
 {
@@ -52,7 +54,7 @@ public struct ListSelection<T>
         return next;
     }
 
-    public bool TryGetNext(out T? value)
+    public bool TryGetNext([NotNullWhen(true)] out T? value)
     {
         if (_currentIndex + 1 >= Source.Count)
         {
@@ -60,7 +62,7 @@ public struct ListSelection<T>
             return false;
         }
 
-        value = Source[_currentIndex++];
+        value = Source[_currentIndex++]!;
         return true;
     }
 }

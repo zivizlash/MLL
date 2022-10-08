@@ -8,14 +8,4 @@ public readonly struct LayerThreadInfo
     {
         Threads = threads;
     }
-
-    public static bool operator ==(LayerThreadInfo left, LayerThreadInfo right)
-    {
-        return left.Threads == right.Threads;
-    }
-
-    public static bool operator !=(LayerThreadInfo left, LayerThreadInfo right)
-    {
-        return left.Threads != right.Threads;
-    }
 }

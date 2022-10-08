@@ -48,12 +48,12 @@ public class Program
 
         return new []{ LayerDefinition.CreateSingle(numbersCount, imageWeightsCount, false) }; 
 
-        return LayerDefinition.Builder
-            .WithLearningRate(options.LearningRate)
-            .WithInputLayer(numbersCount * 3, imageWeightsCount)
-            .WithHiddenLayers(numbersCount * 2)
-            .WithOutputLayer(numbersCount, false)
-            .Build();
+        //return LayerDefinition.Builder
+        //    .WithLearningRate(options.LearningRate)
+        //    .WithInputLayer(numbersCount * 3, imageWeightsCount)
+        //    .WithHiddenLayers(numbersCount * 2)
+        //    .WithOutputLayer(numbersCount, false)
+        //    .Build();
     }
 
     private static (NetSaver, StatisticsSaver, StatisticsManager) CreateStatisticsManager(

@@ -12,7 +12,6 @@ public class NetManager
     private readonly LayerWeightsData[] _layersWeights;
     private readonly OptimizationManager _optimizationManager;
     private readonly NetLayersBuffers _buffers;
-    private readonly ErrorBackpropagation _backprop;
 
     public ReadOnlySpan<LayerWeightsData> Weights => _layersWeights;
     public ReadOnlySpan<NeuronComputers> Computers => _layersComputers;
@@ -23,14 +22,12 @@ public class NetManager
     {
         Check.LengthEqual(layersComputers.Length, layersWeights.Length, nameof(layersWeights));
 
+        var weightsCount = layersWeights.Select(lw => lw.Neurons.Length).ToArray();
+        _buffers = new NetLayersBuffers(weightsCount);
+
         _layersComputers = layersComputers;
         _layersWeights = layersWeights;
         _optimizationManager = optimizationManager;
-
-        var weightsCount = _layersWeights.Select(lw => lw.Neurons.Length).ToArray();
-
-        _buffers = new NetLayersBuffers(weightsCount);
-        _backprop = new ErrorBackpropagation();
     }
 
     public ReadOnlySpan<float> Train(float[] input, float[] expected, float learningRate)
