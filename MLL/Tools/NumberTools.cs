@@ -29,4 +29,10 @@ public static class NumberTools
                 return newValue;
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float SigmoidDerivative(float value)
+    {
+        return value * (1.0f - value);
+    }
 }

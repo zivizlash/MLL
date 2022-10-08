@@ -51,7 +51,12 @@ public static class ImageTools
     public static void TestImageNormalizing()
     {
         var options = ImageDataSetOptions.Default;
-        var imagePath = ArgumentParser.GetImagePath();
+        // var imagePath = ArgumentParser.GetImagePath();
+
+        Console.Write("Enter image path: ");
+        var imagePath = Console.ReadLine() ?? throw new InvalidOperationException();
+        Console.WriteLine();
+
         var imageData = LoadImageData(imagePath, options);
 
         byte[] imageBytes = new byte[imageData.Length * 3];
