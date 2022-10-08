@@ -27,7 +27,7 @@ public class NotOrEvenFilesProviderFactory : IFilesProviderFactory
 
     private static Func<string, bool> CreateFilter(bool isEven)
     {
-        var counter = isEven ? 0 : 1;
-        return _ => counter++ % 2 == 0;
+        bool even = isEven;
+        return _ => even = !even;
     }
 }

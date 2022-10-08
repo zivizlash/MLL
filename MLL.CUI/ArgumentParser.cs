@@ -1,4 +1,4 @@
-﻿namespace MLL.Options;
+﻿namespace MLL.CUI;
 
 using Key = ConsoleKey;
 
@@ -17,7 +17,7 @@ public struct ArgumentParser
         TestImageNormalizing = testImageNormalizing;
     }
 
-    public static bool IsNeedExit()
+    public static bool IsExitRequested()
     {
         return Console.KeyAvailable && Console.ReadKey(true).Key == Key.Q;
     }

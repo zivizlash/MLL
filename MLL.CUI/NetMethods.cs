@@ -1,19 +1,40 @@
-﻿using MLL.ImageLoader;
+﻿using MLL.CUI;
+using MLL.ImageLoader;
 using MLL.Neurons;
-using MLL.Options;
 using MLL.Statistics;
+using MLL.Tools;
 
 namespace MLL;
 
+public class IndicesShuffler
+{
+    private readonly Random _random;
+
+    public (int number, int index)[] Combinations { get; }
+
+    public IndicesShuffler(IEnumerable<(int, int)> combinations)
+    {
+        _random = new Random();
+        Combinations = combinations.ToArray();
+    }
+
+    public (int number, int index)[] ShuffleAndGet()
+    {
+        Combinations.ShuffleInPlace(_random);
+        return Combinations;
+    }
+}
+
 public class NetMethods
 {
-    private readonly Net _net;
+    private readonly NetManager _net;
+    private readonly float _learningRate;
     private readonly float[][] _expectedValues;
 
-    public NetMethods(Net net)
+    public NetMethods(NetManager net, float learningRate)
     {
         _net = net;
-        
+        _learningRate = learningRate;
         _expectedValues = Enumerable
             .Range(0, 10).Select(v =>
             {
@@ -41,34 +62,36 @@ public class NetMethods
 
         PrepareTraining(imageProvider);
 
-        var count = imageProvider.GetDataSet(0).Count;
-        
-        for (int epoch = 0; epoch < 3000000; epoch++)
+        var numbers = Enumerable.Range(0, 10);
+
+        var indices = numbers.SelectMany(number => 
+            Enumerable.Range(0, imageProvider.GetDataSet(number).Count)
+                .Select(index => (number, index)));
+
+        var indicesShuffler = new IndicesShuffler(indices);
+        int epoch = 0;
+
+        while (!ArgumentParser.IsExitRequested())
         {
-            for (int imageIndex = 0; imageIndex < count; imageIndex++)
-            {
-                for (int imageNumber = 0; imageNumber < 10; imageNumber++)
-                {
-                    var expected = _expectedValues[imageNumber];
-                    var imagesSet = imageProvider.GetDataSet(imageNumber);
-
-                    var image = imagesSet[imageIndex];
-                    var errors = _net.Train(image.Data, expected);
-                    stats.AddOutputError(errors);
-                }
-            }
-
-            stats.CollectStats(epoch, _net);
-
-            if (ArgumentParser.IsNeedExit())
-            {
-                Console.WriteLine($"Train stopped at {epoch} epoch");
-                DisplayTrainTime();
-                return;
-            }
+            ProcessEpoch(epoch++, indicesShuffler, imageProvider, stats);
         }
 
+        Console.WriteLine($"Train stopped at {epoch} epoch");
         DisplayTrainTime();
+    }
+
+    private void ProcessEpoch(int epoch, IndicesShuffler indices, IImageDataSetProvider imageProvider, IStatisticsManager stats)
+    {
+        foreach (var (imageNumber, imageIndex) in indices.ShuffleAndGet())
+        {
+            var image = imageProvider.GetDataSet(imageNumber)[imageIndex];
+            var expected = _expectedValues[imageNumber];
+
+            var errors = _net.Train(image.Data, expected, _learningRate);
+            stats.AddOutputError(errors);
+        }
+
+        stats.CollectStats(epoch, _net);
     }
 
     public float FullTest(IImageDataSetProvider imageProvider, float? previous = default)
