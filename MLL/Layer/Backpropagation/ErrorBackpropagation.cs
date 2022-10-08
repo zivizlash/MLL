@@ -2,11 +2,6 @@
 
 namespace MLL.Layer.Backpropagation;
 
-public interface IErrorBackpropagation
-{
-    void ReorganizeErrors(BackpropContext ctx, float[] errors);
-}
-
 public class ErrorBackpropagation : IErrorBackpropagation
 {
     public void ReorganizeErrors(BackpropContext ctx, float[] errors)

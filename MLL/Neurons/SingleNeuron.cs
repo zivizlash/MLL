@@ -1,5 +1,7 @@
 ﻿namespace MLL.Neurons;
 
+// на память тупа. сколько времени я потратил на усложнение поддержки
+
 //public class SingleNeuron : Neuron
 //{
 //    private readonly double _bias;

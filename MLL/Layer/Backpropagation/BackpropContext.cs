@@ -11,13 +11,3 @@ public readonly struct BackpropContext
         Errors = errors;
     }
 }
-
-public readonly struct BackpropComputeContext
-{
-    public readonly int Threads;
-
-    public BackpropComputeContext(int threads)
-    {
-        Threads = threads;
-    }
-}

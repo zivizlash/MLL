@@ -2,55 +2,6 @@
 
 namespace MLL.Layer.Threading;
 
-public readonly struct LayerThreadInfo
-{
-    public readonly int Threads;
-
-    public LayerThreadInfo(int threads)
-    {
-        Threads = threads;
-    }
-
-    public static bool operator ==(LayerThreadInfo left, LayerThreadInfo right)
-    {
-        return left.Threads == right.Threads;
-    }
-
-    public static bool operator !=(LayerThreadInfo left, LayerThreadInfo right)
-    {
-        return left.Threads != right.Threads;
-    }
-}
-
-public interface IThreadedProcessor
-{
-    LayerThreadInfo ThreadInfo { get; set; }
-}
-
-public class OptimizationManager
-{
-    private readonly HashSet<ThreadedProcessorStatCollector> _collectors;
-    
-    public OptimizationManager(params ThreadedProcessorStatCollector[] collectors)
-    {
-        _collectors = collectors.ToHashSet();
-    }
-
-    public bool Optimize()
-    {
-        foreach (var collector in _collectors)
-        {
-            if (collector.Optimize())
-            {
-                _collectors.Remove(collector);
-                Console.WriteLine($"module {collector.Controller.TimeTracker.GetType()} optimized");
-            }
-        }
-
-        return _collectors.Count == 0;
-    }
-}
-
 public class ThreadedProcessorStatCollector
 {
     private readonly int _requiredSamples;

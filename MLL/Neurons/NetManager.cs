@@ -1,30 +1,10 @@
 ﻿using MLL.Layer;
 using MLL.Layer.Backpropagation;
-using MLL.Layer.Computers;
 using MLL.Layer.Computers.Sigmoid;
 using MLL.Layer.Threading;
 using MLL.Tools;
 
 namespace MLL.Neurons;
-
-public class NetLayersBuffers
-{
-    public float[][] Outputs;
-    public float[][] Errors;
-
-    public NetLayersBuffers(int[] weightsCounts)
-    {
-        Outputs = new float[weightsCounts.Length][];
-        Errors = new float[weightsCounts.Length][];
-
-        for (int i = 0; i < weightsCounts.Length; i++)
-        {
-            int weightsCount = weightsCounts[i];
-            Outputs[i] = new float[weightsCount];
-            Errors[i] = new float[weightsCount];
-        }
-    }
-}
 
 public class NetManager
 {
@@ -41,10 +21,11 @@ public class NetManager
     public NetManager(NeuronComputers[] layersComputers, LayerWeightsData[] layersWeights, 
         OptimizationManager optimizationManager)
     {
+        Check.LengthEqual(layersComputers.Length, layersWeights.Length, nameof(layersWeights));
+
         _layersComputers = layersComputers;
         _layersWeights = layersWeights;
         _optimizationManager = optimizationManager;
-        Check.LengthEqual(layersComputers.Length, layersWeights.Length, nameof(layersWeights));
 
         var weightsCount = _layersWeights.Select(lw => lw.Neurons.Length).ToArray();
 
@@ -127,47 +108,5 @@ public class NetManager
 
         float[] lastLayerOutput = layerInput;
         return lastLayerOutput;
-    }
-}
-
-public class NeuronLayer
-{
-    private SigmoidNeuron[] _neurons;
-
-    private float[]? _buffer;
-    
-    public SigmoidNeuron[] Neurons
-    {
-        get => _neurons;
-        set => _neurons = value;
-    }
-
-    public int Count => _neurons.Length;
-
-    public NeuronLayer()
-    {
-        _neurons = Array.Empty<SigmoidNeuron>();
-    }
-
-    public NeuronLayer(int neuronsCount, int weightsCount, float learningRate, bool useActivationFunc)
-    {
-        _neurons = new SigmoidNeuron[neuronsCount];
-
-        for (int i = 0; i < _neurons.Length; i++)
-            _neurons[i] = new SigmoidNeuron(weightsCount, learningRate, useActivationFunc);
-    }
-    
-    public float[] Predict(float[] input)
-    {
-        if (_buffer?.Length != _neurons.Length)
-            _buffer = new float[_neurons.Length];
-        
-        for (var i = 0; i < _neurons.Length; i++)
-        {
-            var neuron = _neurons[i];
-            _buffer[i] = neuron.Predict(input);
-        }
-    
-        return _buffer;
     }
 }

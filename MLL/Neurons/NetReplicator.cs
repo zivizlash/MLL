@@ -53,28 +53,5 @@ public struct NetReplicator
         }
     }
 
-    private static void CopyInternal(Net source, Net destination)
-    {
-        for (int li = 0; li < source.Layers.Length; li++)
-        {
-            var sourceLayer = source.Layers[li];
-            var destinationLayer = destination.Layers[li];
-
-            if (sourceLayer.Neurons.Length != destinationLayer.Neurons.Length)
-                ThrowOutOfRange();
-
-            for (int ni = 0; ni < sourceLayer.Neurons.Length; ni++)
-            {
-                var sourceNeuron = sourceLayer.Neurons[ni];
-                var destinationNeuron = destinationLayer.Neurons[ni];
-
-                if (sourceNeuron.Weights.Length != destinationNeuron.Weights.Length)
-                    ThrowOutOfRange();
-
-                sourceNeuron.Weights.CopyTo(destinationNeuron.Weights.AsSpan());
-            }
-        }
-    }
-
     private static void ThrowOutOfRange() => throw new ArgumentOutOfRangeException();
 }
