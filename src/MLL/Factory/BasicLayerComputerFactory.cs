@@ -82,17 +82,17 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
     }
 
     private static ICalculateLayerComputer CreateCalculate() =>
-        new ThreadedSumCalculateLayerComputer { ThreadInfo = new(1) };
+        new SumCalculateLayerComputer { ThreadInfo = new(1) };
 
     private static IPredictLayerComputer CreatePredict(bool isSigmoid) =>
         isSigmoid
-        ? new ThreadedSigmoidPredictLayerComputer { ThreadInfo = new(1) }
-        : new ThreadedSumPredictLayerComputer { ThreadInfo = new(1) };
+        ? new SigmoidPredictLayerComputer { ThreadInfo = new(1) }
+        : new SumPredictLayerComputer { ThreadInfo = new(1) };
 
     private static ICompensateLayerComputer CreateCompensate(bool isSigmoid) =>
         isSigmoid
-        ? new ThreadedSigmoidCompensateLayerComputer { ThreadInfo = new(1) }
-        : new ThreadedSumCompensateLayerComputer { ThreadInfo = new(1) };
+        ? new SigmoidCompensateLayerComputer { ThreadInfo = new(1) }
+        : new SumCompensateLayerComputer { ThreadInfo = new(1) };
 
     private static Action AddMessage(IThreadedComputer threadedComputer, Action action) =>
         action + (() => Console.WriteLine($"Optimized with: {threadedComputer.ThreadInfo.Threads} threads"));

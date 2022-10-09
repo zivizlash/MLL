@@ -9,7 +9,7 @@ using MLL.Tools;
 
 namespace MLL.Computers.Layers.Sigmoid;
 
-public class ThreadedSigmoidPredictLayerComputer : IPredictLayerComputer, IThreadedComputer
+public class SigmoidPredictLayerComputer : IPredictLayerComputer, IThreadedComputer
 {
     public LayerThreadInfo ThreadInfo { get; set; }
 

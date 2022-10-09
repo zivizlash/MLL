@@ -9,7 +9,7 @@ using MLL.Tools;
 
 namespace MLL.Computers.Layers.Sum;
 
-public class ThreadedSumPredictLayerComputer : IPredictLayerComputer, IThreadedComputer
+public class SumPredictLayerComputer : IPredictLayerComputer, IThreadedComputer
 {
     public LayerThreadInfo ThreadInfo { get; set; }
 

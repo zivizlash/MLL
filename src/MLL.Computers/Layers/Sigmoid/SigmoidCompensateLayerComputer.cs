@@ -2,18 +2,18 @@
 using MLL.Common.Layer.Computers;
 using MLL.Common.Threading;
 using MLL.Common.Tools;
-using MLL.Computers.Layers.Sum.WorkItems;
+using MLL.Computers.Layers.Sigmoid.WorkItems;
 using MLL.Layer.Computers;
 using MLL.Layer.Computers.Sigmoid;
 using MLL.Tools;
 
-namespace MLL.Computers.Layers.Sum;
+namespace MLL.Computers.Layers.Sigmoid;
 
-public class ThreadedSumCompensateLayerComputer : ICompensateLayerComputer, IThreadedComputer
+public class SigmoidCompensateLayerComputer : ICompensateLayerComputer, IThreadedComputer
 {
     public LayerThreadInfo ThreadInfo { get; set; }
 
-    private SumLayerCompensateWorkItem[] _workItems = Array.Empty<SumLayerCompensateWorkItem>();
+    private SigmoidLayerCompensateWorkItem[] _workItems = Array.Empty<SigmoidLayerCompensateWorkItem>();
 
     public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {
@@ -33,7 +33,7 @@ public class ThreadedSumCompensateLayerComputer : ICompensateLayerComputer, IThr
         for (int ni = start; ni < neurons.Length; ni++)
         {
             var weights = neurons[ni];
-            var generalError = GetGeneralError(learningRate, errors[ni]);
+            var generalError = GetGeneralError(learningRate, outputs[ni], errors[ni]);
 
             for (int wi = 0; wi < weights.Length; wi++)
             {
@@ -44,8 +44,9 @@ public class ThreadedSumCompensateLayerComputer : ICompensateLayerComputer, IThr
         fork.Countdown?.Wait();
     }
 
-    private static float GetGeneralError(float learningRate, float error)
+    private static float GetGeneralError(float learningRate, float output, float error)
     {
-        return learningRate * error;
+        float sigmoidDerivative = NumberTools.SigmoidDerivative(output);
+        return learningRate * error * sigmoidDerivative;
     }
 }

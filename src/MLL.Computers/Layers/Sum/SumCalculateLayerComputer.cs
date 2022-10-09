@@ -7,7 +7,7 @@ using MLL.Layer.Computers.Sigmoid;
 
 namespace MLL.Computers.Layers.Sum;
 
-public class ThreadedSumCalculateLayerComputer : ICalculateLayerComputer, IThreadedComputer
+public class SumCalculateLayerComputer : ICalculateLayerComputer, IThreadedComputer
 {
     private SumLayerErrorCalcWorkItem[] _items = Array.Empty<SumLayerErrorCalcWorkItem>();
 
