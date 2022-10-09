@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace MLL.Tools;
+namespace MLL.Computers.Tools;
 
 public static class VectorCalculator
 {

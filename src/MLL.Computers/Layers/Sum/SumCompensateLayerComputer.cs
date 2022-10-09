@@ -3,8 +3,7 @@ using MLL.Common.Layer.Computers;
 using MLL.Common.Threading;
 using MLL.Common.Tools;
 using MLL.Computers.Layers.Sum.WorkItems;
-using MLL.Layer.Computers;
-using MLL.Layer.Computers.Sigmoid;
+using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sum;
 

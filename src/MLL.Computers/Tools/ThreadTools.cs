@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Layer;
 
-namespace MLL.Layer.Computers;
+namespace MLL.Computers.Tools;
 
 public static class ThreadTools
 {

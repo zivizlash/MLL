@@ -1,9 +1,9 @@
 ﻿using MLL.Common.Layer;
 using MLL.Computers.Layers.Sigmoid.WorkItems;
 using MLL.Computers.Layers.Sum.WorkItems;
-using MLL.Layer.Computers.Sigmoid;
+using MLL.Computers.Tools;
 
-namespace MLL.Layer.Computers;
+namespace MLL.Computers.Layers;
 
 public static class WorkItemsFiller
 {

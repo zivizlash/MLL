@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Threading;
 
-namespace MLL.Layer.Computers.Sigmoid;
+namespace MLL.Computers.Tools;
 
 public struct ForkHelper
 {

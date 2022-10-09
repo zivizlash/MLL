@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace MLL.Tools;
+namespace MLL.Computers.Tools;
 
 public static class NumberTools
 {
@@ -15,7 +15,7 @@ public static class NumberTools
     {
         return 1.0f / (1.0f + MathF.Exp(-value));
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float AtomicAdd(ref float location, float value)
     {
