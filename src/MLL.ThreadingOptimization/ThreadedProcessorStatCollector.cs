@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Optimization;
 using MLL.Common.Tools;
 
-namespace MLL.Layer.Threading;
+namespace MLL.ThreadingOptimization;
 
 public class ThreadedProcessorStatCollector : IOptimizator
 {
@@ -16,9 +16,9 @@ public class ThreadedProcessorStatCollector : IOptimizator
 
     public ThreadedProcessorStatCollector(ThreadedProcessorController controller,
         int requiredTimingsCount, float outlinersThreshold,
-        int maxThreads, ListSelection<int> threads, Action optimizeDoneAction)
+        ListSelection<int> threads, Action optimizeDoneAction)
     {
-        _profile = new ThreadedProcessorProfile(maxThreads);
+        _profile = new ThreadedProcessorProfile(threads.Source.Max());
         _requiredSamples = requiredTimingsCount;
         _outlinersThreshold = outlinersThreshold;
         _threads = threads;

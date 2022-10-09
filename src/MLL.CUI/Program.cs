@@ -7,12 +7,12 @@ using MLL.Common.Layer;
 using MLL.Common.Net;
 using MLL.Common.Optimization;
 using MLL.Computers.Factory;
+using MLL.CUI.Options;
 using MLL.Files.ImageLoader;
 using MLL.Files.Tools;
-using MLL.Layer.Factories;
-using MLL.Options;
 using MLL.Statistics.Collection;
 using MLL.Statistics.Collection.Processors;
+using MLL.ThreadingOptimization;
 
 namespace MLL.CUI;
 
@@ -78,7 +78,11 @@ public class Program
 
     private static LayerComputerBuilderResult CreateNeuronComputers(bool forTrain = true)
     {
-        return new LayerComputerBuilder(new BasicLayerComputerFactory())
+        var settings = new ThreadingOptimizatorFactorySettings(100000, 0.2f, Environment.ProcessorCount);
+
+        var computerFactory = new BasicLayerComputerFactory(new ThreadingOptimizatorFactory(settings));
+
+        return new LayerComputerBuilder(computerFactory)
             .WithMaxThreadsAsProccessorsCount()
             .WithRequiredSamples(100000)
             .WithOutlinersThreshold(0.2f)

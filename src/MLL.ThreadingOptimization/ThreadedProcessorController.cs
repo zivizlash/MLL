@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Threading;
 
-namespace MLL.Layer.Threading;
+namespace MLL.ThreadingOptimization;
 
 public class ThreadedProcessorController
 {

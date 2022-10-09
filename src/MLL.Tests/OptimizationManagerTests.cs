@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Optimization;
 using MLL.Common.Threading;
 using MLL.Common.Tools;
-using MLL.Layer.Threading;
+using MLL.ThreadingOptimization;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ public class OptimizationManagerTests
         var controller = new ThreadedProcessorController(computerMock, timeTrackerMock);
 
         var collector = new ThreadedProcessorStatCollector(
-            controller, 100, 0.05f, 5, ListSelection.Range(5), () => { });
+            controller, 100, 0.05f, ListSelection.Range(5), () => { });
 
         var manager = new OptimizationManager(collector);
 

@@ -1,4 +1,4 @@
-﻿namespace MLL.Layer.Threading;
+﻿namespace MLL.ThreadingOptimization;
 
 public class ThreadedProcessorProfile
 {

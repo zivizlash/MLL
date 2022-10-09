@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Factory;
 
-namespace MLL.Layer.Factories;
+namespace MLL.Computers.Factory;
 
 public class SumLayerDef : IFactoryLayerDefinition
-{    
+{
 }
