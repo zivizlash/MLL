@@ -1,4 +1,4 @@
-﻿namespace MLL.Statistics;
+﻿namespace MLL.Statistics.Collection;
 
 public class NeuronRecognizedStats
 {

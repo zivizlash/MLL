@@ -1,30 +1,10 @@
 ﻿using MLL.Common.Files;
 using MLL.Common.Net;
 using MLL.CUI;
-using MLL.ImageLoader;
-using MLL.Statistics;
-using MLL.Tools;
+using MLL.Files.ImageLoader;
+using MLL.Statistics.Collection;
 
 namespace MLL;
-
-public class IndicesShuffler
-{
-    private readonly Random _random;
-
-    public (int number, int index)[] Combinations { get; }
-
-    public IndicesShuffler(IEnumerable<(int, int)> combinations)
-    {
-        _random = new Random();
-        Combinations = combinations.ToArray();
-    }
-
-    public (int number, int index)[] ShuffleAndGet()
-    {
-        Combinations.ShuffleInPlace(_random);
-        return Combinations;
-    }
-}
 
 public class NetMethods
 {

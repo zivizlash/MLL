@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Layer;
 using MLL.Common.Net;
 
-namespace MLL.Statistics;
+namespace MLL.Statistics.Collection;
 
 public class StatisticsManager : IStatisticsManager
 {
@@ -15,7 +15,7 @@ public class StatisticsManager : IStatisticsManager
 
     private int _delimmer = 20;
 
-    public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors, 
+    public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors,
         int delimmer, NetManager computers)
     {
         _calculator = calculator;
@@ -23,7 +23,7 @@ public class StatisticsManager : IStatisticsManager
         _delimmer = delimmer;
         _computers = computers;
     }
-    
+
     public void AddOutputError(ReadOnlySpan<float> error)
     {
         _calculator.AddOutputError(error);
@@ -32,7 +32,7 @@ public class StatisticsManager : IStatisticsManager
     public void CollectStats(int epoch, NetManager net)
     {
         if (epoch % _delimmer != 0) return;
-        
+
         var localCopy = _netCopy;
         var copy = NetReplicator.Copy(net, _computers, ref localCopy);
 
@@ -46,9 +46,9 @@ public class StatisticsManager : IStatisticsManager
     {
         lock (_locker)
         {
-             var epoch = net.Epoch != 0
-                ? new EpochRange(net.Epoch - _delimmer, net.Epoch)
-                : new EpochRange();
+            var epoch = net.Epoch != 0
+               ? new EpochRange(net.Epoch - _delimmer, net.Epoch)
+               : new EpochRange();
 
             var stats = _calculator.Calculate(net.Value, epoch);
 

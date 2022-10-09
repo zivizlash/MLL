@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace MLL.Statistics.Processors;
+namespace MLL.Statistics.Collection.Processors;
 
 public class StatisticsConsoleWriter : IStatProcessor
 {

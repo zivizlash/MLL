@@ -1,19 +1,18 @@
 ﻿using LiteDB;
 using Microsoft.Extensions.Configuration;
-using MLL.Builders;
+using MLL.Common.Builders;
 using MLL.Common.Factory;
 using MLL.Common.Files;
 using MLL.Common.Layer;
 using MLL.Common.Net;
 using MLL.Common.Optimization;
 using MLL.Computers.Factory;
+using MLL.Files.ImageLoader;
 using MLL.Files.Tools;
-using MLL.ImageLoader;
 using MLL.Layer.Factories;
 using MLL.Options;
-using MLL.Statistics;
-using MLL.Statistics.Processors;
-using MLL.Tools;
+using MLL.Statistics.Collection;
+using MLL.Statistics.Collection.Processors;
 
 namespace MLL.CUI;
 
@@ -130,7 +129,6 @@ public class Program
 
             netSaver.Save(net);
             statSaver.WriteLayers(layers);
-            statSaver.WriteOptions(imageOptions);
             statSaver.Flush();
         }
 

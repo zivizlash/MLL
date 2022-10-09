@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Net;
 
-namespace MLL.Statistics;
+namespace MLL.Statistics.Collection;
 
 public class StatisticsInfo
 {
@@ -10,7 +10,7 @@ public class StatisticsInfo
     public NetManager Net { get; }
     public EpochRange EpochRange { get; }
 
-    public StatisticsInfo(NeuronRecognizedStats testStats, NeuronRecognizedStats trainStats, 
+    public StatisticsInfo(NeuronRecognizedStats testStats, NeuronRecognizedStats trainStats,
         NeuronErrorStats errorStats, EpochRange epochRange, NetManager net)
     {
         TestStats = testStats;

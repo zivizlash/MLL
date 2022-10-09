@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Net;
 
-namespace MLL.Statistics.Processors;
+namespace MLL.Statistics.Collection.Processors;
 
 public class NetSaver : IStatProcessor
 {

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace MLL.Statistics;
+namespace MLL.Statistics.Collection;
 
 public struct StatisticsJArrays
 {

@@ -1,9 +1,8 @@
-﻿using MLL.Builders;
-using MLL.Options;
+﻿using MLL.Common.Builders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace MLL.Statistics.Processors;
+namespace MLL.Statistics.Collection.Processors;
 
 public class StatisticsSaver : IStatProcessor
 {
@@ -16,9 +15,6 @@ public class StatisticsSaver : IStatProcessor
         _stats = new();
     }
 
-    public void WriteOptions(ImageRecognitionOptions options) =>
-        WriteAndSerialize("net_options.json", options);
-
     public void WriteLayers(LayerDefinition[] layers) =>
         WriteAndSerialize("layers.json", layers);
 
@@ -26,7 +22,7 @@ public class StatisticsSaver : IStatProcessor
     {
         int epoch = stats.EpochRange.Start;
 
-        if (epoch % 100 == 0) 
+        if (epoch % 100 == 0)
             _stats.Net.Add(ToArrayElement(epoch, stats.Net));
 
         _stats.TestRecognize.Add(ToArrayElement(epoch, stats.TestStats));

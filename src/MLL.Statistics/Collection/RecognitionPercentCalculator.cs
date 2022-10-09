@@ -3,7 +3,7 @@ using MLL.Common.Net;
 using MLL.Common.Tools;
 using MLL.Files.ImageLoader;
 
-namespace MLL.Statistics;
+namespace MLL.Statistics.Collection;
 
 public struct RecognitionPercentCalculator
 {
@@ -14,7 +14,7 @@ public struct RecognitionPercentCalculator
         for (int imageNumber = 0; imageNumber < 10; imageNumber++)
         {
             var dataSet = dataSetProvider.GetDataSet(imageNumber);
-            
+
             for (int imageIndex = 0; imageIndex < dataSet.Count; imageIndex++)
             {
                 var result = net.Predict(dataSet[imageIndex].Data);
@@ -26,7 +26,7 @@ public struct RecognitionPercentCalculator
             percentage[imageNumber] /= dataSet.Count;
         }
     }
-    
+
     private static int FindBiggestIndex(ReadOnlySpan<float> values)
     {
         int index = 0;

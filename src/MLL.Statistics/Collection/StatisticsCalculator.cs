@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Files;
 using MLL.Common.Net;
 
-namespace MLL.Statistics;
+namespace MLL.Statistics.Collection;
 
 public class StatisticsCalculator
 {
@@ -10,20 +10,20 @@ public class StatisticsCalculator
 
     private float[]? _outputErrors;
 
-    public StatisticsCalculator(IImageDataSetProvider testSetProvider, 
+    public StatisticsCalculator(IImageDataSetProvider testSetProvider,
         IImageDataSetProvider trainSetProvider)
     {
         _testSetProvider = testSetProvider;
         _trainSetProvider = trainSetProvider;
     }
-    
+
     public StatisticsInfo Calculate(NetManager net, EpochRange epochRange)
     {
         NormalizeErrorPerEpoch(_outputErrors!, epochRange);
         var testRecognized = Recognize(net, _testSetProvider, true);
         var trainRecognized = Recognize(net, _trainSetProvider, false);
         var trainErrors = new NeuronErrorStats(_outputErrors!);
-        
+
         return new StatisticsInfo(testRecognized, trainRecognized, trainErrors, epochRange, net);
     }
 
@@ -48,7 +48,7 @@ public class StatisticsCalculator
         for (int i = 0; i < errors.Length; i++)
             errors[i] /= epochCount;
     }
-    
+
     private static int GetDelta(EpochRange range)
     {
         return range.End - range.Start;

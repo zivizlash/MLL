@@ -1,13 +1,13 @@
-﻿namespace MLL.Builders;
+﻿namespace MLL.Common.Builders;
 
-public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder, 
-    NeuronsDefinitionBuilder.IBuilderInputCount, 
-    NeuronsDefinitionBuilder.IBuilderOutputCount, 
+public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
+    NeuronsDefinitionBuilder.IBuilderInputCount,
+    NeuronsDefinitionBuilder.IBuilderOutputCount,
     NeuronsDefinitionBuilder.IBuilderHiddenLayers,
     NeuronsDefinitionBuilder.IBuilderLearningRate
 {
     #region Interfaces
-    
+
     public interface IBuilderInputCount
     {
         IBuilderHiddenLayers WithInputLayer(int neuronsCount, int weights);
@@ -92,7 +92,7 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
         if (_hiddenLayersCounts == null)
             throw new InvalidOperationException();
 
-        var layersCount = _hiddenLayersCounts.Count 
+        var layersCount = _hiddenLayersCounts.Count
             + 1 + (_outputNeuronsCount.HasValue ? 1 : 0);
 
         var definition = new LayerDefinition[layersCount];
@@ -103,7 +103,7 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
 
         definition[0] = new LayerDefinition(
             layersDefinitionCount, _inputNeuronsCount, _inputWeights, true);
-        
+
         for (int i = 0; i < _hiddenLayersCounts.Count; i++)
         {
             var neuronsCount = _hiddenLayersCounts[i];
@@ -113,7 +113,7 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
 
             lastOutputCount = neuronsCount;
         }
-        
+
         if (_outputNeuronsCount.HasValue)
         {
             definition[^1] = new LayerDefinition(

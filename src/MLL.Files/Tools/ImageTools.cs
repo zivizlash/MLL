@@ -1,4 +1,5 @@
-﻿using MLL.Common.Files;
+﻿using ImageMagick;
+using MLL.Common.Files;
 
 namespace MLL.Files.Tools;
 

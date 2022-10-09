@@ -1,4 +1,4 @@
-﻿namespace MLL.Tools;
+﻿namespace MLL.Common.Tools;
 
 public static class ShuffleExtensions
 {
