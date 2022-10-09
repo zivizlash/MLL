@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Files;
 
-namespace MLL.ImageLoader;
+namespace MLL.Files.ImageLoader;
 
 public class MaxFilesCountFilesProviderDecorator : IFilesProvider
 {
@@ -15,6 +15,6 @@ public class MaxFilesCountFilesProviderDecorator : IFilesProvider
         _maxFilesCount = maxFilesCount;
     }
 
-    public Stream OpenStream(int index, out string filename) => 
+    public Stream OpenStream(int index, out string filename) =>
         _filesProvider.OpenStream(index, out filename);
 }

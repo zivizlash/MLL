@@ -1,8 +1,6 @@
 ﻿using MLL.Common.Files;
-using MLL.Options;
-using MLL.Tools;
 
-namespace MLL.ImageLoader;
+namespace MLL.Files.ImageLoader;
 
 public class ImageDataSet : IImageDataSet
 {

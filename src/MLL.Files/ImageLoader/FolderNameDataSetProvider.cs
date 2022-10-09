@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Files;
 
-namespace MLL.ImageLoader;
+namespace MLL.Files.ImageLoader;
 
 public class FolderNameDataSetProvider : IImageDataSetProvider
 {
@@ -10,7 +10,7 @@ public class FolderNameDataSetProvider : IImageDataSetProvider
     private readonly Dictionary<string, IImageDataSet> _dataSets;
     private readonly Dictionary<string, string> _cachedFolders;
 
-    public FolderNameDataSetProvider(IFilesProviderFactory filesProviderFactory, 
+    public FolderNameDataSetProvider(IFilesProviderFactory filesProviderFactory,
         Func<string, string> dataSetNameToFolder, int width, int height)
     {
         _dataSets = new Dictionary<string, IImageDataSet>();

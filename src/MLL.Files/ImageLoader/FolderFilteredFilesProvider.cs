@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Files;
 
-namespace MLL.ImageLoader;
+namespace MLL.Files.ImageLoader;
 
 public class FolderFilteredFilesProvider : IFilesProvider
 {

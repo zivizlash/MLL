@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MLL.Files\MLL.Files.csproj" />
     <ProjectReference Include="..\MLL\MLL.csproj" />
   </ItemGroup>
 
