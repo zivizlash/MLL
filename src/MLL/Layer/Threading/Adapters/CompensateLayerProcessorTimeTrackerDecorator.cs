@@ -14,7 +14,7 @@ public class CompensateLayerProcessorTimeTrackerDecorator : ICompensateLayerComp
         Timings = new();
     }
 
-    public void Compensate(LayerWeightsData layer, float[] input, float learningRate, float[] errors, float[] outputs)
+    public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {
         var sw = Stopwatch.StartNew();
         Computer.Compensate(layer, input, learningRate, errors, outputs);

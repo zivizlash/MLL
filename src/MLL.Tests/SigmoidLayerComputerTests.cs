@@ -11,18 +11,18 @@ namespace MLL.Tests;
 [TestFixture]
 public class SigmoidLayerComputerTests
 {
-    private readonly NeuronComputers _layerComputer;
-    private readonly NeuronComputers _threadedLayerComputer;
+    private readonly LayerComputers _layerComputer;
+    private readonly LayerComputers _threadedLayerComputer;
 
     public SigmoidLayerComputerTests()
     {
-        _layerComputer = new NeuronComputers(
+        _layerComputer = new LayerComputers(
             new ThreadedSumCalculateLayerComputer { ThreadInfo = new(1) },
             new ThreadedSigmoidPredictLayerComputer { ThreadInfo = new(1) },
             new ThreadedSigmoidCompensateLayerComputer { ThreadInfo = new(1) }, 
             new ErrorBackpropagation());
 
-        _threadedLayerComputer = new NeuronComputers(
+        _threadedLayerComputer = new LayerComputers(
             new ThreadedSumCalculateLayerComputer { ThreadInfo = new(8) },
             new ThreadedSigmoidPredictLayerComputer { ThreadInfo = new(8) },
             new ThreadedSigmoidCompensateLayerComputer { ThreadInfo = new(8) },
@@ -37,7 +37,7 @@ public class SigmoidLayerComputerTests
         var threadedResults = new float[10];
 
         var input = Helper.FillRandom(random, new float[100]);
-        var weights = new LayerWeightsData(Helper.FillRandom(random, new float[10][], 100));
+        var weights = new LayerWeights(Helper.FillRandom(random, new float[10][], 100));
 
         _layerComputer.Predict.Predict(weights, input, results);
         _threadedLayerComputer.Predict.Predict(weights, input, threadedResults);
@@ -54,8 +54,8 @@ public class SigmoidLayerComputerTests
         var errors = Helper.FillRandom(random, new float[10]);
         var input = Helper.FillRandom(random, new float[100]);
         var outputs = Helper.FillRandom(random, new float[10]);
-        var weights = new LayerWeightsData(Helper.FillRandom(random, new float[10][], 100));
-        var threadedWeights = new LayerWeightsData(Helper.Copy(weights.Neurons));
+        var weights = new LayerWeights(Helper.FillRandom(random, new float[10][], 100));
+        var threadedWeights = new LayerWeights(Helper.Copy(weights.Neurons));
 
         _layerComputer.Compensate.Compensate(weights, input, learningRate, errors, outputs);
         _layerComputer.Compensate.Compensate(threadedWeights, input, learningRate, errors, outputs);

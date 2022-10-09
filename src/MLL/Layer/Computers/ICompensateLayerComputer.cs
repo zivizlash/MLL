@@ -2,5 +2,5 @@
 
 public interface ICompensateLayerComputer
 {
-    void Compensate(LayerWeightsData layer, float[] input, float learningRate, float[] errors, float[] outputs);
+    void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs);
 }

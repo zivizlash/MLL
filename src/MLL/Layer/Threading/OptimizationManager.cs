@@ -16,7 +16,7 @@ public class OptimizationManager
             if (collector.Optimize())
             {
                 _collectors.Remove(collector);
-                Console.WriteLine($"module {collector.Controller.TimeTracker.GetType()} optimized");
+                Console.WriteLine($"Module {collector.Controller.TimeTracker.GetType()} optimized");
             }
         }
 

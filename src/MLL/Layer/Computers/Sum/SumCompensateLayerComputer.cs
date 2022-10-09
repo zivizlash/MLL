@@ -4,7 +4,7 @@ namespace MLL.Layer.Computers.Sum;
 
 public class SumCompensateLayerComputer : ICompensateLayerComputer
 {
-    public void Compensate(LayerWeightsData layer, float[] input, float learningRate, float[] errors, float[] outputs)
+    public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {
         var neurons = layer.Neurons;
 

@@ -1,5 +1,5 @@
 ﻿namespace MLL.Layer.Factories;
 
-public class SigmoidLayerDef
+public class SigmoidLayerDef : ILayerDefinition
 {
 }

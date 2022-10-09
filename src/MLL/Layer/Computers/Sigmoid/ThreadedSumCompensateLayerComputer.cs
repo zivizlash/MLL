@@ -9,7 +9,7 @@ public class ThreadedSumCompensateLayerComputer : ICompensateLayerComputer, IThr
 
     private SumLayerCompensateWorkItem[] _workItems = Array.Empty<SumLayerCompensateWorkItem>();
 
-    public void Compensate(LayerWeightsData layer, float[] input, float learningRate, float[] errors, float[] outputs)
+    public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {
         var neurons = layer.Neurons;
 

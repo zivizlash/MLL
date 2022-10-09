@@ -6,5 +6,5 @@ namespace MLL.Layer.Factories;
 public struct FactoryResolveResult
 {
     public ThreadedProcessorStatCollector[] Collectors;
-    public NeuronComputers NeuronComputers;
+    public LayerComputers Computers;
 }

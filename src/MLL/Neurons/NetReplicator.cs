@@ -6,21 +6,21 @@ namespace MLL.Neurons;
 
 public struct NetReplicator
 {
-    public static NetManager Copy(NetManager source, NetManager computers, [NotNull] ref LayerWeightsData[]? buffer)
+    public static NetManager Copy(NetManager source, NetManager computers, [NotNull] ref LayerWeights[]? buffer)
     {
         buffer ??= CreateEmptyCopy(source.Weights);
         CopyWeights(source.Weights, buffer);
         return new NetManager(computers.Computers.ToArray(), buffer, computers.OptimizationManager);
     }
 
-    private static LayerWeightsData[] CreateEmptyCopy(ReadOnlySpan<LayerWeightsData> src)
+    private static LayerWeights[] CreateEmptyCopy(ReadOnlySpan<LayerWeights> src)
     {
-        var copy = new LayerWeightsData[src.Length];
+        var copy = new LayerWeights[src.Length];
 
         for (int li = 0; li < src.Length; li++)
         {
             var srcLayer = src[li];
-            var weightsCopy = copy[li] = new LayerWeightsData(new float[srcLayer.Neurons.Length][]);
+            var weightsCopy = copy[li] = new LayerWeights(new float[srcLayer.Neurons.Length][]);
 
             for (int ni = 0; ni < srcLayer.Neurons.Length; ni++)
             {
@@ -31,7 +31,7 @@ public struct NetReplicator
         return copy;
     }
 
-    public static void CopyWeights(ReadOnlySpan<LayerWeightsData> src, LayerWeightsData[] dest)
+    public static void CopyWeights(ReadOnlySpan<LayerWeights> src, LayerWeights[] dest)
     {
         Check.LengthEqual(src.Length, dest.Length, nameof(dest));
 

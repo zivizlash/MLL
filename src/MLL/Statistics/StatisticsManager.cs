@@ -109,7 +109,7 @@ public class StatisticsManager : IStatisticsManager
     private readonly object _locker = new();
     private readonly NetManager _computers;
 
-    private LayerWeightsData[]? _netCopy;
+    private LayerWeights[]? _netCopy;
 
     private int _delimmer = 20;
 

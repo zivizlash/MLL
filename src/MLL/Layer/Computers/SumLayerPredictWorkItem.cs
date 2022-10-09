@@ -4,7 +4,7 @@ namespace MLL.Layer.Computers;
 
 public class SumLayerPredictWorkItem : IHasExecuteDelegate
 {
-    public LayerWeightsData Layer;
+    public LayerWeights Layer;
     public float[] Input;
     public float[] Results;
     public int ProcessingCount;

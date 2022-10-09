@@ -5,10 +5,10 @@ namespace MLL.Layer.Factories;
 
 public class LayerComputerBuilderResult
 {
-    public IReadOnlyList<NeuronComputers> Computers { get; }
+    public IReadOnlyList<LayerComputers> Computers { get; }
     public IReadOnlyList<ThreadedProcessorStatCollector> Collectors { get; }
 
-    public LayerComputerBuilderResult(IReadOnlyList<NeuronComputers> computers,
+    public LayerComputerBuilderResult(IReadOnlyList<LayerComputers> computers,
         IReadOnlyList<ThreadedProcessorStatCollector> collectors)
     {
         Computers = computers;

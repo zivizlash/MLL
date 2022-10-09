@@ -32,7 +32,7 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
         var predictTimetracker = new PredictLayerProcessorTimeTrackerDecorator(predict);
         var calculateTimetracker = new CalculateLayerProcessorTimeTrackerDecorator(calculate);
 
-        var neuronComputers = new NeuronComputers(calculateTimetracker, 
+        var neuronComputers = new LayerComputers(calculateTimetracker, 
             predictTimetracker, compensateTimetracker, backpropTimetracker);
 
         var predictCollector = CreateCollector((IThreadedComputer)predict, predictTimetracker, arg,
@@ -61,7 +61,7 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
 
         return new FactoryResolveResult
         {
-            NeuronComputers = neuronComputers,
+            Computers = neuronComputers,
             Collectors = collectors
         };
     }

@@ -9,51 +9,36 @@ public class LayerComputerBuilder
     LayerComputerBuilder.ILayerBuilderOutlinersThreshold,
     LayerComputerBuilder.ILayerBuilderComputer
 {
+    #region Interfaces
     public interface ILayerBuilderMaxThreads
     {
-        ILayerBuilderRequiredSamples MaxThreads(int threads);
-        ILayerBuilderRequiredSamples MaxThreadsAsProccessorsCount();
+        ILayerBuilderRequiredSamples WithMaxThreads(int threads);
+        ILayerBuilderRequiredSamples WithMaxThreadsAsProccessorsCount();
     }
 
     public interface ILayerBuilderRequiredSamples
     {
-        ILayerBuilderOutlinersThreshold RequiredSamples(int samples);
+        ILayerBuilderOutlinersThreshold WithRequiredSamples(int samples);
     }
 
     public interface ILayerBuilderOutlinersThreshold
     {
-        ILayerBuilderComputer OutlinersThreshold(float percents);
+        ILayerBuilderComputer WithOutlinersThreshold(float percents);
     }
 
     public interface ILayerBuilderComputer
     {
-        ILayerBuilderComputer UseLayer<TComputer>();
+        ILayerBuilderComputer UseLayer<TComputer>() where TComputer : ILayerDefinition;
         LayerComputerBuilderResult Build(bool forTrain = true);
     }
-
-    //public interface ILayerBuilderInput
-    //{
-    //    ILayerBuilderHidden WithInput<TComputer>();
-        
-    //}
-
-    //public interface ILayerBuilderHidden
-    //{
-    //    ILayerBuilderHidden WithHidden<TComputer>();
-    //    ILayerBuilderOutput WithOutput<TComputer>();
-    //}
-
-    //public interface ILayerBuilderOutput
-    //{
-    //    LayerComputerBuilderResult Build(bool forTrain = true);
-    //}
+    #endregion
 
     private int _maxThreads;
     private float _outlinersThreshold;
     private int _requiredSamples;
 
     private readonly List<ThreadedProcessorStatCollector> _collectors = new();
-    private readonly List<NeuronComputers> _computers = new();
+    private readonly List<LayerComputers> _computers = new();
     private readonly List<ILayerComputerFactory> _factories = new();
 
     private readonly List<Type> _defTypes = new();
@@ -64,25 +49,25 @@ public class LayerComputerBuilder
         _factories.Add(new BasicLayerComputerFactory());
     }
 
-    public ILayerBuilderRequiredSamples MaxThreads(int threads)
+    public ILayerBuilderRequiredSamples WithMaxThreads(int threads)
     {
         _maxThreads = threads;
         return this;
     }
 
-    public ILayerBuilderRequiredSamples MaxThreadsAsProccessorsCount()
+    public ILayerBuilderRequiredSamples WithMaxThreadsAsProccessorsCount()
     {
         _maxThreads = Environment.ProcessorCount;
         return this;
     }
 
-    ILayerBuilderComputer ILayerBuilderOutlinersThreshold.OutlinersThreshold(float percents)
+    ILayerBuilderComputer ILayerBuilderOutlinersThreshold.WithOutlinersThreshold(float percents)
     {
         _outlinersThreshold = percents;
         return this;
     }
 
-    ILayerBuilderOutlinersThreshold ILayerBuilderRequiredSamples.RequiredSamples(int samples)
+    ILayerBuilderOutlinersThreshold ILayerBuilderRequiredSamples.WithRequiredSamples(int samples)
     {
         _requiredSamples = samples;
         return this;
@@ -104,27 +89,12 @@ public class LayerComputerBuilder
         return this;
     }
 
-    //ILayerBuilderHidden ILayerBuilderHidden.WithHidden<TComputer>()
-    //{
-    //    Add<TComputer>();
-    //    return this;
-    //}
-
-    //ILayerBuilderOutput ILayerBuilderHidden.WithOutput<TComputer>()
-    //{
-    //    Add<TComputer>();
-    //    return this;
-    //}
-
-
-        
     LayerComputerBuilderResult ILayerBuilderComputer.Build(bool forTrain)
     {
         for (int typeIndex = 0; typeIndex < _defTypes.Count; typeIndex++)
         {
             var type = _defTypes[typeIndex];
-            var factory = _factories.FirstOrDefault(f => f.IsCanResolve(type));
-            if (factory == null) throw new InvalidOperationException();
+            var factory = _factories.First(f => f.IsCanResolve(type));
 
             var result = factory.Resolve(type, new FactoryResolveParams
             {
@@ -136,7 +106,7 @@ public class LayerComputerBuilder
                 IsRequiredCompensate = forTrain
             });
 
-            _computers.Add(result.NeuronComputers);
+            _computers.Add(result.Computers);
             _collectors.AddRange(result.Collectors);
         }
 

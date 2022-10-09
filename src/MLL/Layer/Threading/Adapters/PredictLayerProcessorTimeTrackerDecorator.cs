@@ -14,7 +14,7 @@ public class PredictLayerProcessorTimeTrackerDecorator : IPredictLayerComputer, 
         Timings = new();
     }
 
-    public void Predict(LayerWeightsData layer, float[] input, float[] results)
+    public void Predict(LayerWeights layer, float[] input, float[] results)
     {
         var sw = Stopwatch.StartNew();
         Computer.Predict(layer, input, results);

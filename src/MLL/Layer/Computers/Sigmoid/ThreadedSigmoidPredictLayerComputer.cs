@@ -9,7 +9,7 @@ public class ThreadedSigmoidPredictLayerComputer : IPredictLayerComputer, IThrea
 
     private SigmoidLayerPredictWorkItem[] _workItems = Array.Empty<SigmoidLayerPredictWorkItem>();
 
-    public void Predict(LayerWeightsData layer, float[] input, float[] results)
+    public void Predict(LayerWeights layer, float[] input, float[] results)
     {
         var neurons = layer.Neurons;
 

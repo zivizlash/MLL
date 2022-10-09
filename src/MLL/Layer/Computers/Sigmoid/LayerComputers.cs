@@ -2,14 +2,14 @@
 
 namespace MLL.Layer.Computers.Sigmoid;
 
-public class NeuronComputers
+public class LayerComputers
 {
     public ICalculateLayerComputer Calculate { get; set; }
     public IPredictLayerComputer Predict { get; set; }
     public ICompensateLayerComputer Compensate { get; set; }
     public IErrorBackpropagation ErrorBackpropagation { get; set; }
     
-    public NeuronComputers(ICalculateLayerComputer calculate, IPredictLayerComputer predict, 
+    public LayerComputers(ICalculateLayerComputer calculate, IPredictLayerComputer predict, 
         ICompensateLayerComputer compensate, IErrorBackpropagation errorBackpropagation)
     {
         Calculate = calculate;

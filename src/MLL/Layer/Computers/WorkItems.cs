@@ -23,7 +23,7 @@ public static class WorkItems
     }
 
     public static void EnsureCompensateWorkItems(ref SumLayerCompensateWorkItem[] workItems,
-        LayerWeightsData layer, float[] input, float learningRate,
+        LayerWeights layer, float[] input, float learningRate,
         float[] errors, float[] outputs, ForkHelper fork)
     {
         if (fork.Countdown == null && fork.ThreadsCount > 0) throw new ArgumentNullException(nameof(fork.Countdown));
@@ -44,7 +44,7 @@ public static class WorkItems
     }
 
     public static void EnsureCompensateWorkItems(ref SigmoidLayerCompensateWorkItem[] workItems,
-        LayerWeightsData layer, float[] input, float learningRate,
+        LayerWeights layer, float[] input, float learningRate,
         float[] errors, float[] outputs, ForkHelper fork)
     {
         if (fork.Countdown == null && fork.ThreadsCount > 0) throw new ArgumentNullException(nameof(fork.Countdown));
@@ -65,7 +65,7 @@ public static class WorkItems
     }
 
     public static void EnsurePredictWorkItems(ref SumLayerPredictWorkItem[] workItems,
-        LayerWeightsData layer, float[] input, float[] results, ForkHelper fork)
+        LayerWeights layer, float[] input, float[] results, ForkHelper fork)
     {
         int processingCount = fork.ProcessingCount;
         int count = fork.ThreadsCount;
@@ -87,7 +87,7 @@ public static class WorkItems
     }
 
     public static void EnsurePredictWorkItems(ref SigmoidLayerPredictWorkItem[] workItems,
-        LayerWeightsData layer, float[] input, float[] results, ForkHelper fork)
+        LayerWeights layer, float[] input, float[] results, ForkHelper fork)
     {
         int processingCount = fork.ProcessingCount;
         int count = fork.ThreadsCount;

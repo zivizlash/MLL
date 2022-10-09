@@ -2,7 +2,7 @@
 
 public class SumLayerCompensateWorkItem : IHasExecuteDelegate
 {
-    public LayerWeightsData Layer;
+    public LayerWeights Layer;
     public float[] Input;
     public float LearningRate;
     public float[] Errors;

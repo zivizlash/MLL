@@ -8,16 +8,16 @@ namespace MLL.Neurons;
 
 public class NetManager
 {
-    private readonly NeuronComputers[] _layersComputers;
-    private readonly LayerWeightsData[] _layersWeights;
+    private readonly LayerComputers[] _layersComputers;
+    private readonly LayerWeights[] _layersWeights;
     private readonly OptimizationManager _optimizationManager;
     private readonly NetLayersBuffers _buffers;
 
-    public ReadOnlySpan<LayerWeightsData> Weights => _layersWeights;
-    public ReadOnlySpan<NeuronComputers> Computers => _layersComputers;
+    public ReadOnlySpan<LayerWeights> Weights => _layersWeights;
+    public ReadOnlySpan<LayerComputers> Computers => _layersComputers;
     public OptimizationManager OptimizationManager => _optimizationManager;
 
-    public NetManager(NeuronComputers[] layersComputers, LayerWeightsData[] layersWeights, 
+    public NetManager(LayerComputers[] layersComputers, LayerWeights[] layersWeights, 
         OptimizationManager optimizationManager)
     {
         Check.LengthEqual(layersComputers.Length, layersWeights.Length, nameof(layersWeights));

@@ -4,7 +4,7 @@ namespace MLL.Layer.Computers.Sum;
 
 public class SumPredictLayerComputer : IPredictLayerComputer
 {
-    public void Predict(LayerWeightsData layer, float[] input, float[] results)
+    public void Predict(LayerWeights layer, float[] input, float[] results)
     {
         var neurons = layer.Neurons;
 

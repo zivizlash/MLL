@@ -16,7 +16,7 @@ namespace MLL;
 
 public static class DefinitionToWeights
 { 
-    public static IEnumerable<LayerWeightsData> ToWeights(this IEnumerable<LayerDefinition> defs)
+    public static IEnumerable<LayerWeights> ToWeights(this IEnumerable<LayerDefinition> defs)
     {
         foreach (var def in defs)
         {
@@ -27,7 +27,7 @@ public static class DefinitionToWeights
                 neurons[i] = new float[def.WeightsCount];
             }
 
-            yield return new LayerWeightsData(neurons);
+            yield return new LayerWeights(neurons);
         }
     }
 }
@@ -77,9 +77,9 @@ public class Program
     private static LayerComputerBuilderResult CreateNeuronComputers(bool forTrain = true)
     {
         return new LayerComputerBuilder()
-            .MaxThreadsAsProccessorsCount()
-            .RequiredSamples(10000)
-            .OutlinersThreshold(0.2f)
+            .WithMaxThreadsAsProccessorsCount()
+            .WithRequiredSamples(100000)
+            .WithOutlinersThreshold(0.2f)
             .UseLayer<SumLayerDef>()
             .Build(forTrain);
     }
@@ -92,17 +92,18 @@ public class Program
         var imageOptions = ImageRecognitionOptions.Default;
 
         var layers = GetLayersDefinition(imageOptions);
-
         var weights = layers.ToWeights().ToArray();
 
         var random = new Random(imageOptions.RandomSeed!.Value);
 
-        foreach (var w in weights)
+        foreach (var weight in weights)
         {
-            foreach (var neuron in w.Neurons)
+            foreach (var neuron in weight.Neurons)
             {
                 for (int i = 0; i < neuron.Length; i++)
+                {
                     neuron[i] = random.NextSingle() * 2 - 1;
+                }
             }
         }
 
@@ -131,10 +132,14 @@ public class Program
         }
 
         if (!args.CheckRecognition && !args.TestImageNormalizing)
+        {
             netMethods.FullTest(testDataSet);
+        }
 
         if (args.TestImageNormalizing)
+        {
             ImageTools.TestImageNormalizing();
+        }
     }
 
     private static IConfiguration CreateConfiguration() =>

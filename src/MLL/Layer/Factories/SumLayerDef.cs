@@ -1,5 +1,5 @@
 ﻿namespace MLL.Layer.Factories;
 
-public class SumLayerDef
-{
+public class SumLayerDef : ILayerDefinition
+{    
 }

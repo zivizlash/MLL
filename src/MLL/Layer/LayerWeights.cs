@@ -1,10 +1,10 @@
 ﻿namespace MLL.Layer;
 
-public readonly struct LayerWeightsData
+public readonly struct LayerWeights
 {
     public readonly float[][] Neurons;
 
-    public LayerWeightsData(float[][] neurons)
+    public LayerWeights(float[][] neurons)
     {
         Neurons = neurons;
     }

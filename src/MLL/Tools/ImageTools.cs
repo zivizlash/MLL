@@ -40,19 +40,22 @@ public static class ImageTools
         double min = 0, max = 0;
 
         foreach (var pixel in pixels)
+        {
             (min, max) = (Math.Min(min, pixel), Math.Max(max, pixel));
+        }
         
         double delta = 1.0 / Math.Min(1.0 - max, min);
 
         for (int i = 0; i < pixels.Length; i++)
+        {
             pixels[i] = (pixels[i] - max / 2) * delta + 0.5;
+        }
     }
 
     public static void TestImageNormalizing()
     {
         var options = ImageDataSetOptions.Default;
-        // var imagePath = ArgumentParser.GetImagePath();
-
+        
         Console.Write("Enter image path: ");
         var imagePath = Console.ReadLine() ?? throw new InvalidOperationException();
         Console.WriteLine();

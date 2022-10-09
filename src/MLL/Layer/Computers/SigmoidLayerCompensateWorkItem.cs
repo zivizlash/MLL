@@ -4,7 +4,7 @@ namespace MLL.Layer.Computers;
 
 public class SigmoidLayerCompensateWorkItem : IHasExecuteDelegate
 {
-    public LayerWeightsData Layer;
+    public LayerWeights Layer;
     public float[] Input;
     public float LearningRate;
     public float[] Errors;

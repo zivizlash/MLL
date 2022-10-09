@@ -2,5 +2,5 @@
 
 public interface IPredictLayerComputer
 {
-    void Predict(LayerWeightsData layer, float[] input, float[] results);
+    void Predict(LayerWeights layer, float[] input, float[] results);
 }

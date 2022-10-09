@@ -9,7 +9,7 @@ public class ThreadedSumPredictLayerComputer : IPredictLayerComputer, IThreadedC
 
     private SumLayerPredictWorkItem[] _workItems = Array.Empty<SumLayerPredictWorkItem>();
 
-    public void Predict(LayerWeightsData layer, float[] input, float[] results)
+    public void Predict(LayerWeights layer, float[] input, float[] results)
     {
         var neurons = layer.Neurons;
 
