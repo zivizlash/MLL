@@ -4,12 +4,12 @@ using System.Diagnostics;
 
 namespace MLL.Common.Layer.TimeTracking;
 
-public class CompensateLayerProcessorTimeTrackerDecorator : ICompensateLayerComputer, ITimeTracker
+public class CompensateComputerTimeTracker : ICompensateComputer, ITimeTracker
 {
-    public ICompensateLayerComputer Computer { get; }
+    public ICompensateComputer Computer { get; }
     public List<TimeSpan> Timings { get; }
 
-    public CompensateLayerProcessorTimeTrackerDecorator(ICompensateLayerComputer computer)
+    public CompensateComputerTimeTracker(ICompensateComputer computer)
     {
         Computer = computer;
         Timings = new();

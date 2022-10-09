@@ -2,16 +2,16 @@
 using MLL.Common.Layer.Computers;
 using MLL.Common.Threading;
 using MLL.Common.Tools;
-using MLL.Computers.Layers.Sigmoid.WorkItems;
+using MLL.Computers.Layers.Sum.WorkItems;
 using MLL.Computers.Tools;
 
-namespace MLL.Computers.Layers.Sigmoid;
+namespace MLL.Computers.Layers.Sum;
 
-public class SigmoidPredictLayerComputer : IPredictLayerComputer, IThreadedComputer
+public class SumPredictComputer : IPredictComputer, IThreadedComputer
 {
     public LayerThreadInfo ThreadInfo { get; set; }
 
-    private SigmoidLayerPredictWorkItem[] _workItems = Array.Empty<SigmoidLayerPredictWorkItem>();
+    private SumPredictWorkItem[] _workItems = Array.Empty<SumPredictWorkItem>();
 
     public void Predict(LayerWeights layer, float[] input, float[] results)
     {
@@ -30,7 +30,7 @@ public class SigmoidPredictLayerComputer : IPredictLayerComputer, IThreadedCompu
         for (int ni = start; ni < neurons.Length; ni++)
         {
             var sum = VectorCalculator.CalculateMultiplySum(neurons[ni], input);
-            results[ni] = NumberTools.Sigmoid(sum);
+            results[ni] = sum;
         }
 
         fork.Countdown?.Wait();

@@ -17,31 +17,31 @@ public class ThreadingOptimizatorFactory : IThreadingOptimizatorFactory
         _settings = settings;
     }
 
-    public (ICompensateLayerComputer, IOptimizator) Create(
-        ICompensateLayerComputer computer, OptimizatorFactoryParams param)
+    public (ICompensateComputer, IOptimizator) Create(
+        ICompensateComputer computer, OptimizatorFactoryParams param)
     {
-        var timeTracker = new CompensateLayerProcessorTimeTrackerDecorator(computer);
+        var timeTracker = new CompensateComputerTimeTracker(computer);
         return Create(timeTracker, param, с => с.Compensate = computer);
     }
 
-    public (IPredictLayerComputer, IOptimizator) Create(
-        IPredictLayerComputer computer, OptimizatorFactoryParams param)
+    public (IPredictComputer, IOptimizator) Create(
+        IPredictComputer computer, OptimizatorFactoryParams param)
     {
-        var timeTracker = new PredictLayerProcessorTimeTrackerDecorator(computer);
+        var timeTracker = new PredictComputerTimeTracker(computer);
         return Create(timeTracker, param, с => с.Predict = computer);
     }
 
-    public (ICalculateLayerComputer, IOptimizator) Create(
-        ICalculateLayerComputer computer, OptimizatorFactoryParams param)
+    public (ICalculateComputer, IOptimizator) Create(
+        ICalculateComputer computer, OptimizatorFactoryParams param)
     {
-        var timeTracker = new CalculateLayerProcessorTimeTrackerDecorator(computer);
+        var timeTracker = new CalculateComputerTimeTracker(computer);
         return Create(timeTracker, param, с => с.Calculate = computer);
     }
 
     public (IErrorBackpropagation, IOptimizator) Create(
         IErrorBackpropagation errorBackprop, OptimizatorFactoryParams param)
     {
-        var timeTracker = new ErrorBackpropogationTimeTrackerDecorator(errorBackprop);
+        var timeTracker = new ErrorBackpropogationTimeTracker(errorBackprop);
         return Create(timeTracker, param, с => с.ErrorBackpropagation = errorBackprop);
     }
 

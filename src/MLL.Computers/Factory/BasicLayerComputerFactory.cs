@@ -35,34 +35,36 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
         var compensateSource = CreateCompensate(isSigmoid);
         
         var computers = new LayerComputers(calculateSource, predictSource, compensateSource, errorBackpropSource);
-        var optimizators = new List<IOptimizator>();
-
-        var calculate = AddIfNotNull(arg.IsRequiredErrorCalculation, 
-            _factory.Create(calculateSource, new((IThreadedComputer)calculateSource, computers)),
-            calculateSource, optimizators);
-
-        var predict = AddIfNotNull(true,
-            _factory.Create(predictSource, new((IThreadedComputer)predictSource, computers)),
-            predictSource, optimizators);
-
-        var compensate = AddIfNotNull(arg.IsRequiredCompensate,
-            _factory.Create(compensateSource, new((IThreadedComputer)compensateSource, computers)),
-            compensateSource, optimizators);
-
-        var errorBackprop = AddIfNotNull(arg.IsRequiredErrorBackpropagation,
-            _factory.Create(errorBackpropSource, new(errorBackpropSource, computers)),
-            errorBackpropSource, optimizators);
-
-        computers.Calculate = calculate;
-        computers.Predict = predict;
-        computers.Compensate = compensate;
-        computers.ErrorBackpropagation = errorBackprop;
+        var optimizators = DecorateWithOptimizers(computers, arg).ToArray();
 
         return new FactoryResolveResult
         {
             Computers = computers,
-            Optimizators = optimizators.ToArray()
+            Optimizators = optimizators
         };
+    }
+
+    private List<IOptimizator> DecorateWithOptimizers(LayerComputers computers, FactoryResolveParams arg)
+    {
+        var optimizators = new List<IOptimizator>();
+
+        computers.Calculate = AddIfNotNull(arg.IsRequiredErrorCalculation,
+            _factory.Create(computers.Calculate, new((IThreadedComputer)computers.Calculate, computers)),
+            computers.Calculate, optimizators);
+
+        computers.Predict = AddIfNotNull(true,
+            _factory.Create(computers.Predict, new((IThreadedComputer)computers.Predict, computers)),
+            computers.Predict, optimizators);
+
+        computers.Compensate = AddIfNotNull(arg.IsRequiredCompensate,
+            _factory.Create(computers.Compensate, new((IThreadedComputer)computers.Compensate, computers)),
+            computers.Compensate, optimizators);
+
+        computers.ErrorBackpropagation = AddIfNotNull(arg.IsRequiredErrorBackpropagation,
+            _factory.Create(computers.ErrorBackpropagation, new((IThreadedComputer)computers.ErrorBackpropagation, computers)),
+            computers.ErrorBackpropagation, optimizators);
+
+        return optimizators;
     }
 
     private T AddIfNotNull<T>(bool required, (T, IOptimizator) results, T source, List<IOptimizator> optimizators)
@@ -79,16 +81,16 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
     private static ThreadedErrorBackpropagation CreateErrorbackprop() =>
         new ThreadedErrorBackpropagation() { ThreadInfo = new(1) };
 
-    private static ICalculateLayerComputer CreateCalculate() =>
-        new SumCalculateLayerComputer { ThreadInfo = new(1) };
+    private static ICalculateComputer CreateCalculate() =>
+        new SumCalculateComputer { ThreadInfo = new(1) };
 
-    private static IPredictLayerComputer CreatePredict(bool isSigmoid) =>
+    private static IPredictComputer CreatePredict(bool isSigmoid) =>
         isSigmoid
-        ? new SigmoidPredictLayerComputer { ThreadInfo = new(1) }
-        : new SumPredictLayerComputer { ThreadInfo = new(1) };
+        ? new SigmoidPredictComputer { ThreadInfo = new(1) }
+        : new SumPredictComputer { ThreadInfo = new(1) };
 
-    private static ICompensateLayerComputer CreateCompensate(bool isSigmoid) =>
+    private static ICompensateComputer CreateCompensate(bool isSigmoid) =>
         isSigmoid
-        ? new SigmoidCompensateLayerComputer { ThreadInfo = new(1) }
-        : new SumCompensateLayerComputer { ThreadInfo = new(1) };
+        ? new SigmoidCompensateComputer { ThreadInfo = new(1) }
+        : new SumCompensateComputer { ThreadInfo = new(1) };
 }

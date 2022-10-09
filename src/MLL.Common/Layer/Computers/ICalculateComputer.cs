@@ -1,6 +1,6 @@
 ﻿namespace MLL.Common.Layer.Computers;
 
-public interface ICalculateLayerComputer
+public interface ICalculateComputer
 {
     void CalculateErrors(float[] outputs, float[] expected, float[] errors);
 }

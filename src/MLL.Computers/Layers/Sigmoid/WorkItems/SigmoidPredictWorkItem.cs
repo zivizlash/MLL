@@ -1,21 +1,22 @@
 ﻿using MLL.Common.Layer;
 using MLL.Computers.Tools;
 
-namespace MLL.Computers.Layers.Sum.WorkItems;
+namespace MLL.Computers.Layers.Sigmoid.WorkItems;
 
-public class SumLayerErrorCalcWorkItem : IHasExecuteDelegate
+public class SigmoidPredictWorkItem : IHasExecuteDelegate
 {
-    public float[] Outputs;
-    public float[] Expected;
-    public float[] Errors;
+    public LayerWeights Layer;
+    public float[] Input;
+    public float[] Results;
     public int ProcessingCount;
     public int Index;
     public CountdownEvent Countdown;
+    public SigmoidPredictWorkItem[] WorkItems;
 
     public WaitCallback ExecuteDelegate { get; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    public SumLayerErrorCalcWorkItem()
+    public SigmoidPredictWorkItem()
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
         ExecuteDelegate = Execute;
@@ -23,11 +24,14 @@ public class SumLayerErrorCalcWorkItem : IHasExecuteDelegate
 
     public void Execute(object? _)
     {
+        var neurons = Layer.Neurons;
+
         var (start, end) = ThreadTools.Loop(ProcessingCount, Index);
 
-        for (int neuronIndex = start; neuronIndex < end; neuronIndex++)
+        for (int ni = start; ni < end; ni++)
         {
-            Errors[neuronIndex] = Expected[neuronIndex] - Outputs[neuronIndex];
+            var sum = VectorCalculator.CalculateMultiplySum(neurons[ni], Input);
+            Results[ni] = NumberTools.Sigmoid(sum);
         }
 
         Countdown.Signal();

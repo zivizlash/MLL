@@ -6,9 +6,9 @@ using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sum;
 
-public class SumCalculateLayerComputer : ICalculateLayerComputer, IThreadedComputer
+public class SumCalculateComputer : ICalculateComputer, IThreadedComputer
 {
-    private SumLayerErrorCalcWorkItem[] _items = Array.Empty<SumLayerErrorCalcWorkItem>();
+    private SumErrorCalcWorkItem[] _items = Array.Empty<SumErrorCalcWorkItem>();
 
     public LayerThreadInfo ThreadInfo { get; set; }
 

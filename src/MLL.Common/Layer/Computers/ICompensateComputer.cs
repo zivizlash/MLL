@@ -1,6 +1,6 @@
 ﻿namespace MLL.Common.Layer.Computers;
 
-public interface ICompensateLayerComputer
+public interface ICompensateComputer
 {
     void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs);
 }

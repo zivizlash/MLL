@@ -1,6 +1,6 @@
 ﻿namespace MLL.Common.Layer.Computers;
 
-public interface IPredictLayerComputer
+public interface IPredictComputer
 {
     void Predict(LayerWeights layer, float[] input, float[] results);
 }

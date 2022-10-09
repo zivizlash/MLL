@@ -1,9 +1,9 @@
 ﻿using MLL.Common.Layer;
 using MLL.Computers.Tools;
 
-namespace MLL.Computers.Layers.Sigmoid.WorkItems;
+namespace MLL.Computers.Layers.Sum.WorkItems;
 
-public class SigmoidLayerCompensateWorkItem : IHasExecuteDelegate
+public class SumCompensateWorkItem : IHasExecuteDelegate
 {
     public LayerWeights Layer;
     public float[] Input;
@@ -17,7 +17,7 @@ public class SigmoidLayerCompensateWorkItem : IHasExecuteDelegate
     public WaitCallback ExecuteDelegate { get; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    public SigmoidLayerCompensateWorkItem()
+    public SumCompensateWorkItem()
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
         ExecuteDelegate = Execute;
@@ -32,7 +32,7 @@ public class SigmoidLayerCompensateWorkItem : IHasExecuteDelegate
         for (int ni = start; ni < end; ni++)
         {
             var weights = neurons[ni];
-            var generalError = GetGeneralError(LearningRate, Outputs[ni], Errors[ni]);
+            var generalError = GetGeneralError(LearningRate, Errors[ni]);
 
             for (int wi = 0; wi < weights.Length; wi++)
             {
@@ -43,9 +43,8 @@ public class SigmoidLayerCompensateWorkItem : IHasExecuteDelegate
         Countdown.Signal();
     }
 
-    private static float GetGeneralError(float learningRate, float output, float error)
+    private static float GetGeneralError(float learningRate, float error)
     {
-        float sigmoidDerivative = NumberTools.SigmoidDerivative(output);
-        return learningRate * error * sigmoidDerivative;
+        return learningRate * error;
     }
 }

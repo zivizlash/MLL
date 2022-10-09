@@ -4,13 +4,13 @@ using System.Diagnostics;
 
 namespace MLL.Common.Layer.TimeTracking;
 
-public class ErrorBackpropogationTimeTrackerDecorator : IErrorBackpropagation, ITimeTracker
+public class ErrorBackpropogationTimeTracker : IErrorBackpropagation, ITimeTracker
 {
     public List<TimeSpan> Timings { get; } = new();
 
     public IErrorBackpropagation ErrorBackpropagation { get; }
 
-    public ErrorBackpropogationTimeTrackerDecorator(IErrorBackpropagation errorBackprop)
+    public ErrorBackpropogationTimeTracker(IErrorBackpropagation errorBackprop)
     {
         ErrorBackpropagation = errorBackprop;
     }

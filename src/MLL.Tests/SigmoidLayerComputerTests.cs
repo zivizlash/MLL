@@ -16,15 +16,15 @@ public class SigmoidLayerComputerTests
     public SigmoidLayerComputerTests()
     {
         _layerComputer = new LayerComputers(
-            new SumCalculateLayerComputer { ThreadInfo = new(1) },
-            new SigmoidPredictLayerComputer { ThreadInfo = new(1) },
-            new SigmoidCompensateLayerComputer { ThreadInfo = new(1) }, 
+            new SumCalculateComputer { ThreadInfo = new(1) },
+            new SigmoidPredictComputer { ThreadInfo = new(1) },
+            new SigmoidCompensateComputer { ThreadInfo = new(1) }, 
             new ErrorBackpropagation());
 
         _threadedLayerComputer = new LayerComputers(
-            new SumCalculateLayerComputer { ThreadInfo = new(8) },
-            new SigmoidPredictLayerComputer { ThreadInfo = new(8) },
-            new SigmoidCompensateLayerComputer { ThreadInfo = new(8) },
+            new SumCalculateComputer { ThreadInfo = new(8) },
+            new SigmoidPredictComputer { ThreadInfo = new(8) },
+            new SigmoidCompensateComputer { ThreadInfo = new(8) },
             new ThreadedErrorBackpropagation {  ThreadInfo = new(1) });
     }
 

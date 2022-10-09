@@ -7,11 +7,11 @@ using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sum;
 
-public class SumCompensateLayerComputer : ICompensateLayerComputer, IThreadedComputer
+public class SumCompensateComputer : ICompensateComputer, IThreadedComputer
 {
     public LayerThreadInfo ThreadInfo { get; set; }
 
-    private SumLayerCompensateWorkItem[] _workItems = Array.Empty<SumLayerCompensateWorkItem>();
+    private SumCompensateWorkItem[] _workItems = Array.Empty<SumCompensateWorkItem>();
 
     public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {

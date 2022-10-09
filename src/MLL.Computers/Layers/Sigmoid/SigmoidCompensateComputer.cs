@@ -7,11 +7,11 @@ using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sigmoid;
 
-public class SigmoidCompensateLayerComputer : ICompensateLayerComputer, IThreadedComputer
+public class SigmoidCompensateComputer : ICompensateComputer, IThreadedComputer
 {
     public LayerThreadInfo ThreadInfo { get; set; }
 
-    private SigmoidLayerCompensateWorkItem[] _workItems = Array.Empty<SigmoidLayerCompensateWorkItem>();
+    private SigmoidCompensateWorkItem[] _workItems = Array.Empty<SigmoidCompensateWorkItem>();
 
     public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {

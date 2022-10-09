@@ -1,13 +1,15 @@
 ﻿using MLL.Common.Layer;
 using MLL.Computers.Tools;
 
-namespace MLL.Computers.Layers.Sum.WorkItems;
+namespace MLL.Computers.Layers.Sigmoid.WorkItems;
 
-public class SumLayerPredictWorkItem : IHasExecuteDelegate
+public class SigmoidCompensateWorkItem : IHasExecuteDelegate
 {
     public LayerWeights Layer;
     public float[] Input;
-    public float[] Results;
+    public float LearningRate;
+    public float[] Errors;
+    public float[] Outputs;
     public int ProcessingCount;
     public int Index;
     public CountdownEvent Countdown;
@@ -15,7 +17,7 @@ public class SumLayerPredictWorkItem : IHasExecuteDelegate
     public WaitCallback ExecuteDelegate { get; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    public SumLayerPredictWorkItem()
+    public SigmoidCompensateWorkItem()
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
         ExecuteDelegate = Execute;
@@ -23,16 +25,27 @@ public class SumLayerPredictWorkItem : IHasExecuteDelegate
 
     public void Execute(object? _)
     {
-        var neurons = Layer.Neurons;
-
         var (start, end) = ThreadTools.Loop(ProcessingCount, Index);
+
+        var neurons = Layer.Neurons;
 
         for (int ni = start; ni < end; ni++)
         {
-            var sum = VectorCalculator.CalculateMultiplySum(neurons[ni], Input);
-            Results[ni] = sum;
+            var weights = neurons[ni];
+            var generalError = GetGeneralError(LearningRate, Outputs[ni], Errors[ni]);
+
+            for (int wi = 0; wi < weights.Length; wi++)
+            {
+                weights[wi] += generalError * Input[wi];
+            }
         }
 
         Countdown.Signal();
+    }
+
+    private static float GetGeneralError(float learningRate, float output, float error)
+    {
+        float sigmoidDerivative = NumberTools.SigmoidDerivative(output);
+        return learningRate * error * sigmoidDerivative;
     }
 }

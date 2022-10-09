@@ -5,13 +5,13 @@ namespace MLL.Common.Layer;
 
 public class LayerComputers
 {
-    public ICalculateLayerComputer Calculate { get; set; }
-    public IPredictLayerComputer Predict { get; set; }
-    public ICompensateLayerComputer Compensate { get; set; }
+    public ICalculateComputer Calculate { get; set; }
+    public IPredictComputer Predict { get; set; }
+    public ICompensateComputer Compensate { get; set; }
     public IErrorBackpropagation ErrorBackpropagation { get; set; }
     
-    public LayerComputers(ICalculateLayerComputer calculate, IPredictLayerComputer predict, 
-        ICompensateLayerComputer compensate, IErrorBackpropagation errorBackpropagation)
+    public LayerComputers(ICalculateComputer calculate, IPredictComputer predict, 
+        ICompensateComputer compensate, IErrorBackpropagation errorBackpropagation)
     {
         Calculate = calculate;
         Predict = predict;

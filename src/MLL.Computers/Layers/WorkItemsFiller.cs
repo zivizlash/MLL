@@ -7,15 +7,15 @@ namespace MLL.Computers.Layers;
 
 public static class WorkItemsFiller
 {
-    public static void EnsureCalculateWorkItems(ref SumLayerErrorCalcWorkItem[] workItems, float[] outputs,
+    public static void EnsureCalculateWorkItems(ref SumErrorCalcWorkItem[] workItems, float[] outputs,
         float[] expected, float[] errors, ForkHelper fork)
     {
         if (fork.Countdown == null && fork.ThreadsCount > 0) throw new ArgumentNullException(nameof(fork.Countdown));
-        if (workItems.Length != fork.ThreadsCount) workItems = new SumLayerErrorCalcWorkItem[fork.ThreadsCount];
+        if (workItems.Length != fork.ThreadsCount) workItems = new SumErrorCalcWorkItem[fork.ThreadsCount];
 
         for (int itemIndex = 0; itemIndex < fork.ThreadsCount; itemIndex++)
         {
-            var item = workItems[itemIndex] ??= new SumLayerErrorCalcWorkItem();
+            var item = workItems[itemIndex] ??= new SumErrorCalcWorkItem();
             item.Errors = errors;
             item.Outputs = outputs;
             item.Expected = expected;
@@ -25,16 +25,16 @@ public static class WorkItemsFiller
         }
     }
 
-    public static void EnsureCompensateWorkItems(ref SumLayerCompensateWorkItem[] workItems,
+    public static void EnsureCompensateWorkItems(ref SumCompensateWorkItem[] workItems,
         LayerWeights layer, float[] input, float learningRate,
         float[] errors, float[] outputs, ForkHelper fork)
     {
         if (fork.Countdown == null && fork.ThreadsCount > 0) throw new ArgumentNullException(nameof(fork.Countdown));
-        if (workItems.Length != fork.ThreadsCount) workItems = new SumLayerCompensateWorkItem[fork.ThreadsCount];
+        if (workItems.Length != fork.ThreadsCount) workItems = new SumCompensateWorkItem[fork.ThreadsCount];
 
         for (int itemIndex = 0; itemIndex < fork.ThreadsCount; itemIndex++)
         {
-            var item = workItems[itemIndex] ??= new SumLayerCompensateWorkItem();
+            var item = workItems[itemIndex] ??= new SumCompensateWorkItem();
             item.Index = itemIndex;
             item.Layer = layer;
             item.Input = input;
@@ -46,16 +46,16 @@ public static class WorkItemsFiller
         }
     }
 
-    public static void EnsureCompensateWorkItems(ref SigmoidLayerCompensateWorkItem[] workItems,
+    public static void EnsureCompensateWorkItems(ref SigmoidCompensateWorkItem[] workItems,
         LayerWeights layer, float[] input, float learningRate,
         float[] errors, float[] outputs, ForkHelper fork)
     {
         if (fork.Countdown == null && fork.ThreadsCount > 0) throw new ArgumentNullException(nameof(fork.Countdown));
-        if (workItems.Length != fork.ThreadsCount) workItems = new SigmoidLayerCompensateWorkItem[fork.ThreadsCount];
+        if (workItems.Length != fork.ThreadsCount) workItems = new SigmoidCompensateWorkItem[fork.ThreadsCount];
 
         for (int itemIndex = 0; itemIndex < fork.ThreadsCount; itemIndex++)
         {
-            var item = workItems[itemIndex] ??= new SigmoidLayerCompensateWorkItem();
+            var item = workItems[itemIndex] ??= new SigmoidCompensateWorkItem();
             item.Index = itemIndex;
             item.Layer = layer;
             item.Input = input;
@@ -67,7 +67,7 @@ public static class WorkItemsFiller
         }
     }
 
-    public static void EnsurePredictWorkItems(ref SumLayerPredictWorkItem[] workItems,
+    public static void EnsurePredictWorkItems(ref SumPredictWorkItem[] workItems,
         LayerWeights layer, float[] input, float[] results, ForkHelper fork)
     {
         int processingCount = fork.ProcessingCount;
@@ -75,11 +75,11 @@ public static class WorkItemsFiller
         var countdown = fork.Countdown;
 
         if (countdown == null && count > 0) throw new ArgumentNullException(nameof(countdown));
-        if (workItems.Length != count) workItems = new SumLayerPredictWorkItem[count];
+        if (workItems.Length != count) workItems = new SumPredictWorkItem[count];
 
         for (int itemIndex = 0; itemIndex < count; itemIndex++)
         {
-            var item = workItems[itemIndex] ??= new SumLayerPredictWorkItem();
+            var item = workItems[itemIndex] ??= new SumPredictWorkItem();
             item.Index = itemIndex;
             item.Layer = layer;
             item.Input = input;
@@ -89,7 +89,7 @@ public static class WorkItemsFiller
         }
     }
 
-    public static void EnsurePredictWorkItems(ref SigmoidLayerPredictWorkItem[] workItems,
+    public static void EnsurePredictWorkItems(ref SigmoidPredictWorkItem[] workItems,
         LayerWeights layer, float[] input, float[] results, ForkHelper fork)
     {
         int processingCount = fork.ProcessingCount;
@@ -97,11 +97,11 @@ public static class WorkItemsFiller
         var countdown = fork.Countdown;
 
         if (countdown == null && count > 0) throw new ArgumentException(nameof(fork));
-        if (workItems.Length != count) workItems = new SigmoidLayerPredictWorkItem[count];
+        if (workItems.Length != count) workItems = new SigmoidPredictWorkItem[count];
 
         for (int itemIndex = 0; itemIndex < count; itemIndex++)
         {
-            var item = workItems[itemIndex] ??= new SigmoidLayerPredictWorkItem();
+            var item = workItems[itemIndex] ??= new SigmoidPredictWorkItem();
             item.WorkItems = workItems;
             item.Index = itemIndex;
             item.Layer = layer;
