@@ -1,6 +1,5 @@
 ﻿using MLL.Common.Files;
 using MLL.Common.Net;
-using MLL.Neurons;
 
 namespace MLL.Statistics;
 

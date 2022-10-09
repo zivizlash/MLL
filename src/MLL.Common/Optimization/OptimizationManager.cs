@@ -9,6 +9,11 @@ public class OptimizationManager
         _collectors = collectors.ToHashSet();
     }
 
+    public OptimizationManager(IEnumerable<IOptimizator> collectors)
+    {
+        _collectors = collectors.ToHashSet();
+    }
+
     public bool Optimize()
     {
         foreach (var collector in _collectors)

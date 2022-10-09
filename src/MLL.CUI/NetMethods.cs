@@ -2,7 +2,6 @@
 using MLL.Common.Net;
 using MLL.CUI;
 using MLL.ImageLoader;
-using MLL.Neurons;
 using MLL.Statistics;
 using MLL.Tools;
 

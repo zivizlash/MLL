@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Layer;
-using MLL.Layer.Backpropagation;
-using MLL.Layer.Computers.Sigmoid;
-using MLL.Layer.Computers.Sum;
+using MLL.Computers.Layers.Backpropagation;
+using MLL.Computers.Layers.Sigmoid;
+using MLL.Computers.Layers.Sum;
 using NUnit.Framework;
 using System;
 

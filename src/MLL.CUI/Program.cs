@@ -6,9 +6,9 @@ using MLL.Common.Files;
 using MLL.Common.Layer;
 using MLL.Common.Net;
 using MLL.Common.Optimization;
+using MLL.Computers.Factory;
 using MLL.ImageLoader;
 using MLL.Layer.Factories;
-using MLL.Neurons;
 using MLL.Options;
 using MLL.Statistics;
 using MLL.Statistics.Processors;
@@ -98,19 +98,16 @@ public class Program
 
         var random = new Random(imageOptions.RandomSeed!.Value);
 
-        foreach (var weight in weights)
+        foreach (var neuron in weights.SelectMany(w => w.Neurons))
         {
-            foreach (var neuron in weight.Neurons)
+            for (int i = 0; i < neuron.Length; i++)
             {
-                for (int i = 0; i < neuron.Length; i++)
-                {
-                    neuron[i] = random.NextSingle() * 2 - 1;
-                }
+                neuron[i] = random.NextSingle() * 2 - 1;
             }
         }
 
         var net = new NetManager(computers.Computers.ToArray(), weights, 
-            new OptimizationManager(computers.Collectors.ToArray()));
+            new OptimizationManager(computers.Collectors));
 
         var netMethods = new NetMethods(net, imageOptions.LearningRate);
         var testDataSet = CreateTestDataSetProvider();
@@ -120,10 +117,13 @@ public class Program
             var trainDataSet = CreateTrainDataSetProvider();
             var trainTestComputers = CreateNeuronComputers(false);
 
-            var trainTestNet = new NetManager(trainTestComputers.Computers.ToArray(), 
-                layers.ToWeights().ToArray(), new OptimizationManager(trainTestComputers.Collectors.ToArray()));
+            var trainTestNet = new NetManager(
+                trainTestComputers.Computers.ToArray(), 
+                layers.ToWeights().ToArray(), 
+                new OptimizationManager(trainTestComputers.Collectors));
 
-            var (netSaver, statSaver, stats) = CreateStatisticsManager(200, testDataSet, trainDataSet, trainTestNet);
+            var (netSaver, statSaver, stats) = CreateStatisticsManager(
+                200, testDataSet, trainDataSet, trainTestNet);
 
             netMethods.Train(trainDataSet, stats);
 
