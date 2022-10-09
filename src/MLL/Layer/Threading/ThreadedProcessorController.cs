@@ -1,5 +1,4 @@
-﻿using MLL.Layer.Computers.Sigmoid;
-using MLL.Layer.Threading.Adapters;
+﻿using MLL.Common.Threading;
 
 namespace MLL.Layer.Threading;
 

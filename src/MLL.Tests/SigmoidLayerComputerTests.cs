@@ -1,6 +1,5 @@
-﻿using MLL.Layer;
+﻿using MLL.Common.Layer;
 using MLL.Layer.Backpropagation;
-using MLL.Layer.Computers;
 using MLL.Layer.Computers.Sigmoid;
 using MLL.Layer.Computers.Sum;
 using NUnit.Framework;

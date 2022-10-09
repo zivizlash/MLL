@@ -1,5 +1,7 @@
-﻿namespace MLL.Layer.Factories;
+﻿using MLL.Common.Factory;
 
-public class SumLayerDef : ILayerDefinition
+namespace MLL.Layer.Factories;
+
+public class SumLayerDef : IFactoryLayerDefinition
 {    
 }

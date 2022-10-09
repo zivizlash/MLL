@@ -1,4 +1,6 @@
-﻿namespace MLL.ImageLoader;
+﻿using MLL.Common.Files;
+
+namespace MLL.ImageLoader;
 
 public class FolderFilteredFilesProvider : IFilesProvider
 {

@@ -1,4 +1,4 @@
-﻿using MLL.Layer.Threading;
+﻿using MLL.Common.Threading;
 
 namespace MLL.Layer.Computers.Sigmoid;
 

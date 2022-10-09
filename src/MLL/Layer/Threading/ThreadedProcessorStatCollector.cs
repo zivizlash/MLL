@@ -1,8 +1,9 @@
-﻿using MLL.Tools;
+﻿using MLL.Common.Optimization;
+using MLL.Tools;
 
 namespace MLL.Layer.Threading;
 
-public class ThreadedProcessorStatCollector
+public class ThreadedProcessorStatCollector : IOptimizator
 {
     private readonly int _requiredSamples;
     private readonly float _outlinersThreshold;

@@ -1,4 +1,5 @@
-﻿using MLL.Layer.Threading.Adapters;
+﻿using MLL.Common.Layer.Backpropagation;
+using MLL.Common.Threading;
 using System.Diagnostics;
 
 namespace MLL.Layer.Backpropagation;

@@ -1,4 +1,5 @@
-﻿using MLL.Layer.Computers.Sigmoid;
+﻿using MLL.Common.Layer;
+using MLL.Layer.Computers.Sigmoid;
 
 namespace MLL.Layer.Computers;
 

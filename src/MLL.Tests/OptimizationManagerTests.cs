@@ -1,8 +1,7 @@
-﻿using MLL.Layer.Computers.Sigmoid;
+﻿using MLL.Common.Optimization;
+using MLL.Common.Threading;
 using MLL.Layer.Threading;
-using MLL.Layer.Threading.Adapters;
 using MLL.Tools;
-using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;

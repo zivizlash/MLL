@@ -1,16 +1,18 @@
-﻿namespace MLL.ImageLoader;
+﻿using MLL.Common.Files;
+
+namespace MLL.ImageLoader;
 
 public static class ImageDataSetProviderExtensions
 {
-    private static readonly Dictionary<int, (string, object)> Cache;
+    private static readonly Dictionary<int, (string, object)> _cache;
 
     static ImageDataSetProviderExtensions() => 
-        Cache = new Dictionary<int, (string, object)>();
+        _cache = new Dictionary<int, (string, object)>();
 
     public static void EnsureKeys(int count)
     {
         for (int i = 0; i < count; i++)
-            Cache[i] = (i.ToString(), i);
+            _cache[i] = (i.ToString(), i);
     }
 
     private static IEnumerable<(string, object)> IntToTuples(IEnumerable<int> indices) =>
@@ -24,10 +26,10 @@ public static class ImageDataSetProviderExtensions
 
     public static IImageDataSet GetDataSet(this IImageDataSetProvider provider, int value)
     {
-        if (!Cache.ContainsKey(value)) 
-            Cache[value] = (value.ToString(), value);
+        if (!_cache.ContainsKey(value)) 
+            _cache[value] = (value.ToString(), value);
 
-        var (name, objValue) = Cache[value];
+        var (name, objValue) = _cache[value];
         return provider.GetDataSet(name, objValue);
     }
 }

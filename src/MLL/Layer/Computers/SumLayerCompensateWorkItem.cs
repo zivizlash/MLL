@@ -1,4 +1,6 @@
-﻿namespace MLL.Layer.Computers;
+﻿using MLL.Common.Layer;
+
+namespace MLL.Layer.Computers;
 
 public class SumLayerCompensateWorkItem : IHasExecuteDelegate
 {

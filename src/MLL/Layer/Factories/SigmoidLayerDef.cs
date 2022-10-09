@@ -1,5 +1,7 @@
-﻿namespace MLL.Layer.Factories;
+﻿using MLL.Common.Factory;
 
-public class SigmoidLayerDef : ILayerDefinition
+namespace MLL.Layer.Factories;
+
+public class SigmoidLayerDef : IFactoryLayerDefinition
 {
 }

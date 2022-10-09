@@ -1,18 +1,20 @@
 ﻿using LiteDB;
 using Microsoft.Extensions.Configuration;
 using MLL.Builders;
-using MLL.CUI;
+using MLL.Common.Factory;
+using MLL.Common.Files;
+using MLL.Common.Layer;
+using MLL.Common.Net;
+using MLL.Common.Optimization;
 using MLL.ImageLoader;
-using MLL.Layer;
 using MLL.Layer.Factories;
-using MLL.Layer.Threading;
 using MLL.Neurons;
 using MLL.Options;
 using MLL.Statistics;
 using MLL.Statistics.Processors;
 using MLL.Tools;
 
-namespace MLL;
+namespace MLL.CUI;
 
 public static class DefinitionToWeights
 { 
@@ -76,7 +78,7 @@ public class Program
 
     private static LayerComputerBuilderResult CreateNeuronComputers(bool forTrain = true)
     {
-        return new LayerComputerBuilder()
+        return new LayerComputerBuilder(new BasicLayerComputerFactory())
             .WithMaxThreadsAsProccessorsCount()
             .WithRequiredSamples(100000)
             .WithOutlinersThreshold(0.2f)

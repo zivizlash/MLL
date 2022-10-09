@@ -1,5 +1,6 @@
-﻿using MLL.Layer.Computers.Sigmoid;
-using MLL.Layer.Threading;
+﻿using MLL.Common.Layer.Backpropagation;
+using MLL.Common.Threading;
+using MLL.Common.Tools;
 using MLL.Tools;
 
 namespace MLL.Layer.Backpropagation;

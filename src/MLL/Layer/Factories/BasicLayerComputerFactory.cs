@@ -1,5 +1,8 @@
-﻿using MLL.Layer.Backpropagation;
-using MLL.Layer.Computers;
+﻿using MLL.Common.Factory;
+using MLL.Common.Layer;
+using MLL.Common.Layer.Computers;
+using MLL.Common.Threading;
+using MLL.Layer.Backpropagation;
 using MLL.Layer.Computers.Sigmoid;
 using MLL.Layer.Computers.Sum;
 using MLL.Layer.Threading;
@@ -62,8 +65,18 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
         return new FactoryResolveResult
         {
             Computers = neuronComputers,
-            Collectors = collectors
+            Optimizators = collectors
         };
+    }
+
+    private static ThreadedProcessorStatCollector CreateCollector(IThreadedComputer computer,
+        ITimeTracker timeTracker, FactoryResolveParams arg, Action doneAction)
+    {
+        var threads = ListSelection.Range(arg.MaxThreads);
+        var controller = new ThreadedProcessorController(computer, timeTracker);
+
+        return new ThreadedProcessorStatCollector(controller, arg.RequiredSamples,
+            arg.OutlinersThreshold, arg.MaxThreads, threads, doneAction);
     }
 
     private static ICalculateLayerComputer CreateCalculate() =>
@@ -81,14 +94,4 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
 
     private static Action AddMessage(IThreadedComputer threadedComputer, Action action) =>
         action + (() => Console.WriteLine($"Optimized with: {threadedComputer.ThreadInfo.Threads} threads"));
-
-    private static ThreadedProcessorStatCollector CreateCollector(IThreadedComputer computer, 
-        ITimeTracker timeTracker, FactoryResolveParams arg, Action doneAction)
-    {
-        var threads = ListSelection.Range(arg.MaxThreads);
-        var controller = new ThreadedProcessorController(computer, timeTracker);
-
-        return new ThreadedProcessorStatCollector(controller, arg.RequiredSamples,
-            arg.OutlinersThreshold, arg.MaxThreads, threads, doneAction);
-    }
 }

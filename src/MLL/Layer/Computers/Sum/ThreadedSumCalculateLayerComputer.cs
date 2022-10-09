@@ -1,5 +1,7 @@
-﻿using MLL.Layer.Computers.Sigmoid;
-using MLL.Layer.Threading;
+﻿using MLL.Common.Layer.Computers;
+using MLL.Common.Threading;
+using MLL.Common.Tools;
+using MLL.Layer.Computers.Sigmoid;
 using MLL.Tools;
 
 namespace MLL.Layer.Computers.Sum;
