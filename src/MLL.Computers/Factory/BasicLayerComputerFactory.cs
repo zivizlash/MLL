@@ -3,6 +3,7 @@ using MLL.Common.Layer;
 using MLL.Common.Layer.Computers;
 using MLL.Common.Optimization;
 using MLL.Common.Threading;
+using MLL.Computers.Factory.Defines;
 using MLL.Computers.Layers.Backpropagation;
 using MLL.Computers.Layers.Sigmoid;
 using MLL.Computers.Layers.Sum;
@@ -20,14 +21,14 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
 
     public bool IsCanResolve(Type type)
     {
-        return type == typeof(SumLayerDef) || type == typeof(SigmoidLayerDef);
+        return type == typeof(SumLayerDefine) || type == typeof(SigmoidLayerDefine);
     }
 
     public FactoryResolveResult Resolve(Type type, FactoryResolveParams arg)
     {
         if (!IsCanResolve(type)) throw new InvalidOperationException();
 
-        bool isSigmoid = typeof(SigmoidLayerDef) == type;
+        bool isSigmoid = typeof(SigmoidLayerDefine) == type;
 
         var calculateSource = CreateCalculate();
         var errorBackpropSource = CreateErrorbackprop();

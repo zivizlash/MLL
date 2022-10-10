@@ -1,12 +1,12 @@
 ﻿using LiteDB;
 using Microsoft.Extensions.Configuration;
-using MLL.Common.Builders;
-using MLL.Common.Factory;
+using MLL.Common.Builders.Computers;
+using MLL.Common.Builders.Weights;
 using MLL.Common.Files;
-using MLL.Common.Layer;
 using MLL.Common.Net;
 using MLL.Common.Optimization;
 using MLL.Computers.Factory;
+using MLL.Computers.Factory.Defines;
 using MLL.CUI.Options;
 using MLL.Files.ImageLoader;
 using MLL.Files.Tools;
@@ -15,24 +15,6 @@ using MLL.Statistics.Collection.Processors;
 using MLL.ThreadingOptimization;
 
 namespace MLL.CUI;
-
-public static class DefinitionToWeights
-{ 
-    public static IEnumerable<LayerWeights> ToWeights(this IEnumerable<LayerDefinition> defs)
-    {
-        foreach (var def in defs)
-        {
-            var neurons = new float[def.NeuronsCount][];
-
-            for (int i = 0; i < neurons.Length; i++)
-            {
-                neurons[i] = new float[def.WeightsCount];
-            }
-
-            yield return new LayerWeights(neurons);
-        }
-    }
-}
 
 public class Program
 {
@@ -48,7 +30,7 @@ public class Program
         const int numbersCount = 10;
         var imageWeightsCount = options.ImageWidth * options.ImageHeight;
 
-        return new []{ LayerDefinition.CreateSingle(numbersCount, imageWeightsCount, false) }; 
+        return new[] { LayerDefinition.CreateSingle(numbersCount, imageWeightsCount) }; 
 
         //return LayerDefinition.Builder
         //    .WithLearningRate(options.LearningRate)
@@ -79,21 +61,15 @@ public class Program
     private static LayerComputerBuilderResult CreateNeuronComputers(bool forTrain = true)
     {
         var settings = new ThreadingOptimizatorFactorySettings(100000, 0.2f, Environment.ProcessorCount);
-
         var computerFactory = new BasicLayerComputerFactory(new ThreadingOptimizatorFactory(settings));
 
         return new LayerComputerBuilder(computerFactory)
-            .WithMaxThreadsAsProccessorsCount()
-            .WithRequiredSamples(100000)
-            .WithOutlinersThreshold(0.2f)
-            .UseLayer<SumLayerDef>()
+            .UseLayer<SumLayerDefine>()
             .Build(forTrain);
     }
 
     public static void Main()
     {
-        var computers = CreateNeuronComputers();
-
         var args = ArgumentParser.GetArguments();
         var imageOptions = ImageRecognitionOptions.Default;
 
@@ -109,6 +85,8 @@ public class Program
                 neuron[i] = random.NextSingle() * 2 - 1;
             }
         }
+
+        var computers = CreateNeuronComputers();
 
         var net = new NetManager(computers.Computers.ToArray(), weights, 
             new OptimizationManager(computers.Collectors));

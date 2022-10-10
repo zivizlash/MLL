@@ -1,4 +1,4 @@
-﻿using MLL.Common.Builders;
+﻿using MLL.Common.Builders.Weights;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

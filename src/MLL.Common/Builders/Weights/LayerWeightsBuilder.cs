@@ -1,13 +1,13 @@
-﻿namespace MLL.Common.Builders;
+﻿using MLL.Common.Builders.Weights;
 
-public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
-    NeuronsDefinitionBuilder.IBuilderInputCount,
-    NeuronsDefinitionBuilder.IBuilderOutputCount,
-    NeuronsDefinitionBuilder.IBuilderHiddenLayers,
-    NeuronsDefinitionBuilder.IBuilderLearningRate
+namespace MLL.Common.Builders;
+
+public class LayerWeightsBuilder : LayerWeightsBuilder.IBuilder,
+    LayerWeightsBuilder.IBuilderInputCount,
+    LayerWeightsBuilder.IBuilderHiddenLayers,
+    LayerWeightsBuilder.IBuilderOutputCount
 {
     #region Interfaces
-
     public interface IBuilderInputCount
     {
         IBuilderHiddenLayers WithInputLayer(int neuronsCount, int weights);
@@ -22,37 +22,23 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
     public interface IBuilderOutputCount
     {
         IBuilder WithoutOutputLayer();
-        IBuilder WithOutputLayer(int neuronsCount, bool useActivationFunc);
-    }
-
-    public interface IBuilderLearningRate
-    {
-        IBuilderInputCount WithLearningRate(float learningRate);
+        IBuilder WithOutputLayer(int neuronsCount);
     }
 
     public interface IBuilder
     {
         LayerDefinition[] Build();
     }
-
     #endregion
 
+    private readonly List<int> _hiddenLayersCounts;
     private int _inputNeuronsCount;
     private int _inputWeights;
-    private readonly List<int> _hiddenLayersCounts;
     private int? _outputNeuronsCount;
-    private float _learningRate;
-    private bool _useActivationFunc;
 
-    public NeuronsDefinitionBuilder()
+    public LayerWeightsBuilder()
     {
         _hiddenLayersCounts = new List<int>();
-    }
-
-    public IBuilderInputCount WithLearningRate(float learningRate)
-    {
-        _learningRate = learningRate;
-        return this;
     }
 
     public IBuilderHiddenLayers WithInputLayer(int neuronsCount, int weights)
@@ -80,10 +66,9 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
         return this;
     }
 
-    public IBuilder WithOutputLayer(int neuronsCount, bool useActivationFunc)
+    public IBuilder WithOutputLayer(int neuronsCount)
     {
         _outputNeuronsCount = neuronsCount;
-        _useActivationFunc = useActivationFunc;
         return this;
     }
 
@@ -92,8 +77,7 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
         if (_hiddenLayersCounts == null)
             throw new InvalidOperationException();
 
-        var layersCount = _hiddenLayersCounts.Count
-            + 1 + (_outputNeuronsCount.HasValue ? 1 : 0);
+        var layersCount = _hiddenLayersCounts.Count + 1 + (_outputNeuronsCount ?? 0);
 
         var definition = new LayerDefinition[layersCount];
 
@@ -101,23 +85,19 @@ public class NeuronsDefinitionBuilder : NeuronsDefinitionBuilder.IBuilder,
 
         const int layersDefinitionCount = 1;
 
-        definition[0] = new LayerDefinition(
-            layersDefinitionCount, _inputNeuronsCount, _inputWeights, true);
+        definition[0] = new LayerDefinition(layersDefinitionCount, _inputNeuronsCount, _inputWeights);
 
         for (int i = 0; i < _hiddenLayersCounts.Count; i++)
         {
             var neuronsCount = _hiddenLayersCounts[i];
-
-            definition[i + 1] = new LayerDefinition(
-                layersDefinitionCount, neuronsCount, lastOutputCount, true);
-
+            definition[i + 1] = new LayerDefinition(layersDefinitionCount, neuronsCount, lastOutputCount);
             lastOutputCount = neuronsCount;
         }
 
         if (_outputNeuronsCount.HasValue)
         {
             definition[^1] = new LayerDefinition(
-                1, _outputNeuronsCount.Value, lastOutputCount, _useActivationFunc);
+                1, _outputNeuronsCount.Value, lastOutputCount);
         }
 
         return definition;

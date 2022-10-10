@@ -9,7 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MLL.Common\MLL.Common.csproj" />
     <ProjectReference Include="..\MLL.Computers\MLL.Computers.csproj" />
     <ProjectReference Include="..\MLL.Files\MLL.Files.csproj" />
     <ProjectReference Include="..\MLL.Statistics\MLL.Statistics.csproj" />
