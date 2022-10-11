@@ -26,7 +26,7 @@ public class Program
         var options = ImageRecognitionOptions.Default;
 
         var layers = GetLayersDefinition(options);
-        var weights = RandomFill(layers.ToWeights().ToArray(), options);
+        var weights = layers.ToWeights().ToArray().RandomFill(options.RandomSeed!.Value);
         
         var net = CreateNetManager(CreateComputers(), weights);
         var netMethods = new NetMethods(net, options.LearningRate);
@@ -76,21 +76,6 @@ public class Program
             .UseLayer<SigmoidLayerDefine>()
             .UseLayer<SumLayerDefine>()
             .Build(forTrain);
-    }
-
-    private static LayerWeights[] RandomFill(LayerWeights[] weights, ImageRecognitionOptions options)
-    {
-        var rnd = new Random(options.RandomSeed!.Value);
-
-        foreach (var neuron in weights.SelectMany(w => w.Weights))
-        {
-            for (int i = 0; i < neuron.Length; i++)
-            {
-                neuron[i] = rnd.NextSingle() * 2 - 1;
-            }
-        }
-
-        return weights;
     }
 
     private static NetManager CreateNetManager(LayerComputerBuilderResult result, IEnumerable<LayerWeights> weights) =>
