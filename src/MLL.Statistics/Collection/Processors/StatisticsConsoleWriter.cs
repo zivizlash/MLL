@@ -43,4 +43,8 @@ public class StatisticsConsoleWriter : IStatProcessor
         st.AppendLine();
         return stats.Total;
     }
+
+    public void Flush()
+    {
+    }
 }

@@ -20,35 +20,27 @@ public class Program
 {
     public static void Main()
     {
+        int delimmer = 200;
+
         var args = ArgumentParser.GetArguments();
         var options = ImageRecognitionOptions.Default;
 
         var layers = GetLayersDefinition(options);
-        var weights = layers.ToWeights().ToArray();
-
-        RandomFill(weights, options);
-
-        var computers = CreateComputers();
-        var net = new NetManager(computers.Computers, weights, new(computers.Collectors));
-
+        var weights = RandomFill(layers.ToWeights().ToArray(), options);
+        
+        var net = CreateNetManager(CreateComputers(), weights);
         var netMethods = new NetMethods(net, options.LearningRate);
 
         if (args.Train)
         {
             var trainSet = CreateDataSetProvider(true, options);
-            var trainComputers = CreateComputers(false);
+            var testSet = CreateDataSetProvider(false, options);
 
-            var trainTestNet = new NetManager(trainComputers.Computers,
-                layers.ToWeights(), new(trainComputers.Collectors));
-
-            var (netSaver, statSaver, stats) = CreateStatisticsManager(
-                400, CreateDataSetProvider(false, options), trainSet, trainTestNet);
+            var testNet = CreateNetManager(CreateComputers(false), layers.ToWeights());
+            var stats = CreateStatisticsManager(delimmer, testSet, trainSet, testNet, layers);
 
             netMethods.Train(trainSet, stats);
-
-            netSaver.Save(net);
-            statSaver.WriteLayers(layers);
-            statSaver.Flush();
+            stats.Flush();
         }
 
         if (!args.CheckRecognition)
@@ -57,19 +49,20 @@ public class Program
         }
     }
 
-    private static (NetSaver, StatisticsSaver, StatisticsManager) CreateStatisticsManager(
-        int delimmer, IImageDataSetProvider test, IImageDataSetProvider train, NetManager computers)
+    private static StatisticsManager CreateStatisticsManager(
+        int delimmer, IImageDataSetProvider test, IImageDataSetProvider train, 
+        NetManager net, LayerWeightsDefinition[] defines)
     {
         var statCalc = new StatisticsCalculator(test, train);
 
         var netSaver = new NetSaver(delimmer);
-        var statSaver = new StatisticsSaver();
+        var statSaver = new StatisticsSaver(defines);
         var statConsoleWriter = new StatisticsConsoleWriter();
 
         var processors = new IStatProcessor[] { statConsoleWriter, statSaver, netSaver };
-        var statsManager = new StatisticsManager(statCalc, processors, delimmer, computers);
+        var statsManager = new StatisticsManager(statCalc, processors, delimmer, net);
 
-        return (netSaver, statSaver, statsManager);
+        return statsManager;
     }
 
     private static LayerComputerBuilderResult CreateComputers(bool forTrain = true)
@@ -85,7 +78,7 @@ public class Program
             .Build(forTrain);
     }
 
-    private static void RandomFill(LayerWeights[] weights, ImageRecognitionOptions options)
+    private static LayerWeights[] RandomFill(LayerWeights[] weights, ImageRecognitionOptions options)
     {
         var rnd = new Random(options.RandomSeed!.Value);
 
@@ -96,7 +89,12 @@ public class Program
                 neuron[i] = rnd.NextSingle() * 2 - 1;
             }
         }
+
+        return weights;
     }
+
+    private static NetManager CreateNetManager(LayerComputerBuilderResult result, IEnumerable<LayerWeights> weights) =>
+        new(result.Computers, weights, new OptimizationManager(result.Collectors));
 
     private static LayerWeightsDefinition[] GetLayersDefinition(ImageRecognitionOptions options) =>
         LayerWeightsDefinition.Builder

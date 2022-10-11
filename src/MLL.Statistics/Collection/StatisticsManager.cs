@@ -42,6 +42,14 @@ public class StatisticsManager : IStatisticsManager
         ThreadPool.QueueUserWorkItem(Process, container, false);
     }
 
+    public void Flush()
+    {
+        foreach (var processor in _processors)
+        {
+            processor.Flush();
+        }
+    }
+
     private void Process(StatContainer<NetManager> net)
     {
         lock (_locker)

@@ -19,6 +19,10 @@ public class NetSaver : IStatProcessor
         }
     }
 
+    public void Flush()
+    {
+    }
+
     public void Save(NetManager net)
     {
         //NeuronWeightsSaver.Save(net);

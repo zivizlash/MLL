@@ -8,15 +8,14 @@ public class StatisticsSaver : IStatProcessor
 {
     private readonly string _workingDirectory;
     private readonly StatisticsJArrays _stats;
+    private readonly LayerWeightsDefinition[] _layers;
 
-    public StatisticsSaver()
+    public StatisticsSaver(LayerWeightsDefinition[] layers)
     {
         _workingDirectory = Directory.CreateDirectory(GetFullPath()).FullName;
         _stats = new();
+        _layers = layers;
     }
-
-    public void WriteLayers(LayerWeightsDefinition[] layers) =>
-        WriteAndSerialize("layers.json", layers);
 
     public void Process(StatisticsInfo stats)
     {
@@ -36,6 +35,7 @@ public class StatisticsSaver : IStatProcessor
         WriteContent("train.json", _stats.TrainRecognize.ToString());
         WriteContent("test.json", _stats.TestRecognize.ToString());
         WriteContent("errors.json", _stats.TrainErrors.ToString());
+        WriteAndSerialize("layers.json", _layers);
     }
 
     private void WriteAndSerialize(string filename, object obj)
