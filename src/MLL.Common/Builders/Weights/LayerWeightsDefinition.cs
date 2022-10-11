@@ -1,6 +1,6 @@
 ﻿namespace MLL.Common.Builders.Weights;
 
-public struct LayerDefinition
+public struct LayerWeightsDefinition
 {
     public static LayerWeightsBuilder.IBuilderInputCount Builder =>
         new LayerWeightsBuilder();
@@ -9,12 +9,12 @@ public struct LayerDefinition
     public int NeuronsCount { get; }
     public int WeightsCount { get; }
 
-    public LayerDefinition(int layers, int neuronsCount, int weightsCount)
+    public LayerWeightsDefinition(int layers, int neuronsCount, int weightsCount)
     {
         Layers = layers;
         NeuronsCount = neuronsCount;
         WeightsCount = weightsCount;
     }
 
-    public static LayerDefinition CreateSingle(int neuronsCount, int weightsCount) => new(1, neuronsCount, weightsCount);
+    public static LayerWeightsDefinition CreateSingle(int neuronsCount, int weightsCount) => new(1, neuronsCount, weightsCount);
 }

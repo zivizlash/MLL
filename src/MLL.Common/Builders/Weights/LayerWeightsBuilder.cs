@@ -4,8 +4,7 @@ namespace MLL.Common.Builders;
 
 public class LayerWeightsBuilder : LayerWeightsBuilder.IBuilder,
     LayerWeightsBuilder.IBuilderInputCount,
-    LayerWeightsBuilder.IBuilderHiddenLayers,
-    LayerWeightsBuilder.IBuilderOutputCount
+    LayerWeightsBuilder.IBuilderHiddenLayers
 {
     #region Interfaces
     public interface IBuilderInputCount
@@ -15,8 +14,8 @@ public class LayerWeightsBuilder : LayerWeightsBuilder.IBuilder,
 
     public interface IBuilderHiddenLayers
     {
-        IBuilderOutputCount WithHiddenLayers(params int[] neuronsCounts);
-        IBuilderHiddenLayers WithHiddenLayer(int neurons);
+        IBuilderHiddenLayers WithLayer(int neurons);
+        LayerWeightsDefinition[] Build();
     }
 
     public interface IBuilderOutputCount
@@ -27,18 +26,17 @@ public class LayerWeightsBuilder : LayerWeightsBuilder.IBuilder,
 
     public interface IBuilder
     {
-        LayerDefinition[] Build();
+        LayerWeightsDefinition[] Build();
     }
     #endregion
 
-    private readonly List<int> _hiddenLayersCounts;
+    private readonly List<int> _layersCounts;
     private int _inputNeuronsCount;
     private int _inputWeights;
-    private int? _outputNeuronsCount;
 
     public LayerWeightsBuilder()
     {
-        _hiddenLayersCounts = new List<int>();
+        _layersCounts = new List<int>();
     }
 
     public IBuilderHiddenLayers WithInputLayer(int neuronsCount, int weights)
@@ -48,56 +46,26 @@ public class LayerWeightsBuilder : LayerWeightsBuilder.IBuilder,
         return this;
     }
 
-    public IBuilderHiddenLayers WithHiddenLayer(int neuronsCount)
+    public IBuilderHiddenLayers WithLayer(int neuronsCount)
     {
-        _hiddenLayersCounts.Add(neuronsCount);
+        _layersCounts.Add(neuronsCount);
         return this;
     }
 
-    public IBuilderOutputCount WithHiddenLayers(params int[] neuronsCounts)
+    public LayerWeightsDefinition[] Build()
     {
-        _hiddenLayersCounts.AddRange(neuronsCounts);
-        return this;
-    }
+        var layersCount = _layersCounts.Count + 1;
+        var definition = new LayerWeightsDefinition[layersCount];
 
-    public IBuilder WithoutOutputLayer()
-    {
-        _outputNeuronsCount = null;
-        return this;
-    }
-
-    public IBuilder WithOutputLayer(int neuronsCount)
-    {
-        _outputNeuronsCount = neuronsCount;
-        return this;
-    }
-
-    public LayerDefinition[] Build()
-    {
-        if (_hiddenLayersCounts == null)
-            throw new InvalidOperationException();
-
-        var layersCount = _hiddenLayersCounts.Count + 1 + (_outputNeuronsCount ?? 0);
-
-        var definition = new LayerDefinition[layersCount];
+        definition[0] = new LayerWeightsDefinition(1, _inputNeuronsCount, _inputWeights);
 
         int lastOutputCount = _inputNeuronsCount;
 
-        const int layersDefinitionCount = 1;
-
-        definition[0] = new LayerDefinition(layersDefinitionCount, _inputNeuronsCount, _inputWeights);
-
-        for (int i = 0; i < _hiddenLayersCounts.Count; i++)
+        for (int i = 0; i < _layersCounts.Count; i++)
         {
-            var neuronsCount = _hiddenLayersCounts[i];
-            definition[i + 1] = new LayerDefinition(layersDefinitionCount, neuronsCount, lastOutputCount);
+            var neuronsCount = _layersCounts[i];
+            definition[i + 1] = new LayerWeightsDefinition(1, neuronsCount, lastOutputCount);
             lastOutputCount = neuronsCount;
-        }
-
-        if (_outputNeuronsCount.HasValue)
-        {
-            definition[^1] = new LayerDefinition(
-                1, _outputNeuronsCount.Value, lastOutputCount);
         }
 
         return definition;
