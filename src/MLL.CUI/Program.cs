@@ -60,9 +60,7 @@ public class Program
         var statConsoleWriter = new StatisticsConsoleWriter();
 
         var processors = new IStatProcessor[] { statConsoleWriter, statSaver, netSaver };
-        var statsManager = new StatisticsManager(statCalc, processors, delimmer, net);
-
-        return statsManager;
+        return new StatisticsManager(statCalc, processors, delimmer, net);
     }
 
     private static LayerComputerBuilderResult CreateComputers(bool forTrain = true)
