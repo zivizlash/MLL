@@ -54,12 +54,12 @@ public class SigmoidLayerComputerTests
         var input = Helper.FillRandom(random, new float[100]);
         var outputs = Helper.FillRandom(random, new float[10]);
         var weights = new LayerWeights(Helper.FillRandom(random, new float[10][], 100));
-        var threadedWeights = new LayerWeights(Helper.Copy(weights.Neurons));
+        var threadedWeights = new LayerWeights(Helper.Copy(weights.Weights));
 
         _layerComputer.Compensate.Compensate(weights, input, learningRate, errors, outputs);
         _layerComputer.Compensate.Compensate(threadedWeights, input, learningRate, errors, outputs);
 
-        CollectionAssert.AreEqual(weights.Neurons, threadedWeights.Neurons);
+        CollectionAssert.AreEqual(weights.Weights, threadedWeights.Weights);
     }
 
     [Test]

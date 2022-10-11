@@ -3,13 +3,13 @@ using Microsoft.Extensions.Configuration;
 using MLL.Common.Builders.Computers;
 using MLL.Common.Builders.Weights;
 using MLL.Common.Files;
+using MLL.Common.Layer;
 using MLL.Common.Net;
 using MLL.Common.Optimization;
 using MLL.Computers.Factory;
 using MLL.Computers.Factory.Defines;
 using MLL.CUI.Options;
 using MLL.Files.ImageLoader;
-using MLL.Files.Tools;
 using MLL.Statistics.Collection;
 using MLL.Statistics.Collection.Processors;
 using MLL.ThreadingOptimization;
@@ -18,26 +18,43 @@ namespace MLL.CUI;
 
 public class Program
 {
-    private static IImageDataSetProvider CreateDataSetProvider(bool isEven) =>
-        new FolderNameDataSetProvider(new NotOrEvenFilesProviderFactory(isEven, 128),
-            NameToFolder, ImageRecognitionOptions.Default.ImageWidth, ImageRecognitionOptions.Default.ImageHeight);
-
-    private static IImageDataSetProvider CreateTestDataSetProvider() => CreateDataSetProvider(false);
-    private static IImageDataSetProvider CreateTrainDataSetProvider() => CreateDataSetProvider(true);
-
-    private static LayerDefinition[] GetLayersDefinition(ImageRecognitionOptions options)
+    public static void Main()
     {
-        const int numbersCount = 10;
-        var imageWeightsCount = options.ImageWidth * options.ImageHeight;
+        var args = ArgumentParser.GetArguments();
+        var options = ImageRecognitionOptions.Default;
 
-        return new[] { LayerDefinition.CreateSingle(numbersCount, imageWeightsCount) }; 
+        var layers = GetLayersDefinition(options);
+        var weights = layers.ToWeights().ToArray();
 
-        //return LayerDefinition.Builder
-        //    .WithLearningRate(options.LearningRate)
-        //    .WithInputLayer(numbersCount * 3, imageWeightsCount)
-        //    .WithHiddenLayers(numbersCount * 2)
-        //    .WithOutputLayer(numbersCount, false)
-        //    .Build();
+        RandomFill(weights, options);
+
+        var computers = CreateComputers();
+        var net = new NetManager(computers.Computers, weights, new(computers.Collectors));
+
+        var netMethods = new NetMethods(net, options.LearningRate);
+
+        if (args.Train)
+        {
+            var trainSet = CreateDataSetProvider(true, options);
+            var trainComputers = CreateComputers(false);
+
+            var trainTestNet = new NetManager(trainComputers.Computers,
+                layers.ToWeights(), new(trainComputers.Collectors));
+
+            var (netSaver, statSaver, stats) = CreateStatisticsManager(
+                400, CreateDataSetProvider(false, options), trainSet, trainTestNet);
+
+            netMethods.Train(trainSet, stats);
+
+            netSaver.Save(net);
+            statSaver.WriteLayers(layers);
+            statSaver.Flush();
+        }
+
+        if (!args.CheckRecognition)
+        {
+            netMethods.FullTest(CreateDataSetProvider(false, options));
+        }
     }
 
     private static (NetSaver, StatisticsSaver, StatisticsManager) CreateStatisticsManager(
@@ -45,85 +62,48 @@ public class Program
     {
         var statCalc = new StatisticsCalculator(test, train);
 
-        var netSaver = new NetSaver();
+        var netSaver = new NetSaver(delimmer);
         var statSaver = new StatisticsSaver();
         var statConsoleWriter = new StatisticsConsoleWriter();
 
-        var processors = new IStatProcessor[]
-        {
-            statConsoleWriter, statSaver, netSaver
-        };
-
+        var processors = new IStatProcessor[] { statConsoleWriter, statSaver, netSaver };
         var statsManager = new StatisticsManager(statCalc, processors, delimmer, computers);
+
         return (netSaver, statSaver, statsManager);
     }
 
-    private static LayerComputerBuilderResult CreateNeuronComputers(bool forTrain = true)
+    private static LayerComputerBuilderResult CreateComputers(bool forTrain = true)
     {
-        var settings = new ThreadingOptimizatorFactorySettings(100000, 0.2f, Environment.ProcessorCount);
-        var computerFactory = new BasicLayerComputerFactory(new ThreadingOptimizatorFactory(settings));
+        var settings = new ThreadingOptimizatorFactorySettings(100000, 0.2f, 3);
+        var optimizatorFactory = new ThreadingOptimizatorFactory(settings);
+        var computerFactory = new BasicLayerComputerFactory(optimizatorFactory);
 
         return new LayerComputerBuilder(computerFactory)
+            .UseLayer<SigmoidLayerDefine>()
+            .UseLayer<SigmoidLayerDefine>()
             .UseLayer<SumLayerDefine>()
             .Build(forTrain);
     }
 
-    public static void Main()
+    private static void RandomFill(LayerWeights[] weights, ImageRecognitionOptions options)
     {
-        var args = ArgumentParser.GetArguments();
-        var imageOptions = ImageRecognitionOptions.Default;
+        var rnd = new Random(options.RandomSeed!.Value);
 
-        var layers = GetLayersDefinition(imageOptions);
-        var weights = layers.ToWeights().ToArray();
-
-        var random = new Random(imageOptions.RandomSeed!.Value);
-
-        foreach (var neuron in weights.SelectMany(w => w.Neurons))
+        foreach (var neuron in weights.SelectMany(w => w.Weights))
         {
             for (int i = 0; i < neuron.Length; i++)
             {
-                neuron[i] = random.NextSingle() * 2 - 1;
+                neuron[i] = rnd.NextSingle() * 2 - 1;
             }
         }
-
-        var computers = CreateNeuronComputers();
-
-        var net = new NetManager(computers.Computers.ToArray(), weights, 
-            new OptimizationManager(computers.Collectors));
-
-        var netMethods = new NetMethods(net, imageOptions.LearningRate);
-        var testDataSet = CreateTestDataSetProvider();
-
-        if (args.Train)
-        {
-            var trainDataSet = CreateTrainDataSetProvider();
-            var trainTestComputers = CreateNeuronComputers(false);
-
-            var trainTestNet = new NetManager(
-                trainTestComputers.Computers.ToArray(), 
-                layers.ToWeights().ToArray(), 
-                new OptimizationManager(trainTestComputers.Collectors));
-
-            var (netSaver, statSaver, stats) = CreateStatisticsManager(
-                200, testDataSet, trainDataSet, trainTestNet);
-
-            netMethods.Train(trainDataSet, stats);
-
-            netSaver.Save(net);
-            statSaver.WriteLayers(layers);
-            statSaver.Flush();
-        }
-
-        if (!args.CheckRecognition && !args.TestImageNormalizing)
-        {
-            netMethods.FullTest(testDataSet);
-        }
-
-        if (args.TestImageNormalizing)
-        {
-            ImageTools.TestImageNormalizing();
-        }
     }
+
+    private static LayerWeightsDefinition[] GetLayersDefinition(ImageRecognitionOptions options) =>
+        LayerWeightsDefinition.Builder
+            .WithInputLayer(10 * 3, options.ImageWidth * options.ImageHeight)
+            .WithLayer(10 * 2)
+            .WithLayer(10)
+            .Build();
 
     private static IConfiguration CreateConfiguration() =>
         new ConfigurationBuilder()
@@ -131,6 +111,10 @@ public class Program
             .AddJsonFile("appsettings.local.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
+
+    private static IImageDataSetProvider CreateDataSetProvider(bool isEven, ImageRecognitionOptions options) =>
+        new FolderNameDataSetProvider(new NotOrEvenFilesProviderFactory(isEven, 512),
+            NameToFolder, options.ImageWidth, options.ImageHeight);
 
     private static string NameToFolder(string name) =>
         $"C:\\Auto\\datasets\\Font\\Font\\Sample{int.Parse(name) + 1:d3}";

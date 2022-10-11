@@ -20,11 +20,11 @@ public struct NetReplicator
         for (int li = 0; li < src.Length; li++)
         {
             var srcLayer = src[li];
-            var weightsCopy = copy[li] = new LayerWeights(new float[srcLayer.Neurons.Length][]);
+            var weightsCopy = copy[li] = new LayerWeights(new float[srcLayer.Weights.Length][]);
 
-            for (int ni = 0; ni < srcLayer.Neurons.Length; ni++)
+            for (int ni = 0; ni < srcLayer.Weights.Length; ni++)
             {
-                weightsCopy.Neurons[ni] = new float[srcLayer.Neurons[ni].Length];
+                weightsCopy.Weights[ni] = new float[srcLayer.Weights[ni].Length];
             }
         }
 
@@ -40,12 +40,12 @@ public struct NetReplicator
             var srcLayer = src[li];
             var destLayer = dest[li];
 
-            Check.LengthEqual(srcLayer.Neurons.Length, destLayer.Neurons.Length, nameof(dest));
+            Check.LengthEqual(srcLayer.Weights.Length, destLayer.Weights.Length, nameof(dest));
 
-            for (int ni = 0; ni < srcLayer.Neurons.Length; ni++)
+            for (int ni = 0; ni < srcLayer.Weights.Length; ni++)
             {
-                var srcWeights = srcLayer.Neurons[ni];
-                var destWeights = destLayer.Neurons[ni];
+                var srcWeights = srcLayer.Weights[ni];
+                var destWeights = destLayer.Weights[ni];
 
                 Check.LengthEqual(srcWeights.Length, destWeights.Length, nameof(dest));
                 srcWeights.CopyTo(destWeights.AsSpan());

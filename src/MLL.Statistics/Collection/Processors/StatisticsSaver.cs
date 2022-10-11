@@ -15,7 +15,7 @@ public class StatisticsSaver : IStatProcessor
         _stats = new();
     }
 
-    public void WriteLayers(LayerDefinition[] layers) =>
+    public void WriteLayers(LayerWeightsDefinition[] layers) =>
         WriteAndSerialize("layers.json", layers);
 
     public void Process(StatisticsInfo stats)

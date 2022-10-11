@@ -24,7 +24,7 @@ public class SigmoidPredictWorkItem : IHasExecuteDelegate
 
     public void Execute(object? _)
     {
-        var neurons = Layer.Neurons;
+        var neurons = Layer.Weights;
 
         var (start, end) = ThreadTools.Loop(ProcessingCount, Index);
 

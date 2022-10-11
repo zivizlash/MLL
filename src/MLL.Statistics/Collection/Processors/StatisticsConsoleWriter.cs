@@ -18,8 +18,8 @@ public class StatisticsConsoleWriter : IStatProcessor
         _st.Append($"Epoch {stats.EpochRange.Start:D4}-{stats.EpochRange.End:D4}; ");
         _st.AppendLine($"Error: {errorAcc:F5}; Delta: {delta:F5}; ");
 
-        _previousRec1 = Write(_st, stats.TestStats, _previousRec1);
-        _previousRec2 = Write(_st, stats.TrainStats, _previousRec2);
+        _previousRec1 = Write(_st, stats.TestStats, _previousRec1, true);
+        _previousRec2 = Write(_st, stats.TrainStats, _previousRec2, false);
 
         _st.AppendLine();
         Console.WriteLine(_st.ToString());
@@ -28,11 +28,12 @@ public class StatisticsConsoleWriter : IStatProcessor
         _st.Clear();
     }
 
-    private static float Write(StringBuilder st, NeuronRecognizedStats stats, float previous)
+    private static float Write(StringBuilder st, NeuronRecognizedStats stats, float previous, bool isTestSet)
     {
+        st.Append(isTestSet ? "Test  | " : "Train | ");
         st.Append($"Overall recognized percents: {stats.Total};");
         st.AppendLine($" Delta: {stats.Total - previous};");
-
+        
         for (int i = 0; i < 10; i++)
         {
             st.Append($"{i}: {stats.Recognized[i]:F3}; ");

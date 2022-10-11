@@ -5,7 +5,7 @@ namespace MLL.CUI;
 
 public static class DefinitionToWeights
 { 
-    public static IEnumerable<LayerWeights> ToWeights(this IEnumerable<LayerDefinition> defs)
+    public static IEnumerable<LayerWeights> ToWeights(this IEnumerable<LayerWeightsDefinition> defs)
     {
         foreach (var def in defs)
         {

@@ -15,23 +15,26 @@ public class NetManager
     public ReadOnlySpan<LayerComputers> Computers => _layersComputers;
     public OptimizationManager OptimizationManager => _optimizationManager;
 
-    public NetManager(LayerComputers[] layersComputers, LayerWeights[] layersWeights, 
+    public NetManager(IEnumerable<LayerComputers> layersComputers, IEnumerable<LayerWeights> layersWeights, 
         OptimizationManager optimizationManager)
     {
-        Check.LengthEqual(layersComputers.Length, layersWeights.Length, nameof(layersWeights));
+        var computers = layersComputers.ToArray();
+        var weights = layersWeights.ToArray();
 
-        var weightsCount = layersWeights.Select(lw => lw.Neurons.Length).ToArray();
+        Check.LengthEqual(computers.Length, weights.Length, nameof(layersWeights));
+
+        var weightsCount = layersWeights.Select(lw => lw.Weights.Length).ToArray();
         _buffers = new NetLayersBuffers(weightsCount);
 
-        _layersComputers = layersComputers;
-        _layersWeights = layersWeights;
+        _layersComputers = computers;
+        _layersWeights = weights;
         _optimizationManager = optimizationManager;
     }
 
     public ReadOnlySpan<float> Train(float[] input, float[] expected, float learningRate)
     {
-        Check.LengthEqual(_layersWeights[0].Neurons[0].Length, input.Length, nameof(input));
-        Check.LengthEqual(expected.Length, _layersWeights[^1].Neurons.Length, nameof(expected));
+        Check.LengthEqual(_layersWeights[0].Weights[0].Length, input.Length, nameof(input));
+        Check.LengthEqual(expected.Length, _layersWeights[^1].Weights.Length, nameof(expected));
 
         float[] output = PredictInternal(input);
         float[] outputErrors = CalculateAndCompensateOutputLayerError(input, output, expected, learningRate);
@@ -48,7 +51,7 @@ public class NetManager
 
     public ReadOnlySpan<float> Predict(float[] input)
     {
-        Check.LengthEqual(_layersWeights[0].Neurons[0].Length, input.Length, nameof(input));
+        Check.LengthEqual(_layersWeights[0].Weights[0].Length, input.Length, nameof(input));
         var prediction = PredictInternal(input);
 
         _optimizationManager.Optimize();
@@ -67,7 +70,7 @@ public class NetManager
         var compensate = _layersComputers[layerIndex].Compensate;
         var errorBackprop = _layersComputers[layerIndex + 1].ErrorBackpropagation;
 
-        errorBackprop.ReorganizeErrors(new(previousWeights.Neurons, previousErrors), errors);
+        errorBackprop.ReorganizeErrors(new(previousWeights.Weights, previousErrors), errors);
         compensate.Compensate(layer, input, lr, errors, output);
     }
 

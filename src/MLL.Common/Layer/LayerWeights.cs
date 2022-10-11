@@ -2,10 +2,10 @@
 
 public readonly struct LayerWeights
 {
-    public readonly float[][] Neurons;
+    public readonly float[][] Weights;
 
     public LayerWeights(float[][] neurons)
     {
-        Neurons = neurons;
+        Weights = neurons;
     }
 }

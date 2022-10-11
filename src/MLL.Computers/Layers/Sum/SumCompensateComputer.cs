@@ -15,7 +15,7 @@ public class SumCompensateComputer : ICompensateComputer, IThreadedComputer
 
     public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {
-        var neurons = layer.Neurons;
+        var neurons = layer.Weights;
 
         Check.LengthEqual(neurons[0].Length, input.Length, nameof(input));
         Check.LengthEqual(neurons.Length, errors.Length, nameof(errors));

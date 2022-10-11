@@ -27,7 +27,7 @@ public class SigmoidCompensateWorkItem : IHasExecuteDelegate
     {
         var (start, end) = ThreadTools.Loop(ProcessingCount, Index);
 
-        var neurons = Layer.Neurons;
+        var neurons = Layer.Weights;
 
         for (int ni = start; ni < end; ni++)
         {
