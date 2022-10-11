@@ -7,19 +7,28 @@ public struct ArgumentParser
     public bool LoadFromDisk { get; }
     public bool CheckRecognition { get; }
     public bool Train { get; }
-    public bool TestImageNormalizing { get; }
 
-    public ArgumentParser(bool loadFromDisk, bool checkRecognition, bool train, bool testImageNormalizing)
+    private static bool _isExitRequested;
+
+    static ArgumentParser()
+    {
+        Console.CancelKeyPress += (s, e) =>
+        {
+            e.Cancel = true;
+            _isExitRequested = true;
+        };
+    }
+
+    public ArgumentParser(bool loadFromDisk, bool checkRecognition, bool train)
     {
         LoadFromDisk = loadFromDisk;
         CheckRecognition = checkRecognition;
         Train = train;
-        TestImageNormalizing = testImageNormalizing;
     }
 
     public static bool IsExitRequested()
     {
-        return Console.KeyAvailable && Console.ReadKey(true).Key == Key.Q;
+        return Console.KeyAvailable && Console.ReadKey(true).Key == Key.Q || _isExitRequested;
     }
 
     public static ArgumentParser GetArguments(Key defaultKey = default)
@@ -30,7 +39,7 @@ public struct ArgumentParser
 
         while (!allowedKeys.Contains(key))
         {
-            Console.WriteLine("Load - L; Retrain - R; Check - C; Train - T; Image Normalizing - I");
+            Console.WriteLine("Load - L; Retrain - R; Check - C; Train - T");
             key = Console.ReadKey(true).Key;
         }
         
@@ -38,17 +47,15 @@ public struct ArgumentParser
         {
             Key.L => "Loading weights from disk",
             Key.T => "Training",
-            Key.C => "Check recognition",
+            Key.C => "Recognition test",
             Key.R => "Retrain",
-            Key.I => "Image normalizing test",
             _ => throw new InvalidOperationException()
         });
 
         return new ArgumentParser(
             loadFromDisk: key is Key.L or Key.C or Key.T,
             checkRecognition: key is Key.C,
-            train: key is Key.R or Key.T,
-            testImageNormalizing: key is Key.I);
+            train: key is Key.R or Key.T);
     }
 
     public static string GetImagePath()
