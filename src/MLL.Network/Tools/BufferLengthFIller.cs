@@ -29,5 +29,7 @@ public struct BufferLengthWrapper
         return IsFilled;
     }
 
+    public Memory<byte> AsFreeMemory() => Buffer.AsMemory(FilledSize, EmptySize);
+
     public void Reset() => FilledSize = 0;
 }

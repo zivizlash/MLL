@@ -42,11 +42,25 @@ public class ProtocolVersionHashCode
         }
     }
 
-    public int CalculateByAcceptableTypes(IEnumerable<Type> types)
+    public int CalculateByTypes(IEnumerable<Type> types)
     {
         int hashCode = 0;
 
         foreach (var typeString in types.SelectMany(GetHashCodeStrings))
+        {
+            hashCode <<= 2;
+            hashCode += typeString.Sum(ch => ch);
+            hashCode *= 7;
+        }
+
+        return hashCode;
+    }
+
+    public int CalculateByType(Type type)
+    {
+        int hashCode = 0;
+
+        foreach (var typeString in GetHashCodeStrings(type))
         {
             hashCode <<= 2;
             hashCode += typeString.Sum(ch => ch);

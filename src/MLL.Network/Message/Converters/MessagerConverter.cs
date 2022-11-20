@@ -1,4 +1,5 @@
 ﻿using MessagePack;
+using MessagePack.Resolvers;
 using MLL.Network.Message.Protocol;
 using System;
 using System.Buffers;
@@ -12,14 +13,21 @@ public class MessageConverter
     private readonly Dictionary<ushort, Type> _typeIdToType;
     private readonly Dictionary<Type, ushort> _typeToTypeId;
 
-    public MessageConverter(IEnumerable<Type> acceptableTypes)
+    private static readonly MessagePackSerializerOptions _options;
+
+    static MessageConverter()
+    {
+        _options = MessagePackSerializer.DefaultOptions.WithResolver(
+            ContractlessStandardResolver.Instance);
+    }
+
+    public MessageConverter(IEnumerable<Type> acceptableTypes, ProtocolVersionHashCode hashCode)
     {
         _typeIdToType = new();
         _typeToTypeId = new();
 
-        var sorted = acceptableTypes
-            .OrderBy(x => x, new HashCodeComparer(new()))
-            .ToList();
+        var comparer = new HashCodeComparer(hashCode);
+        var sorted = acceptableTypes.OrderBy(x => x, comparer).ToList();
 
         for (int i = 0; i < sorted.Count; i++)
         {
@@ -33,13 +41,14 @@ public class MessageConverter
         var buffer = new ArrayBufferWriter<byte>();
 
         var messagePackWriter = new MessagePackWriter(buffer);
-        MessagePackSerializer.Serialize(ref messagePackWriter, obj);
+        MessagePackSerializer.Serialize(ref messagePackWriter, obj, _options);
 
         return (buffer.GetMemory().ToArray(), _typeToTypeId[typeof(T)]);
     }
 
     public object Deserialize(byte[] bytes, ushort messageType)
     {
-        return MessagePackSerializer.Deserialize(_typeIdToType[messageType], bytes.AsMemory());
+        return MessagePackSerializer.Deserialize(
+            _typeIdToType[messageType], bytes.AsMemory(), _options);
     }
 }

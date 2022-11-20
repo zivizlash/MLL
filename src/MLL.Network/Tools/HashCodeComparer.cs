@@ -14,8 +14,8 @@ public class HashCodeComparer : IComparer<Type>
 
     public int Compare(Type x, Type y)
     {
-        var c1 = _hashCode.CalculateByAcceptableTypes(new List<Type> { x });
-        var c2 = _hashCode.CalculateByAcceptableTypes(new List<Type> { y });
+        var c1 = _hashCode.CalculateByType(x);
+        var c2 = _hashCode.CalculateByType(y);
 
         return c1.CompareTo(c2);
     }
