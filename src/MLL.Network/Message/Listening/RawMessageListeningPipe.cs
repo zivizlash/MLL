@@ -1,5 +1,4 @@
-﻿using MLL.Network.Message.Handlers;
-using MLL.Network.Message.Protocol;
+﻿using MLL.Network.Message.Protocol;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -8,17 +7,17 @@ namespace MLL.Network.Message.Listening;
 
 public class RawMessageListeningPipe
 {
-    private readonly RawMessageTcpProtocol _messageProtocol;
-    private readonly Channel<RawMessageInfo> _channel;
+    private readonly MessageTcpProtocol _messageProtocol;
+    private readonly Channel<RawMessage> _channel;
 
     private CancellationTokenSource? _tokenSource;
 
-    public ChannelReader<RawMessageInfo> Reader => _channel.Reader;
+    public ChannelReader<RawMessage> Reader => _channel.Reader;
 
-    public RawMessageListeningPipe(RawMessageTcpProtocol messageProtocol)
+    public RawMessageListeningPipe(MessageTcpProtocol messageProtocol)
     {
         _messageProtocol = messageProtocol;
-        _channel = Channel.CreateBounded<RawMessageInfo>(new BoundedChannelOptions(10)
+        _channel = Channel.CreateBounded<RawMessage>(new BoundedChannelOptions(10)
         {
             SingleWriter = true,
             FullMode = BoundedChannelFullMode.Wait
