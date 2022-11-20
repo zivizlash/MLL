@@ -1,5 +1,6 @@
 using MessagePack;
-using MLL.Network.Message;
+using MLL.Network.Builders;
+using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers;
 using MLL.Network.Message.Listening;
@@ -7,13 +8,29 @@ using MLL.Network.Message.Protocol;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MLL.Network.Tests;
+
+public class PingMessage
+{
+    public int PingValue { get; set; }
+}
+
+public class PongMessage
+{
+    public int PongValue { get; set; }
+    public int PongSquareValue { get; set; }
+}
+
+public class TestMessage
+{
+    public int IntValue { get; set; }
+    public string? StringValue { get; set; }
+}
 
 public class TestMessageHandlerBus : MessageHandlerBusBase
 {
@@ -44,7 +61,12 @@ public class TestMessageHandlerBus : MessageHandlerBusBase
 
 public class TestMessageHandlerFactory : IMessageHandlerFactory
 {
-    public IMessageHandler CreateMessageHandler(MessageHandlerFactoryContext context)
+    public IEnumerable<Type> GetSendedTypes()
+    {
+        throw new NotImplementedException();
+    }
+
+    public IMultiMessageHandler CreateMessageHandler(MessageHandlerFactoryContext context)
     {
         return new TestMessageHandlerBus(context.MessageSender);
     }
@@ -56,20 +78,16 @@ public class IntegrationProtocolTest
     [Test]
     public async Task ServerManagerTest()
     {
-        var serverEndpoint = new IPEndPoint(IPAddress.Any, 8888);
-        var handlerFactory = new TestMessageHandlerFactory();
+        using var serverManager = new ServerConnectionManagerBuilder()
+            .WithAddress(new IPEndPoint(IPAddress.Any, 8888))
+            .WithHandlerFactory(new TestMessageHandlerFactory())
+            .WithUsedTypes(typeof(PingMessage), typeof(PongMessage))
+            .Build();
 
-        var acceptableTypes = new List<Type>
-        {
-            typeof(PingMessage), typeof(PongMessage)
-        };
+        var acceptableTypes = new List<Type> { typeof(PingMessage), typeof(PongMessage) };
 
-        var messageConverter = new MessageConverter(acceptableTypes);
-
-        var connectionListener = new ServerConnectionListenerMessageHandlerAdapter(
-            handlerFactory, messageConverter);
-
-        using var serverManager = new ServerConnectionManager(serverEndpoint, connectionListener);
+        var hashCode = new ProtocolVersionHashCode();
+        var messageConverter = new MessageConverter(acceptableTypes, hashCode);
 
         var clientEndpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8888);
 
@@ -79,16 +97,14 @@ public class IntegrationProtocolTest
         using var client = new TcpClient();
         
         await client.ConnectAsync(clientEndpoint, token);
-        var clientProtocol = new RawMessageTcpProtocol(new TcpConnectionInfo(client));
+        var clientProtocol = new MessageTcpProtocol(new TcpConnectionInfo(client));
 
         var testMessage = new PingMessage { PingValue = 10 };
 
         var (messageBytes, messageType) = messageConverter.Serialize(testMessage);
-
         await clientProtocol.WriteAsync(messageBytes, messageType, token);
 
         var message = await clientProtocol.ReadAsync(token);
-
         var result = MessagePackSerializer.Deserialize<PongMessage>(message.Data);
 
         Assert.AreEqual(10 * 10, result.PongSquareValue);
@@ -102,7 +118,7 @@ public class IntegrationProtocolTest
         var address = new IPEndPoint(IPAddress.Any, 8888);
         var address2 = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8888);
 
-        RawMessageInfo serverReceivedMessage = default;
+        RawMessage serverReceivedMessage = default;
 
         using var messageEvent = new ManualResetEventSlim(false);
         using var serverStartEvent = new ManualResetEventSlim(false);
@@ -120,7 +136,7 @@ public class IntegrationProtocolTest
                 var serverClient = await server.AcceptTcpClientAsync(token);
                 var connection = new TcpConnectionInfo(serverClient);
 
-                var protocol = new RawMessageTcpProtocol(connection);
+                var protocol = new MessageTcpProtocol(connection);
 
                 listeningPipe = new RawMessageListeningPipe(protocol);
                 listeningPipe.StartOrRestart();
@@ -141,7 +157,7 @@ public class IntegrationProtocolTest
         serverStartEvent.Wait(token);
 
         await client.ConnectAsync(address2, token);
-        var clientProtocol = new RawMessageTcpProtocol(new TcpConnectionInfo(client));
+        var clientProtocol = new MessageTcpProtocol(new TcpConnectionInfo(client));
 
         var testMessage = new TestMessage { IntValue = 10, StringValue = "Hello there" };
         await clientProtocol.WriteAsync(MessagePackSerializer.Serialize(testMessage), 0, token);
