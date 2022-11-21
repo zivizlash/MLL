@@ -1,6 +1,7 @@
 ﻿using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers;
+using MLL.Network.Message.Handlers.Binding;
 using MLL.Network.Message.Listening;
 using MLL.Network.Message.Protocol;
 using System;

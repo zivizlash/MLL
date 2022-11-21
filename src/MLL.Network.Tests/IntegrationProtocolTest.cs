@@ -15,23 +15,6 @@ using System.Threading.Tasks;
 
 namespace MLL.Network.Tests;
 
-public class PingMessage
-{
-    public int PingValue { get; set; }
-}
-
-public class PongMessage
-{
-    public int PongValue { get; set; }
-    public int PongSquareValue { get; set; }
-}
-
-public class TestMessage
-{
-    public int IntValue { get; set; }
-    public string? StringValue { get; set; }
-}
-
 public class TestMessageHandlerBus : MessageHandlerBusBase
 {
     public TestMessage? TestMessage;
@@ -61,12 +44,7 @@ public class TestMessageHandlerBus : MessageHandlerBusBase
 
 public class TestMessageHandlerFactory : IMessageHandlerFactory
 {
-    public IEnumerable<Type> GetSendedTypes()
-    {
-        throw new NotImplementedException();
-    }
-
-    public IMultiMessageHandler CreateMessageHandler(MessageHandlerFactoryContext context)
+    public object CreateMessageHandler(MessageHandlerFactoryContext context)
     {
         return new TestMessageHandlerBus(context.MessageSender);
     }
@@ -80,7 +58,7 @@ public class IntegrationProtocolTest
     {
         using var serverManager = new ServerConnectionManagerBuilder()
             .WithAddress(new IPEndPoint(IPAddress.Any, 8888))
-            .WithHandlerFactory(new TestMessageHandlerFactory())
+            .WithHandlerFactory(new ReflectionMessageHandlerFactory())
             .WithUsedTypes(typeof(PingMessage), typeof(PongMessage))
             .Build();
 
