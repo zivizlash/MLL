@@ -1,4 +1,5 @@
 using MessagePack;
+using MessagePack.Resolvers;
 using MLL.Network.Builders;
 using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
@@ -15,24 +16,17 @@ using System.Threading.Tasks;
 
 namespace MLL.Network.Tests;
 
-public class TestMessageHandlerBus : MessageHandlerBusBase
+public class TestMessageHandler
 {
-    public TestMessage? TestMessage;
     private readonly IMessageSender _messageSender;
 
-    public TestMessageHandlerBus(IMessageSender messageSender)
+    public TestMessageHandler(IMessageSender messageSender)
     {
         _messageSender = messageSender;
-        AddHandler<TestMessage>(TestMessageHandler);
-        AddHandler<PingMessage>(PingMessageHandler);
     }
 
-    private void TestMessageHandler(TestMessage testMessage)
-    {
-        TestMessage = testMessage;
-    }
-
-    private async ValueTask PingMessageHandler(PingMessage pingMessage)
+    [MessageHandler]
+    public async ValueTask PingHandler(PingMessage pingMessage)
     {
         await _messageSender.SendAsync(new PongMessage 
         { 
@@ -42,34 +36,34 @@ public class TestMessageHandlerBus : MessageHandlerBusBase
     }
 }
 
-public class TestMessageHandlerFactory : IMessageHandlerFactory
-{
-    public object CreateMessageHandler(MessageHandlerFactoryContext context)
-    {
-        return new TestMessageHandlerBus(context.MessageSender);
-    }
-}
-
 [TestFixture]
 public class IntegrationProtocolTest
 {
+    private readonly MessagePackSerializerOptions _options;
+
+    public IntegrationProtocolTest()
+    {
+        _options = MessagePackSerializer.DefaultOptions
+            .WithResolver(ContractlessStandardResolver.Instance);
+    }
+
     [Test]
     public async Task ServerManagerTest()
     {
+        var acceptableTypes = new List<Type> { typeof(PingMessage), typeof(PongMessage) };
+
         using var serverManager = new ServerConnectionManagerBuilder()
             .WithAddress(new IPEndPoint(IPAddress.Any, 8888))
-            .WithHandlerFactory(new ReflectionMessageHandlerFactory())
-            .WithUsedTypes(typeof(PingMessage), typeof(PongMessage))
+            .WithHandlerFactory(new ReflectionMessageHandlerFactory<TestMessageHandler>())
+            .WithUsedTypes(acceptableTypes.ToArray())
             .Build();
-
-        var acceptableTypes = new List<Type> { typeof(PingMessage), typeof(PongMessage) };
 
         var hashCode = new ProtocolVersionHashCode();
         var messageConverter = new MessageConverter(acceptableTypes, hashCode);
 
         var clientEndpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8888);
 
-        var cancellationSource = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        var cancellationSource = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var token = cancellationSource.Token;
 
         using var client = new TcpClient();
@@ -83,7 +77,7 @@ public class IntegrationProtocolTest
         await clientProtocol.WriteAsync(messageBytes, messageType, token);
 
         var message = await clientProtocol.ReadAsync(token);
-        var result = MessagePackSerializer.Deserialize<PongMessage>(message.Data);
+        var result = MessagePackSerializer.Deserialize<PongMessage>(message.Data, _options);
 
         Assert.AreEqual(10 * 10, result.PongSquareValue);
     }
@@ -138,11 +132,12 @@ public class IntegrationProtocolTest
         var clientProtocol = new MessageTcpProtocol(new TcpConnectionInfo(client));
 
         var testMessage = new TestMessage { IntValue = 10, StringValue = "Hello there" };
-        await clientProtocol.WriteAsync(MessagePackSerializer.Serialize(testMessage), 0, token);
+        await clientProtocol.WriteAsync(MessagePackSerializer.Serialize(testMessage, _options), 0, token);
 
         messageEvent.Wait(token);
 
-        var result = MessagePackSerializer.Deserialize<TestMessage>(serverReceivedMessage.Data);
+        var result = MessagePackSerializer.Deserialize<TestMessage>(
+            serverReceivedMessage.Data, _options);
 
         Assert.AreEqual(10, result.IntValue);
         Assert.AreEqual("Hello there", result.StringValue);

@@ -81,7 +81,10 @@ public class ServerConnectionManagerBuilder :
 
         var hashCode = new ProtocolVersionHashCode();
         var messageConverter = new MessageConverter(acceptableTypes, hashCode);
-        var pipeFactory = new ListenerMessageHandlerPipeFactory(messageConverter, _handlerFactory);
+        var attributeMessageHandlerBinder = new AttributeMessageHandlerBinder();
+
+        var pipeFactory = new ListenerMessageHandlerPipeFactory(
+            messageConverter, _handlerFactory, attributeMessageHandlerBinder);
 
         var connectionListener = new ServerListenerToMessageHandler(pipeFactory);
         return new ServerConnectionAcceptor(_endpoint, connectionListener);

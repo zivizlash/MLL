@@ -1,5 +1,6 @@
 ﻿using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
+using MLL.Network.Message.Handlers.Binding;
 using MLL.Network.Message.Protocol;
 
 namespace MLL.Network.Message.Listening;
@@ -7,13 +8,15 @@ namespace MLL.Network.Message.Listening;
 public class ListenerMessageHandlerPipeFactory : IListenerMessageHandlerPipeFactory
 {
     private readonly MessageConverter _messageConverter;
+    private readonly AttributeMessageHandlerBinder _handlerBinder;
     private readonly IMessageHandlerFactory _handlerFactory;
 
-    public ListenerMessageHandlerPipeFactory(
-        MessageConverter messageConverter, IMessageHandlerFactory handlerFactory)
+    public ListenerMessageHandlerPipeFactory(MessageConverter messageConverter, 
+        IMessageHandlerFactory handlerFactory, AttributeMessageHandlerBinder handlerBinder)
     {
         _messageConverter = messageConverter;
         _handlerFactory = handlerFactory;
+        _handlerBinder = handlerBinder;
     }
 
     public ListenerMessageHandlerPipe Create(ListenerMessageHandlerPipeFactoryContext context)
@@ -24,6 +27,7 @@ public class ListenerMessageHandlerPipeFactory : IListenerMessageHandlerPipeFact
         var factoryContext = new MessageHandlerFactoryContext(sender, context.ClientInfo.Uid);
         var handler = _handlerFactory.CreateMessageHandler(factoryContext);
 
-        return new ListenerMessageHandlerPipe(handler, _messageConverter, protocol);
+        var bus = _handlerBinder.Bind(_handlerFactory.MessageHandlerType, handler);
+        return new ListenerMessageHandlerPipe(bus, _messageConverter, protocol);
     }
 }

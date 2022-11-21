@@ -41,7 +41,9 @@ public partial class AttributeMessageHandlerBinder
     {
         var factories = new List<MessageHandlerFactoryInfo>();
 
-        foreach (var method in targetType.GetMethods().Where(IsHandler))
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
+
+        foreach (var method in targetType.GetMethods(flags).Where(IsHandler))
         {
             var parameters = method.GetParameters();
 
