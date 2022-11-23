@@ -1,11 +1,53 @@
 ﻿using MLL.Network.Message.Listening;
+using MLL.Network.Tools;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace MLL.Network.Message.Protocol;
 
-public class ServerListenerToMessageHandler : IServerConnectionListener
+public class ClientListenerToMessageHandler : IConnectionListener
+{
+    private readonly IListenerMessageHandlerPipeFactory _pipeFactory;
+    private readonly ConcurrentFlag _isWorking;
+    private volatile ListenerMessageHandlerPipe? _pipe;
+
+    public ClientListenerToMessageHandler(IListenerMessageHandlerPipeFactory pipeFactory)
+    {
+        _isWorking = new();
+        _pipeFactory = pipeFactory;
+    }
+
+    public ValueTask OnConnectedAsync(RemoteConnectionInfo clientInfo)
+    {
+        if (!_isWorking.TrySetValue(true))
+        {
+            throw new InvalidOperationException("Client already connected to server.");
+        }
+
+        var factoryContext = new ListenerMessageHandlerPipeFactoryContext(clientInfo);
+        _pipe = _pipeFactory.Create(factoryContext);
+        return new ValueTask();
+    }
+
+    public ValueTask<bool> OnConnectionVerifyAsync(RemoteConnectionInfo clientInfo)
+    {
+        return new ValueTask<bool>(true);
+    }
+
+    public ValueTask OnDisconnectedAsync(RemoteConnectionInfo clientInfo)
+    {
+        if (!_isWorking.TrySetValue(false))
+        {
+            throw new InvalidOperationException("Client not connected to server.");
+        }
+
+        _pipe?.Stop();
+        return new ValueTask();
+    }
+}
+
+public class ServerListenerToMessageHandler : IConnectionListener
 {
     private readonly ConcurrentDictionary<Guid, Connection> _clients;
     private readonly IListenerMessageHandlerPipeFactory _pipeFactory;
@@ -16,7 +58,7 @@ public class ServerListenerToMessageHandler : IServerConnectionListener
         _pipeFactory = pipeFactory;
     }
 
-    public ValueTask OnConnectedAsync(ClientConnectionInfo clientInfo)
+    public ValueTask OnConnectedAsync(RemoteConnectionInfo clientInfo)
     {
         var connection = new Connection(clientInfo);
 
@@ -45,12 +87,12 @@ public class ServerListenerToMessageHandler : IServerConnectionListener
         return new ValueTask();
     }
 
-    public ValueTask<bool> OnConnectionVerifyAsync(ClientConnectionInfo clientInfo)
+    public ValueTask<bool> OnConnectionVerifyAsync(RemoteConnectionInfo clientInfo)
     {
         return new ValueTask<bool>(true);
     }
 
-    public ValueTask OnDisconnectedAsync(ClientConnectionInfo clientInfo)
+    public ValueTask OnDisconnectedAsync(RemoteConnectionInfo clientInfo)
     {
         if (!_clients.TryRemove(clientInfo.Uid, out var connection))
         {
@@ -63,10 +105,10 @@ public class ServerListenerToMessageHandler : IServerConnectionListener
 
     private class Connection
     {
-        public readonly ClientConnectionInfo ClientInfo;
+        public readonly RemoteConnectionInfo ClientInfo;
         public volatile ListenerMessageHandlerPipe? Listener;
 
-        public Connection(ClientConnectionInfo clientInfo)
+        public Connection(RemoteConnectionInfo clientInfo)
         {
             ClientInfo = clientInfo;
         }

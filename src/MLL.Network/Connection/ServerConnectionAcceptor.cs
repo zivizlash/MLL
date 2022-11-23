@@ -7,16 +7,31 @@ using System.Threading.Tasks;
 
 namespace MLL.Network.Message.Protocol;
 
+public class ClientConnectionAcceptor : IDisposable
+{
+    private readonly IConnectionListener _listener;
+
+    public ClientConnectionAcceptor(IPEndPoint endpoint, IConnectionListener listener)
+    {
+        _listener = listener;
+    }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
+}
+
 public class ServerConnectionAcceptor : IDisposable
 {
-    private readonly ConcurrentDictionary<Guid, ClientConnectionInfo> _clients;
+    private readonly ConcurrentDictionary<Guid, RemoteConnectionInfo> _clients;
     private readonly TcpListener _tcpListener;
     private readonly CancellationTokenSource _cancellationSource;
-    private readonly IServerConnectionListener _connectionListener;
+    private readonly IConnectionListener _connectionListener;
 
     private bool _disposed;
 
-    public ServerConnectionAcceptor(IPEndPoint endpoint, IServerConnectionListener listener)
+    public ServerConnectionAcceptor(IPEndPoint endpoint, IConnectionListener listener)
     {
         _clients = new();
         _tcpListener = new(endpoint);
@@ -44,7 +59,7 @@ public class ServerConnectionAcceptor : IDisposable
                 break;
             }
 
-            var clientInfo = new ClientConnectionInfo(Guid.NewGuid(), tcpClient, Disconnect);
+            var clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), tcpClient, Disconnect);
 
             if (!await _connectionListener.OnConnectionVerifyAsync(clientInfo))
             {
@@ -61,7 +76,7 @@ public class ServerConnectionAcceptor : IDisposable
         }
     }
 
-    private async Task DisconnectInternal(ClientConnectionInfo clientInfo)
+    private async Task DisconnectInternal(RemoteConnectionInfo clientInfo)
     {
         // impossible
         if (!_clients.TryRemove(clientInfo.Uid, out _))
@@ -72,7 +87,7 @@ public class ServerConnectionAcceptor : IDisposable
         await _connectionListener.OnDisconnectedAsync(clientInfo);
     }
 
-    internal ValueTask Disconnect(ClientConnectionInfo clientInfo)
+    internal ValueTask Disconnect(RemoteConnectionInfo clientInfo)
     {
         return clientInfo.TrySetClosingStatus()
             ? new ValueTask(DisconnectInternal(clientInfo))

@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 
 namespace MLL.Network.Message.Protocol;
 
-public class ClientConnectionInfo
+public class RemoteConnectionInfo
 {
-    private readonly Func<ClientConnectionInfo, ValueTask> _disconnect;
+    private readonly Func<RemoteConnectionInfo, ValueTask> _disconnect;
 
     private volatile int _status;
 
@@ -27,7 +27,7 @@ public class ClientConnectionInfo
         return original == StatusWorking;
     }
 
-    internal ClientConnectionInfo(Guid uid, TcpClient client, Func<ClientConnectionInfo, ValueTask> disconnect)
+    internal RemoteConnectionInfo(Guid uid, TcpClient client, Func<RemoteConnectionInfo, ValueTask> disconnect)
     {
         Uid = uid;
         Client = client;

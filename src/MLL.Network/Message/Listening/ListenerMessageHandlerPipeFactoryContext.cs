@@ -4,9 +4,9 @@ namespace MLL.Network.Message.Listening;
 
 public readonly struct ListenerMessageHandlerPipeFactoryContext
 {
-    public readonly ClientConnectionInfo ClientInfo;
+    public readonly RemoteConnectionInfo ClientInfo;
 
-    public ListenerMessageHandlerPipeFactoryContext(ClientConnectionInfo clientInfo)
+    public ListenerMessageHandlerPipeFactoryContext(RemoteConnectionInfo clientInfo)
     {
         ClientInfo = clientInfo;
     }

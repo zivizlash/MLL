@@ -52,11 +52,11 @@ public class IntegrationProtocolTest
     {
         var acceptableTypes = new List<Type> { typeof(PingMessage), typeof(PongMessage) };
 
-        using var serverManager = new ServerConnectionManagerBuilder()
+        using var serverManager = new ConnectionManagerBuilder()
             .WithAddress(new IPEndPoint(IPAddress.Any, 8888))
             .WithHandlerFactory(new ReflectionMessageHandlerFactory<TestMessageHandler>())
             .WithUsedTypes(acceptableTypes.ToArray())
-            .Build();
+            .BuildServer();
 
         var hashCode = new ProtocolVersionHashCode();
         var messageConverter = new MessageConverter(acceptableTypes, hashCode);

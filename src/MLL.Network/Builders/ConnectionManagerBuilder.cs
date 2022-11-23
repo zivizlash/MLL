@@ -9,16 +9,11 @@ using System.Net;
 
 namespace MLL.Network.Builders;
 
-public class ClientConnectionManagerBuilder
-{
-
-}
-
-public class ServerConnectionManagerBuilder : 
-    ServerConnectionManagerBuilder.IEndpointBuilder,
-    ServerConnectionManagerBuilder.IFactoryBuilder,
-    ServerConnectionManagerBuilder.IUsedTypesBuilder,
-    ServerConnectionManagerBuilder.IBuilder
+public class ConnectionManagerBuilder : 
+    ConnectionManagerBuilder.IEndpointBuilder,
+    ConnectionManagerBuilder.IFactoryBuilder,
+    ConnectionManagerBuilder.IUsedTypesBuilder,
+    ConnectionManagerBuilder.IBuilder
 {
     #region Interfaces
     public interface IEndpointBuilder
@@ -39,7 +34,7 @@ public class ServerConnectionManagerBuilder :
 
     public interface IBuilder
     {
-        ServerConnectionAcceptor Build();
+        ServerConnectionAcceptor BuildServer();
     }
     #endregion
 
@@ -71,7 +66,7 @@ public class ServerConnectionManagerBuilder :
         return this;
     }
 
-    ServerConnectionAcceptor IBuilder.Build()
+    ServerConnectionAcceptor IBuilder.BuildServer()
     {
         _ = _endpoint ?? throw new NullReferenceException();
         _ = _handlerFactory ?? throw new NullReferenceException();
