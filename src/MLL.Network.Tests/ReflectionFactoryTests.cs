@@ -38,7 +38,7 @@ public class ReflectionFactoryTests
     [Test]
     public void EmptyCtor()
     {
-        var reflectionFactory = new ReflectionMessageHandlerFactory<EmptyCtorModel>();
+        var reflectionFactory = new ReflectionHandlerFactory<EmptyCtorModel>();
         var handler = reflectionFactory.CreateMessageHandler(new MessageHandlerFactoryContext());
         Assert.IsInstanceOf<EmptyCtorModel>(handler);
     }
@@ -47,7 +47,7 @@ public class ReflectionFactoryTests
     public void SenderCtor()
     {
         var senderMock = Mock.Of<IMessageSender>();
-        var reflectionFactory = new ReflectionMessageHandlerFactory<SenderCtorModel>();
+        var reflectionFactory = new ReflectionHandlerFactory<SenderCtorModel>();
         var handler = reflectionFactory.CreateMessageHandler(new(senderMock, Guid.NewGuid()));
 
         Assert.IsInstanceOf<SenderCtorModel>(handler);
@@ -58,7 +58,7 @@ public class ReflectionFactoryTests
     public void PreferSenderCtor()
     {
         var senderMock = Mock.Of<IMessageSender>();
-        var reflectionFactory = new ReflectionMessageHandlerFactory<PreferSenderCtorModel>();
+        var reflectionFactory = new ReflectionHandlerFactory<PreferSenderCtorModel>();
         var handler = reflectionFactory.CreateMessageHandler(new(senderMock, Guid.NewGuid()));
 
         Assert.IsInstanceOf<PreferSenderCtorModel>(handler);

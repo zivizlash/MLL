@@ -16,22 +16,66 @@ using System.Threading.Tasks;
 
 namespace MLL.Network.Tests;
 
-public class TestMessageHandler
+public class ServerTestMessageHandler
 {
     private readonly IMessageSender _messageSender;
 
-    public TestMessageHandler(IMessageSender messageSender)
+    public PingMessage? LastPingMessage { get; private set; }
+
+    public ServerTestMessageHandler(IMessageSender messageSender)
     {
         _messageSender = messageSender;
     }
 
     [MessageHandler]
-    public async ValueTask PingHandler(PingMessage pingMessage)
+    public async ValueTask PingHandler(PingMessage ping)
     {
+        LastPingMessage = ping;
+        if (ping.Count == 0) return;
+
         await _messageSender.SendAsync(new PongMessage 
         { 
-            PongValue = pingMessage.PingValue,
-            PongSquareValue = pingMessage.PingValue * pingMessage.PingValue
+            PongValue = ping.PingValue,
+            PongSquareValue = ping.PingValue * ping.PingValue,
+            Count = ping.Count - 1
+        });
+    }
+}
+
+public class ClientTestMessageHandler
+{
+    private readonly IMessageSender _sender;
+
+    private volatile int _pongCallsCount;
+
+    public int PongCallsCount 
+    {
+        get => _pongCallsCount; private set => _pongCallsCount = value;
+    }
+
+    public ClientTestMessageHandler(IMessageSender sender)
+    {
+        _sender = sender;
+    }
+
+    public async Task SendPing(int pingValue, int count)
+    {
+        await _sender.SendAsync(new PingMessage
+        {
+            PingValue = pingValue,
+            Count = count
+        });
+    }
+
+    [MessageHandler]
+    public async Task PongHandler(PongMessage pong)
+    {
+        PongCallsCount++;
+
+        await _sender.SendAsync(new PingMessage
+        {
+            PingValue = pong.PongValue,
+            Count = pong.Count
         });
     }
 }
@@ -50,12 +94,15 @@ public class IntegrationProtocolTest
     [Test]
     public async Task ServerManagerTest()
     {
-        var acceptableTypes = new List<Type> { typeof(PingMessage), typeof(PongMessage) };
+        var acceptableTypes = new List<Type> { typeof(PingMessage), typeof(PongMessage) }.ToArray();
+
+        var serverFactory = new ReflectionHandlerFactory<ServerTestMessageHandler>();
+        var serverSingleton = new SingletonHandlerFactory<ServerTestMessageHandler>(serverFactory);
 
         using var serverManager = new ConnectionManagerBuilder()
             .WithAddress(new IPEndPoint(IPAddress.Any, 8888))
-            .WithHandlerFactory(new ReflectionMessageHandlerFactory<TestMessageHandler>())
-            .WithUsedTypes(acceptableTypes.ToArray())
+            .WithHandlerFactory(serverSingleton)
+            .WithUsedTypes(acceptableTypes)
             .BuildServer();
 
         var hashCode = new ProtocolVersionHashCode();
@@ -66,20 +113,35 @@ public class IntegrationProtocolTest
         var cancellationSource = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var token = cancellationSource.Token;
 
-        using var client = new TcpClient();
-        
-        await client.ConnectAsync(clientEndpoint, token);
-        var clientProtocol = new MessageTcpProtocol(new TcpConnectionInfo(client));
+        var clientFactory = new ReflectionHandlerFactory<ClientTestMessageHandler>();
+        var clientSingleton = new SingletonHandlerFactory<ClientTestMessageHandler>(clientFactory);
 
-        var testMessage = new PingMessage { PingValue = 10 };
+        using var clientManager = new ConnectionManagerBuilder()
+            .WithAddress(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8888))
+            .WithHandlerFactory(clientSingleton)
+            .WithUsedTypes(acceptableTypes)
+            .BuildClient();
 
-        var (messageBytes, messageType) = messageConverter.Serialize(testMessage);
-        await clientProtocol.WriteAsync(messageBytes, messageType, token);
+        const int pingValue = 100;
+        const int pingRepeats = 5;
 
-        var message = await clientProtocol.ReadAsync(token);
-        var result = MessagePackSerializer.Deserialize<PongMessage>(message.Data, _options);
+        await clientManager.ConnectAsync();
+        await clientSingleton.Instance.SendPing(pingValue, pingRepeats);
 
-        Assert.AreEqual(10 * 10, result.PongSquareValue);
+        var spin = new SpinWait();
+
+        for (;;)
+        {
+            if (clientSingleton.Instance.PongCallsCount == pingRepeats)
+            {
+                break;
+            }
+
+            token.ThrowIfCancellationRequested();
+            spin.SpinOnce();
+        }
+
+        Assert.AreEqual(pingValue, serverSingleton.Instance.LastPingMessage!.PingValue);
     }
 
     [Test]

@@ -18,6 +18,8 @@ public class MessageSender : IMessageSender
     public async Task SendAsync<T>(T message, CancellationToken cancellationToken)
     {
         var (messageBytes, messageType) = _converter.Serialize(message);
-        await _protocol.WriteAsync(messageBytes, messageType, cancellationToken);
+        await _protocol
+            .WriteAsync(messageBytes, messageType, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

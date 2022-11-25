@@ -35,6 +35,7 @@ public class ConnectionManagerBuilder :
     public interface IBuilder
     {
         ServerConnectionAcceptor BuildServer();
+        ClientConnectionAcceptor BuildClient();
     }
     #endregion
 
@@ -66,22 +67,38 @@ public class ConnectionManagerBuilder :
         return this;
     }
 
+    ClientConnectionAcceptor IBuilder.BuildClient()
+    {
+        CheckNulls();
+        var pipeFactory = CreatePipeFactory();
+        var listener = new ClientListenerToMessageHandler(pipeFactory);
+        return new ClientConnectionAcceptor(_endpoint!, listener);
+    }
+
     ServerConnectionAcceptor IBuilder.BuildServer()
     {
-        _ = _endpoint ?? throw new NullReferenceException();
-        _ = _handlerFactory ?? throw new NullReferenceException();
-        _ = _typesProvider ?? throw new NullReferenceException();
+        CheckNulls();
+        var pipeFactory = CreatePipeFactory();
+        var listener = new ServerListenerToMessageHandler(pipeFactory);
+        return new ServerConnectionAcceptor(_endpoint!, listener);
+    }
 
-        var acceptableTypes = _typesProvider.GetTypes();
+    private ListenerMessageHandlerPipeFactory CreatePipeFactory()
+    {
+        var acceptableTypes = _typesProvider!.GetTypes();
 
         var hashCode = new ProtocolVersionHashCode();
         var messageConverter = new MessageConverter(acceptableTypes, hashCode);
         var attributeMessageHandlerBinder = new AttributeMessageHandlerBinder();
 
-        var pipeFactory = new ListenerMessageHandlerPipeFactory(
-            messageConverter, _handlerFactory, attributeMessageHandlerBinder);
+        return new ListenerMessageHandlerPipeFactory(
+            messageConverter, _handlerFactory!, attributeMessageHandlerBinder);
+    }
 
-        var connectionListener = new ServerListenerToMessageHandler(pipeFactory);
-        return new ServerConnectionAcceptor(_endpoint, connectionListener);
+    private void CheckNulls()
+    {
+        _ = _endpoint ?? throw new NullReferenceException();
+        _ = _handlerFactory ?? throw new NullReferenceException();
+        _ = _typesProvider ?? throw new NullReferenceException();
     }
 }

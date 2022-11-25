@@ -7,21 +7,6 @@ using System.Threading.Tasks;
 
 namespace MLL.Network.Message.Protocol;
 
-public class ClientConnectionAcceptor : IDisposable
-{
-    private readonly IConnectionListener _listener;
-
-    public ClientConnectionAcceptor(IPEndPoint endpoint, IConnectionListener listener)
-    {
-        _listener = listener;
-    }
-
-    public void Dispose()
-    {
-        throw new NotImplementedException();
-    }
-}
-
 public class ServerConnectionAcceptor : IDisposable
 {
     private readonly ConcurrentDictionary<Guid, RemoteConnectionInfo> _clients;

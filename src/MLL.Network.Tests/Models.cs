@@ -3,12 +3,14 @@
 public class PingMessage
 {
     public int PingValue { get; set; }
+    public int Count { get; set; }
 }
 
 public class PongMessage
 {
     public int PongValue { get; set; }
     public int PongSquareValue { get; set; }
+    public int Count { get; set; }
 }
 
 public class TestMessage
