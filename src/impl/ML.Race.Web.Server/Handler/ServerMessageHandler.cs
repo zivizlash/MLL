@@ -1,7 +1,6 @@
 ﻿using MLL.Network.Message.Handlers;
 using MLL.Network.Message.Protocol;
 using MLL.Race.Web.Common.Messages.Client;
-using MLL.Race.Web.Common.Messages.Server;
 
 namespace ML.Race.Web.Server.Handler;
 
@@ -15,13 +14,12 @@ public class ServerMessageHandler
     }
 
     [MessageHandler]
-    private async ValueTask PingHandler(PingMessage ping)
+    public void TrackResult(TrackResultMessage trackResult)
     {
-        await _messageSender.SendAsync(new PongMessage());
     }
 
     [MessageHandler]
-    private void GameFrameHandler(GameFrameMessage gameFrame)
+    public void GameFrame(GameFrameMessage gameFrame)
     {
     }
 }

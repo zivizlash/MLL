@@ -16,6 +16,17 @@ public class ServerConnectionAcceptor : IDisposable
 
     private bool _disposed;
 
+    private TaskCompletionSource<bool>? _workingTask;
+
+    public Task<bool> WorkingTask
+    {
+        get
+        {
+            _workingTask ??= new TaskCompletionSource<bool>();
+            return _workingTask.Task;
+        }
+    }
+    
     public ServerConnectionAcceptor(IPEndPoint endpoint, IConnectionListener listener)
     {
         _clients = new();
@@ -31,33 +42,40 @@ public class ServerConnectionAcceptor : IDisposable
     {
         var token = _cancellationSource.Token;
 
-        while (!token.IsCancellationRequested)
+        try
         {
-            TcpClient tcpClient;
-
-            try
+            while (!token.IsCancellationRequested)
             {
-                tcpClient = await _tcpListener.AcceptTcpClientAsync();
-            }
-            catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
-            {
-                break;
-            }
+                TcpClient tcpClient;
 
-            var clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), tcpClient, Disconnect);
+                try
+                {
+                    tcpClient = await _tcpListener.AcceptTcpClientAsync();
+                }
+                catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted)
+                {
+                    break;
+                }
 
-            if (!await _connectionListener.OnConnectionVerifyAsync(clientInfo))
-            {
-                tcpClient.Close();
-                continue;
+                var clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), tcpClient, Disconnect);
+
+                if (!await _connectionListener.OnConnectionVerifyAsync(clientInfo))
+                {
+                    tcpClient.Close();
+                    continue;
+                }
+
+                if (!_clients.TryAdd(clientInfo.Uid, clientInfo))
+                {
+                    throw new InvalidOperationException();
+                }
+
+                await _connectionListener.OnConnectedAsync(clientInfo);
             }
-
-            if (!_clients.TryAdd(clientInfo.Uid, clientInfo))
-            {
-                throw new InvalidOperationException();
-            }
-
-            await _connectionListener.OnConnectedAsync(clientInfo);
+        }
+        finally
+        {
+            _workingTask?.SetResult(true);
         }
     }
 

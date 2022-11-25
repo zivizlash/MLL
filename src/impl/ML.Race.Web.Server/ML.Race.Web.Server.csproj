@@ -8,11 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MLL.Race.Web.Common\MLL.Race.Web.Common.csproj" />
+    <Compile Remove="Factory\**" />
+    <EmbeddedResource Remove="Factory\**" />
+    <None Remove="Factory\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Factory\" />
+    <ProjectReference Include="..\MLL.Race.Web.Common\MLL.Race.Web.Common.csproj" />
   </ItemGroup>
 
 </Project>
