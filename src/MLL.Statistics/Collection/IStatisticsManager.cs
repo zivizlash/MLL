@@ -4,7 +4,7 @@ namespace MLL.Statistics.Collection;
 
 public interface IStatisticsManager
 {
-    void CollectStats(int epoch, NetManager net);
+    void CollectStats(int epoch, Net net);
     void AddOutputError(ReadOnlySpan<float> error);
     void Flush();
 }

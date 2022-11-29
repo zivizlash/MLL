@@ -6,11 +6,13 @@ namespace MLL.Common.Net;
 
 public struct NetReplicator
 {
-    public static NetManager Copy(NetManager source, NetManager computers, [NotNull] ref LayerWeights[]? buffer)
+    public static Net Copy(Net source, Net computers, [NotNull] ref LayerWeights[]? buffer)
     {
         buffer ??= CreateEmptyCopy(source.Weights);
         CopyWeights(source.Weights, buffer);
-        return new NetManager(computers.Computers.ToArray(), buffer, computers.OptimizationManager);
+
+        return new Net(computers.Computers.ToArray(), buffer, 
+            computers.OptimizationManager, computers.Buffers);
     }
 
     private static LayerWeights[] CreateEmptyCopy(ReadOnlySpan<LayerWeights> src)

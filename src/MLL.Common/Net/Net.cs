@@ -4,7 +4,7 @@ using MLL.Common.Tools;
 
 namespace MLL.Common.Net;
 
-public class NetManager
+public class Net
 {
     private readonly LayerComputers[] _layersComputers;
     private readonly LayerWeights[] _layersWeights;
@@ -13,19 +13,19 @@ public class NetManager
 
     public ReadOnlySpan<LayerWeights> Weights => _layersWeights;
     public ReadOnlySpan<LayerComputers> Computers => _layersComputers;
+    public NetLayersBuffers Buffers => _buffers;
     public OptimizationManager OptimizationManager => _optimizationManager;
 
-    public NetManager(IEnumerable<LayerComputers> layersComputers, IEnumerable<LayerWeights> layersWeights, 
-        OptimizationManager optimizationManager)
+    public Net(IEnumerable<LayerComputers> layersComputers, IEnumerable<LayerWeights> layersWeights, 
+        OptimizationManager optimizationManager, NetLayersBuffers buffers)
     {
         var computers = layersComputers.ToArray();
         var weights = layersWeights.ToArray();
 
         Check.LengthEqual(computers.Length, weights.Length, nameof(layersWeights));
+        Check.BufferFit(buffers, weights, nameof(buffers));
 
-        var weightsCount = layersWeights.Select(lw => lw.Weights.Length).ToArray();
-        _buffers = new NetLayersBuffers(weightsCount);
-
+        _buffers = buffers;
         _layersComputers = computers;
         _layersWeights = weights;
         _optimizationManager = optimizationManager;

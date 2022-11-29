@@ -1,4 +1,6 @@
-﻿namespace MLL.Common.Net;
+﻿using MLL.Common.Layer;
+
+namespace MLL.Common.Net;
 
 public class NetLayersBuffers
 {
@@ -12,9 +14,37 @@ public class NetLayersBuffers
 
         for (int i = 0; i < weightsCounts.Length; i++)
         {
-            int weightsCount = weightsCounts[i];
-            Outputs[i] = new float[weightsCount];
-            Errors[i] = new float[weightsCount];
+            int size = weightsCounts[i];
+            Outputs[i] = new float[size];
+            Errors[i] = new float[size];
         }
+    }
+
+    public static NetLayersBuffers CreateByWeights(IEnumerable<LayerWeights> weights)
+    {
+        return new(weights.Select(w => w.Weights.Length).ToArray());
+    }
+
+    public bool IsFitWeights(LayerWeights[] weights)
+    {
+        if (Outputs.Length != weights.Length || Errors.Length != weights.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < weights.Length; i++)
+        {
+            var output = Outputs[i];
+            var error = Errors[i];
+
+            var length = weights[i].Weights.Length;
+
+            if (output.Length != length || error.Length != length)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -4,13 +4,11 @@ using MLL.Network.Builders;
 using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers;
-using MLL.Network.Message.Listening;
 using MLL.Network.Message.Protocol;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -129,7 +127,7 @@ public class IntegrationProtocolTest
         await clientSingleton.Instance.SendPing(pingValue, pingRepeats);
 
         var spin = new SpinWait();
-
+        
         for (;;)
         {
             if (clientSingleton.Instance.PongCallsCount == pingRepeats)

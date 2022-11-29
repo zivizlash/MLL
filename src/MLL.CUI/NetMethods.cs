@@ -8,11 +8,11 @@ namespace MLL;
 
 public class NetMethods
 {
-    private readonly NetManager _net;
+    private readonly Net _net;
     private readonly float _learningRate;
     private readonly float[][] _expectedValues;
 
-    public NetMethods(NetManager net, float learningRate)
+    public NetMethods(Net net, float learningRate)
     {
         _net = net;
         _learningRate = learningRate;

@@ -17,7 +17,7 @@ public class StatisticsCalculator
         _trainSetProvider = trainSetProvider;
     }
 
-    public StatisticsInfo Calculate(NetManager net, EpochRange epochRange)
+    public StatisticsInfo Calculate(Net net, EpochRange epochRange)
     {
         NormalizeErrorPerEpoch(_outputErrors!, epochRange);
         var testRecognized = Recognize(net, _testSetProvider, true);
@@ -55,7 +55,7 @@ public class StatisticsCalculator
     }
 
     private static NeuronRecognizedStats Recognize(
-        NetManager net, IImageDataSetProvider provider, bool isTest)
+        Net net, IImageDataSetProvider provider, bool isTest)
     {
         var results = new float[10];
         RecognitionPercentCalculator.Calculate(net, provider, results);

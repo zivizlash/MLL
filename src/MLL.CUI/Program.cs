@@ -51,7 +51,7 @@ public class Program
 
     private static StatisticsManager CreateStatisticsManager(
         int delimmer, IImageDataSetProvider test, IImageDataSetProvider train, 
-        NetManager net, LayerWeightsDefinition[] defines)
+        Net net, LayerWeightsDefinition[] defines)
     {
         var statCalc = new StatisticsCalculator(test, train);
 
@@ -76,8 +76,10 @@ public class Program
             .Build(forTrain);
     }
 
-    private static NetManager CreateNetManager(LayerComputerBuilderResult result, IEnumerable<LayerWeights> weights) =>
-        new(result.Computers, weights, new OptimizationManager(result.Collectors));
+    private static Net CreateNetManager(LayerComputerBuilderResult result, IEnumerable<LayerWeights> weights) =>
+        new Net(result.Computers, weights, 
+            new OptimizationManager(result.Collectors), 
+            NetLayersBuffers.CreateByWeights(weights));
 
     private static LayerWeightsDefinition[] GetLayersDefinition(ImageRecognitionOptions options) =>
         LayerWeightsDefinition.Builder

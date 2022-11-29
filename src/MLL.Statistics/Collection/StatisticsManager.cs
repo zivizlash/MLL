@@ -9,14 +9,14 @@ public class StatisticsManager : IStatisticsManager
     private readonly IStatProcessor[] _processors;
 
     private readonly object _locker = new();
-    private readonly NetManager _computers;
+    private readonly Net _computers;
 
     private LayerWeights[]? _netCopy;
 
     private int _delimmer = 20;
 
     public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors,
-        int delimmer, NetManager computers)
+        int delimmer, Net computers)
     {
         _calculator = calculator;
         _processors = processors;
@@ -29,14 +29,14 @@ public class StatisticsManager : IStatisticsManager
         _calculator.AddOutputError(error);
     }
 
-    public void CollectStats(int epoch, NetManager net)
+    public void CollectStats(int epoch, Net net)
     {
         if (epoch % _delimmer != 0) return;
 
         var localCopy = _netCopy;
         var copy = NetReplicator.Copy(net, _computers, ref localCopy);
 
-        var container = new StatContainer<NetManager>(epoch, copy);
+        var container = new StatContainer<Net>(epoch, copy);
         _netCopy = localCopy;
 
         ThreadPool.QueueUserWorkItem(Process, container, false);
@@ -50,7 +50,7 @@ public class StatisticsManager : IStatisticsManager
         }
     }
 
-    private void Process(StatContainer<NetManager> net)
+    private void Process(StatContainer<Net> net)
     {
         lock (_locker)
         {
