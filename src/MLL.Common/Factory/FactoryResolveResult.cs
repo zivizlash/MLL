@@ -5,6 +5,6 @@ namespace MLL.Common.Factory;
 
 public struct FactoryResolveResult
 {
-    public IOptimizator[] Optimizators;
+    public IOptimizator[] Optimizers;
     public LayerComputers Computers;
 }

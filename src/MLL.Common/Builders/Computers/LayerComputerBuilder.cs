@@ -49,7 +49,7 @@ public class LayerComputerBuilder : LayerComputerBuilder.ILayerBuilderComputer
             });
 
             _computers.Add(result.Computers);
-            _optimizators.AddRange(result.Optimizators);
+            _optimizators.AddRange(result.Optimizers);
         }
 
         return new LayerComputerBuilderResult(_computers, _optimizators);

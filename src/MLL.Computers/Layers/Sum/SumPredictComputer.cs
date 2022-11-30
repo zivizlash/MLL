@@ -15,6 +15,7 @@ public class SumPredictComputer : IPredictComputer, IThreadedComputer
 
     public void Predict(LayerWeights layer, float[] input, float[] results)
     {
+        ThreadInfo = new(1);
         var neurons = layer.Weights;
 
         Check.LengthEqual(neurons.Length, results.Length, nameof(results));

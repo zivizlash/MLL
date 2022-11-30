@@ -12,6 +12,11 @@ public class SumCalculateComputer : ICalculateComputer, IThreadedComputer
 
     public LayerThreadInfo ThreadInfo { get; set; }
 
+    public SumCalculateComputer()
+    {
+        ThreadInfo = new LayerThreadInfo(1);
+    }
+
     public void CalculateErrors(float[] outputs, float[] expected, float[] errors)
     {
         Check.LengthEqual(outputs.Length, errors.Length, nameof(errors));

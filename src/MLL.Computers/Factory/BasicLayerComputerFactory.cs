@@ -36,62 +36,53 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
         var compensateSource = CreateCompensate(isSigmoid);
         
         var computers = new LayerComputers(calculateSource, predictSource, compensateSource, errorBackpropSource);
-        var optimizators = DecorateWithOptimizers(computers, arg).ToArray();
+        var optimizers = DecorateOptimizers(computers, arg).ToArray();
 
         return new FactoryResolveResult
         {
             Computers = computers,
-            Optimizators = optimizators
+            Optimizers = optimizers
         };
     }
 
-    private List<IOptimizator> DecorateWithOptimizers(LayerComputers computers, FactoryResolveParams arg)
+    private IEnumerable<IOptimizator> DecorateOptimizers(LayerComputers computers, FactoryResolveParams param)
     {
-        var optimizators = new List<IOptimizator>();
+        OptimizatorFactoryParams CreateParams(object threadedComputer) => new((IThreadedComputer)threadedComputer, computers);
 
-        computers.Calculate = AddIfNotNull(arg.IsRequiredErrorCalculation,
-            _factory.Create(computers.Calculate, new((IThreadedComputer)computers.Calculate, computers)),
-            computers.Calculate, optimizators);
-
-        computers.Predict = AddIfNotNull(true,
-            _factory.Create(computers.Predict, new((IThreadedComputer)computers.Predict, computers)),
-            computers.Predict, optimizators);
-
-        computers.Compensate = AddIfNotNull(arg.IsRequiredCompensate,
-            _factory.Create(computers.Compensate, new((IThreadedComputer)computers.Compensate, computers)),
-            computers.Compensate, optimizators);
-
-        computers.ErrorBackpropagation = AddIfNotNull(arg.IsRequiredErrorBackpropagation,
-            _factory.Create(computers.ErrorBackpropagation, new((IThreadedComputer)computers.ErrorBackpropagation, computers)),
-            computers.ErrorBackpropagation, optimizators);
-
-        return optimizators;
-    }
-
-    private T AddIfNotNull<T>(bool required, (T, IOptimizator) results, T source, List<IOptimizator> optimizators)
-    {
-        if (required)
+        // always using predict threading optimization
         {
-            optimizators.Add(results.Item2);
-            return results.Item1;
+            var (predict, opt) = _factory.Create(computers.Predict, CreateParams(computers.Predict));
+            computers.Predict = predict;
+            yield return opt;
         }
 
-        return source;
+        if (param.IsRequiredErrorCalculation)
+        {
+            var (calculate, opt) = _factory.Create(computers.Calculate, CreateParams(computers.Calculate));
+            computers.Calculate = calculate;
+            yield return opt;
+        }
+
+        if (param.IsRequiredCompensate)
+        {
+            var (compensate, opt) = _factory.Create(computers.Compensate, CreateParams(computers.Compensate));
+            computers.Compensate = compensate;
+            yield return opt;
+        }
+
+        if (param.IsRequiredErrorBackpropagation)
+        {
+            var (error, opt) = _factory.Create(computers.ErrorBackpropagation, CreateParams(computers.ErrorBackpropagation));
+            computers.ErrorBackpropagation = error;
+            yield return opt;
+        }
     }
 
-    private static ThreadedErrorBackpropagation CreateErrorbackprop() =>
-        new ThreadedErrorBackpropagation() { ThreadInfo = new(1) };
-
-    private static ICalculateComputer CreateCalculate() =>
-        new SumCalculateComputer { ThreadInfo = new(1) };
+    private static ThreadedErrorBackpropagation CreateErrorbackprop() => new();
+    private static ICalculateComputer CreateCalculate() => new SumCalculateComputer();
 
     private static IPredictComputer CreatePredict(bool isSigmoid) =>
-        isSigmoid
-        ? new SigmoidPredictComputer { ThreadInfo = new(1) }
-        : new SumPredictComputer { ThreadInfo = new(1) };
-
+        isSigmoid ? new SigmoidPredictComputer() : new SumPredictComputer();
     private static ICompensateComputer CreateCompensate(bool isSigmoid) =>
-        isSigmoid
-        ? new SigmoidCompensateComputer { ThreadInfo = new(1) }
-        : new SumCompensateComputer { ThreadInfo = new(1) };
+        isSigmoid ? new SigmoidCompensateComputer() : new SumCompensateComputer();
 }

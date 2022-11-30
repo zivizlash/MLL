@@ -74,11 +74,11 @@ public class Net
         compensate.Compensate(layer, input, lr, errors, output);
     }
 
-    private float[] CalculateAndCompensateOutputLayerError(float[] baseInput, float[] output, float[] expected, float lr)
+    private float[] CalculateAndCompensateOutputLayerError(float[] input, float[] output, float[] expected, float lr)
     {
         float[] errorBuffer = _buffers.Errors[^1];
         float[] previousOutput = _buffers.Outputs.Length < 2 
-            ? baseInput 
+            ? input 
             : _buffers.Outputs[^2];
 
         var computer = _layersComputers[^1];

@@ -15,6 +15,7 @@ public class SigmoidCompensateComputer : ICompensateComputer, IThreadedComputer
 
     public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {
+        ThreadInfo = new(1);
         var neurons = layer.Weights;
 
         Check.LengthEqual(neurons[0].Length, input.Length, nameof(input));
