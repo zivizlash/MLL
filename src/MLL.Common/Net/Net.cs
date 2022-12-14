@@ -7,11 +7,17 @@ namespace MLL.Common.Net;
 public class Net
 {
     private readonly LayerComputers[] _layersComputers;
-    private readonly LayerWeights[] _layersWeights;
     private readonly OptimizationManager _optimizationManager;
     private readonly NetLayersBuffers _buffers;
 
-    public ReadOnlySpan<LayerWeights> Weights => _layersWeights;
+    private NetWeights _layersWeights;
+
+    public NetWeights Weights
+    {
+        get => _layersWeights;
+        set => _layersWeights = value;
+    }
+    
     public ReadOnlySpan<LayerComputers> Computers => _layersComputers;
     public NetLayersBuffers Buffers => _buffers;
     public OptimizationManager OptimizationManager => _optimizationManager;
@@ -27,14 +33,16 @@ public class Net
 
         _buffers = buffers;
         _layersComputers = computers;
-        _layersWeights = weights;
+        _layersWeights = new NetWeights(weights);
         _optimizationManager = optimizationManager;
     }
 
     public ReadOnlySpan<float> Train(float[] input, float[] expected, float learningRate)
     {
-        Check.LengthEqual(_layersWeights[0].Weights[0].Length, input.Length, nameof(input));
-        Check.LengthEqual(expected.Length, _layersWeights[^1].Weights.Length, nameof(expected));
+        var layers = _layersWeights.Layers;
+
+        Check.LengthEqual(layers[0].Weights[0].Length, input.Length, nameof(input));
+        Check.LengthEqual(expected.Length, layers[^1].Weights.Length, nameof(expected));
 
         float[] output = PredictInternal(input);
         float[] outputErrors = CalculateAndCompensateOutputLayerError(input, output, expected, learningRate);
@@ -51,7 +59,9 @@ public class Net
 
     public ReadOnlySpan<float> Predict(float[] input)
     {
-        Check.LengthEqual(_layersWeights[0].Weights[0].Length, input.Length, nameof(input));
+        var layers = _layersWeights.Layers;
+
+        Check.LengthEqual(layers[0].Weights[0].Length, input.Length, nameof(input));
         var prediction = PredictInternal(input);
 
         _optimizationManager.Optimize();
@@ -60,8 +70,10 @@ public class Net
     
     private void CompensateLayerError(float[] input, int layerIndex, float lr)
     {
-        var layer = _layersWeights[layerIndex];
-        var previousWeights = _layersWeights[layerIndex + 1];
+        var layers = _layersWeights.Layers;
+
+        var layer = layers[layerIndex];
+        var previousWeights = layers[layerIndex + 1];
         var output = _buffers.Outputs[layerIndex];
 
         var previousErrors = _buffers.Errors[layerIndex + 1];
@@ -82,9 +94,10 @@ public class Net
             : _buffers.Outputs[^2];
 
         var computer = _layersComputers[^1];
+        var layers = _layersWeights.Layers;
 
         computer.Calculate.CalculateErrors(output, expected, errorBuffer);
-        computer.Compensate.Compensate(_layersWeights[^1], previousOutput, lr, errorBuffer, output);
+        computer.Compensate.Compensate(layers[^1], previousOutput, lr, errorBuffer, output);
 
         return errorBuffer;
     }
@@ -94,10 +107,12 @@ public class Net
         float[] layerInput = input;
         float[][] buffers = _buffers.Outputs;
 
+        var layers = _layersWeights.Layers;
+
         for (int i = 0; i < _layersComputers.Length; i++)
         {
             var layer = _layersComputers[i];
-            var weights = _layersWeights[i];
+            var weights = layers[i];
             float[] buffer = buffers[i];
 
             layer.Predict.Predict(weights, layerInput, buffer);

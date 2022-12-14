@@ -29,13 +29,13 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
         if (!IsCanResolve(type)) throw new InvalidOperationException();
 
         bool isSigmoid = typeof(SigmoidLayerDefine) == type;
-
-        var calculateSource = CreateCalculate();
-        var errorBackpropSource = CreateErrorbackprop();
-        var predictSource = CreatePredict(isSigmoid);
-        var compensateSource = CreateCompensate(isSigmoid);
         
-        var computers = new LayerComputers(calculateSource, predictSource, compensateSource, errorBackpropSource);
+        var computers = new LayerComputers(
+            new SumCalculateComputer(), 
+            CreatePredict(isSigmoid), 
+            CreateCompensate(isSigmoid), 
+            new ThreadedErrorBackpropagation());
+
         var optimizers = DecorateOptimizers(computers, arg).ToArray();
 
         return new FactoryResolveResult
@@ -47,39 +47,41 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
 
     private IEnumerable<IOptimizator> DecorateOptimizers(LayerComputers computers, FactoryResolveParams param)
     {
-        OptimizatorFactoryParams CreateParams(object threadedComputer) => new((IThreadedComputer)threadedComputer, computers);
+        OptimizatorFactoryParams CreateParams(object threadedComputer) => 
+            new((IThreadedComputer)threadedComputer, computers);
 
         // always using predict threading optimization
         {
-            var (predict, opt) = _factory.Create(computers.Predict, CreateParams(computers.Predict));
+            var arg = CreateParams(computers.Predict);
+            var (predict, opt) = _factory.Create(computers.Predict, arg);
             computers.Predict = predict;
             yield return opt;
         }
 
         if (param.IsRequiredErrorCalculation)
         {
-            var (calculate, opt) = _factory.Create(computers.Calculate, CreateParams(computers.Calculate));
+            var arg = CreateParams(computers.Calculate);
+            var (calculate, opt) = _factory.Create(computers.Calculate, arg);
             computers.Calculate = calculate;
             yield return opt;
         }
 
         if (param.IsRequiredCompensate)
         {
-            var (compensate, opt) = _factory.Create(computers.Compensate, CreateParams(computers.Compensate));
+            var arg = CreateParams(computers.Compensate);
+            var (compensate, opt) = _factory.Create(computers.Compensate, arg);
             computers.Compensate = compensate;
             yield return opt;
         }
 
         if (param.IsRequiredErrorBackpropagation)
         {
-            var (error, opt) = _factory.Create(computers.ErrorBackpropagation, CreateParams(computers.ErrorBackpropagation));
+            var arg = CreateParams(computers.ErrorBackpropagation);
+            var (error, opt) = _factory.Create(computers.ErrorBackpropagation, arg);
             computers.ErrorBackpropagation = error;
             yield return opt;
         }
     }
-
-    private static ThreadedErrorBackpropagation CreateErrorbackprop() => new();
-    private static ICalculateComputer CreateCalculate() => new SumCalculateComputer();
 
     private static IPredictComputer CreatePredict(bool isSigmoid) =>
         isSigmoid ? new SigmoidPredictComputer() : new SumPredictComputer();

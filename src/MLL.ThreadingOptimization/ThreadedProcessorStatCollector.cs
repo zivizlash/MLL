@@ -44,7 +44,10 @@ public class ThreadedProcessorStatCollector : IOptimizator
             return false;
         }
 
-        _profile.Stats.Add(Controller.Computer.ThreadInfo.Threads, FindAverage(timings));
+        // todo: err somewhere here
+        //_profile.Stats.Add(Controller.Computer.ThreadInfo.Threads, FindAverage(timings));
+
+        _profile.Stats[Controller.Computer.ThreadInfo.Threads] = FindAverage(timings);
         return true;
     }
 

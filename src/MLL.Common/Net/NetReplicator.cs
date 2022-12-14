@@ -8,8 +8,8 @@ public struct NetReplicator
 {
     public static Net Copy(Net source, Net computers, [NotNull] ref LayerWeights[]? buffer)
     {
-        buffer ??= CreateEmptyCopy(source.Weights);
-        CopyWeights(source.Weights, buffer);
+        buffer ??= CreateEmptyCopy(source.Weights.Layers);
+        CopyWeights(source.Weights.Layers, buffer);
 
         return new Net(computers.Computers.ToArray(), buffer, 
             computers.OptimizationManager, computers.Buffers);
@@ -42,16 +42,29 @@ public struct NetReplicator
             var srcLayer = src[li];
             var destLayer = dest[li];
 
-            Check.LengthEqual(srcLayer.Weights.Length, destLayer.Weights.Length, nameof(dest));
+            CopyInternal(srcLayer.Weights, destLayer.Weights);
+        }
+    }
 
-            for (int ni = 0; ni < srcLayer.Weights.Length; ni++)
-            {
-                var srcWeights = srcLayer.Weights[ni];
-                var destWeights = destLayer.Weights[ni];
+    public static void CopyLayer(NetWeights src, NetWeights dest, int layerIndex)
+    {
+        var srcLayer = src.Layers[layerIndex];
+        var destLayer = dest.Layers[layerIndex];
 
-                Check.LengthEqual(srcWeights.Length, destWeights.Length, nameof(dest));
-                srcWeights.CopyTo(destWeights.AsSpan());
-            }
+        CopyInternal(srcLayer.Weights, destLayer.Weights);
+    }
+
+    private static void CopyInternal(float[][] srcLayer, float[][] destLayer)
+    {
+        Check.LengthEqual(srcLayer.Length, destLayer.Length, nameof(destLayer));
+
+        for (int ni = 0; ni < srcLayer.Length; ni++)
+        {
+            var srcWeights = srcLayer[ni];
+            var destWeights = destLayer[ni];
+
+            Check.LengthEqual(srcWeights.Length, destWeights.Length, nameof(destLayer));
+            srcWeights.CopyTo(destWeights.AsSpan());
         }
     }
 }

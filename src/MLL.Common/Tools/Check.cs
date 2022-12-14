@@ -7,6 +7,7 @@ public class Throw
 {
     public static void ArgumentOutOfRange(string name) => throw new ArgumentOutOfRangeException(name);
     public static void Argument(string message, string paramName) => throw new ArgumentOutOfRangeException(message, paramName);
+    public static void InvalidOperation(string message) => throw new InvalidOperationException(message);
 }
 
 public class Check

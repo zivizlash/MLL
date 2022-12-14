@@ -14,6 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\MLL.Common\MLL.Common.csproj" />
+    <ProjectReference Include="..\..\MLL.Computers\MLL.Computers.csproj" />
+    <ProjectReference Include="..\..\MLL.ThreadingOptimization\MLL.ThreadingOptimization.csproj" />
     <ProjectReference Include="..\MLL.Race.Web.Common\MLL.Race.Web.Common.csproj" />
   </ItemGroup>
 

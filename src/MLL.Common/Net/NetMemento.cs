@@ -1,24 +1,24 @@
-﻿namespace MLL.Common.Net;
+﻿using MLL.Common.Pooling;
 
-public struct NetMementoState
-{
-    public void Apply()
-    {
-    }
-
-    public void Forget()
-    {
-    }
-}
+namespace MLL.Common.Net;
 
 public class NetMemento
 {
-    public NetMemento()
-    {
+    private readonly Pool<NetWeights> _weightsPool;
 
+    public NetMemento(Pool<NetWeights> weightsPool)
+    {
+        _weightsPool = weightsPool;
     }
 
-    public void CaptureState(Net net)
+    public NetMementoState Capture(Net net)
     {
+        var weights = _weightsPool.Get();
+
+        var src = net.Weights;
+        var dest = weights.Value;
+
+        NetReplicator.CopyWeights(src.Layers, dest.Layers);
+        return new NetMementoState(weights, net);
     }
 }
