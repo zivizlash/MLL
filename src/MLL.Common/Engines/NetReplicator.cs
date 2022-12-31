@@ -2,20 +2,27 @@
 using MLL.Common.Tools;
 using System.Diagnostics.CodeAnalysis;
 
-namespace MLL.Common.Net;
+namespace MLL.Common.Engines;
 
 public struct NetReplicator
 {
-    public static Net Copy(Net source, Net computers, [NotNull] ref LayerWeights[]? buffer)
+    public static ClassificationEngine Copy(ClassificationEngine source, ClassificationEngine computers, [NotNull] ref LayerWeights[]? buffer)
     {
         buffer ??= CreateEmptyCopy(source.Weights.Layers);
         CopyWeights(source.Weights.Layers, buffer);
 
-        return new Net(computers.Computers.ToArray(), buffer, 
+        return new ClassificationEngine(computers.Computers.ToArray(), buffer, 
             computers.OptimizationManager, computers.Buffers);
     }
 
-    private static LayerWeights[] CreateEmptyCopy(ReadOnlySpan<LayerWeights> src)
+    public static LayerWeights[] CopyWeights(ReadOnlySpan<LayerWeights> src)
+    {
+        var copy = CreateEmptyCopy(src);
+        CopyWeights(src, copy);
+        return copy;
+    }
+
+    public static LayerWeights[] CreateEmptyCopy(ReadOnlySpan<LayerWeights> src)
     {
         var copy = new LayerWeights[src.Length];
 

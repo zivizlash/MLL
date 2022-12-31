@@ -1,14 +1,15 @@
-﻿using MLL.Common.Pooling;
+﻿using MLL.Common.Engines;
+using MLL.Common.Pooling;
 using MLL.Common.Tools;
 
-namespace MLL.Common.Net;
+namespace MLL.Common.Engines;
 
 public readonly struct NetMementoState
 {
     private readonly Pooled<NetWeights> _weights;
-    private readonly Net _net;
+    private readonly ClassificationEngine _net;
 
-    public NetMementoState(Pooled<NetWeights> weights, Net net)
+    public NetMementoState(Pooled<NetWeights> weights, ClassificationEngine net)
     {
         _weights = weights;
         _net = net;
@@ -18,7 +19,7 @@ public readonly struct NetMementoState
     {
         if (_weights.IsReturned)
         {
-            Throw.InvalidOperation("State already disposed");
+            Throw.InvalidOperation("State disposed");
         }
 
         var temp = _net.Weights;

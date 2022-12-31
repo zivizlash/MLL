@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Layer;
 
-namespace MLL.Common.Net;
+namespace MLL.Common.Engines;
 
 public class NetLayersBuffers
 {

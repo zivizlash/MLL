@@ -1,13 +1,14 @@
-﻿namespace MLL.Common.Branching;
-using Net;
+﻿using MLL.Common.Engines;
+
+namespace MLL.Common.Branching;
 
 public class NetBranchContext
 {
     public int Id { get; }
     public float Score { get; set; }
-    public Net Net { get; }
+    public ClassificationEngine Net { get; }
     
-    public NetBranchContext(int id, Net net)
+    public NetBranchContext(int id, ClassificationEngine net)
     {
         Id = id;
         Net = net;

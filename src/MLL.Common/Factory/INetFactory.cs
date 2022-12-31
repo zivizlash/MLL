@@ -4,7 +4,7 @@ using MLL.Common.Builders.Computers;
 using MLL.Common.Builders.Weights;
 using MLL.Common.Optimization;
 using MLL.Common.Tools;
-using Net;
+using Engines;
 
 public abstract class RandomFillNetFactory : NetFactory
 {
@@ -15,10 +15,10 @@ public abstract class RandomFillNetFactory : NetFactory
         _randomSeed = randomSeed;
     }
 
-    public override void PostSetup(Net net)
+    public override void PostCreation(ClassificationEngine net)
     {
         net.Weights.Layers.RandomFill(_randomSeed);
-        base.PostSetup(net);
+        base.PostCreation(net);
     }
 }
 
@@ -27,11 +27,11 @@ public abstract class NetFactory : INetFactory
     public abstract LayerWeightsDefinition[] GetDefinitions();
     public abstract LayerComputerBuilderResult GetComputers(bool isForTrain);
     
-    public virtual void PostSetup(Net net)
+    public virtual void PostCreation(ClassificationEngine net)
     {
     }
 
-    public virtual Net Create(bool isForTrain)
+    public virtual ClassificationEngine Create(bool isForTrain)
     {
         var weights = GetDefinitions().ToWeights();
         var computers = GetComputers(isForTrain);
@@ -39,8 +39,8 @@ public abstract class NetFactory : INetFactory
         var optimizator = new OptimizationManager(computers.Collectors);
         var buffer = NetLayersBuffers.CreateByWeights(weights);
 
-        var net = new Net(computers.Computers, weights, optimizator, buffer);
-        PostSetup(net);
+        var net = new ClassificationEngine(computers.Computers, weights, optimizator, buffer);
+        PostCreation(net);
 
         return net;
     }
@@ -48,5 +48,5 @@ public abstract class NetFactory : INetFactory
 
 public interface INetFactory
 {
-    Net Create(bool isForTrain);
+    ClassificationEngine Create(bool isForTrain);
 }

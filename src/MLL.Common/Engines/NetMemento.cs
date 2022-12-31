@@ -1,6 +1,7 @@
-﻿using MLL.Common.Pooling;
+﻿using MLL.Common.Engines;
+using MLL.Common.Pooling;
 
-namespace MLL.Common.Net;
+namespace MLL.Common.Engines;
 
 public class NetMemento
 {
@@ -11,7 +12,7 @@ public class NetMemento
         _weightsPool = weightsPool;
     }
 
-    public NetMementoState Capture(Net net)
+    public NetMementoState Capture(ClassificationEngine net)
     {
         var weights = _weightsPool.Get();
 

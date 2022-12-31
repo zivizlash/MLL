@@ -1,8 +1,9 @@
-﻿namespace MLL.Common.Branching;
-
+﻿using MLL.Common.Engines;
 using MLL.Common.Factory;
 using MLL.Common.Files;
-using Net;
+using MLL.Common.Tools;
+
+namespace MLL.Common.Branching;
 
 public struct NetBranchOffsetValue
 {
@@ -34,7 +35,7 @@ public class NetBranches
     private readonly Random[] _randoms;
 
     private int LayersCount => _branches[0].Net.Weights.Layers.Length;
-    public Net RefNet => _branches[0].Net;
+    public ClassificationEngine RefNet => _branches[0].Net;
 
     public NetBranches(int branchesCount, NetBranchOffsetValue offset, INetFactory factory)
     {
@@ -71,7 +72,7 @@ public class NetBranches
                     var resultValue = result[resultIndex];
                     var expected = resultIndex == number ? 1.0f : -1.0f;
 
-                    var score = GetCloseness(resultValue, expected);
+                    var score = MathTools.GetCloseness(resultValue, expected, 2);
                     results[branch.Id] += score;
                 }
             }
@@ -98,7 +99,7 @@ public class NetBranches
 
             Parallel.ForEach(_branches, branch => CalculateNetScore(dataSets, results, layerIndex, branch));
 
-            SelectBestByScore(results.Select((r, id) => new BranchScoreUpdate(id, r)).ToArray());
+            SelectBestByScore(results.Select((r, id) => new BranchScoreUpdate(id, r)).ToArray(), layerIndex);
 
             for (int resultIndex = 0; resultIndex < results.Length; resultIndex++)
             {
@@ -127,7 +128,7 @@ public class NetBranches
         }
     }
 
-    public void SelectBestByScore(ReadOnlySpan<BranchScoreUpdate> updates)
+    public void SelectBestByScore(ReadOnlySpan<BranchScoreUpdate> updates, int updatingLayer)
     {
         if (updates.Length == 0) throw new ArgumentOutOfRangeException(nameof(updates));
 
@@ -148,7 +149,7 @@ public class NetBranches
         for (int i = 0; i < _branches.Length; i++)
         {
             if (i == index) continue;
-            NetReplicator.CopyLayer(net.Weights, _branches[i].Net.Weights, _updatingLayer);
+            NetReplicator.CopyLayer(net.Weights, _branches[i].Net.Weights, updatingLayer);
         }
     }
 

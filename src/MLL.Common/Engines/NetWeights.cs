@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Layer;
 using System.Diagnostics.CodeAnalysis;
 
-namespace MLL.Common.Net;
+namespace MLL.Common.Engines;
 
 public readonly struct NetWeights : IEquatable<NetWeights>
 {
