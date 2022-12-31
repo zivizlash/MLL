@@ -31,26 +31,25 @@ public class ListenerMessageHandlerPipe
     {
         var token = _tokenSource.Token;
 
-        try
-        {
+        //try
+        //{
             while (!token.IsCancellationRequested)
             {
                 var raw = await _protocol.ReadAsync(token).ConfigureAwait(false);
                 var message = _messageConverter.Deserialize(raw.Data, raw.MessageType);
                 await _messageHandler.HandleAsync(message).ConfigureAwait(false);
             }
-        }
-        catch (TimeoutException)
-        {
+        //catch (TimeoutException)
+        //{
 
-        }
-        catch (IOException ex)
-        {
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex);
-        }
+        //}
+        //catch (IOException ex)
+        //{
+        //}
+        //catch (Exception ex)
+        //{
+        //    Console.WriteLine(ex);
+        //}
 
         //try
         //{

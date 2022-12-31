@@ -1,6 +1,8 @@
-﻿namespace MLL.Race.Web.Common.Messages.Server;
+﻿using MessagePack;
 
+namespace MLL.Race.Web.Common.Messages.Server;
+
+//[MessagePackObject]
 public class TrackConfigurationUpdateMessage
 {
-    public int TrackSeed { get; set; }
 }

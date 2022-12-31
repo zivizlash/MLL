@@ -3,11 +3,11 @@
 namespace MLL.Race.Web.Common.Messages.Client;
 
 [MessagePackObject]
-public class GameFrameMessage
+public class GameResultMessage
 {
     [Key(0)]
-    public byte[]? Frame { get; set; }
+    public float Score { get; set; }
 
     [Key(1)]
-    public float ElapsedTime { get; set; }
+    public float Time { get; set; }
 }

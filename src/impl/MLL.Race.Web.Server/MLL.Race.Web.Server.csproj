@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,16 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Factory\**" />
-    <EmbeddedResource Remove="Factory\**" />
-    <None Remove="Factory\**" />
+    <ProjectReference Include="..\..\MLL.Common\MLL.Common.csproj" />
+    <ProjectReference Include="..\..\MLL.Computers\MLL.Computers.csproj" />
+    <ProjectReference Include="..\..\MLL.Network\MLL.Network.csproj" />
+    <ProjectReference Include="..\..\MLL.ThreadingOptimization\MLL.ThreadingOptimization.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\MLL.Common\MLL.Common.csproj" />
-    <ProjectReference Include="..\..\MLL.Computers\MLL.Computers.csproj" />
-    <ProjectReference Include="..\..\MLL.ThreadingOptimization\MLL.ThreadingOptimization.csproj" />
-    <ProjectReference Include="..\MLL.Race.Web.Common\MLL.Race.Web.Common.csproj" />
+    <Compile Include="X:\Development\Unity\MMLRace\Assets\Scripts\Shared\**\*.cs" LinkBase="Shared" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="12.2.2" />
   </ItemGroup>
 
 </Project>
