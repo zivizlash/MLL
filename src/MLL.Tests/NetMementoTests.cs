@@ -1,7 +1,7 @@
 ﻿using MLL.Common.Layer;
 using MLL.Common.Layer.Backpropagation;
 using MLL.Common.Layer.Computers;
-using MLL.Common.Net;
+using MLL.Common.Engines;
 using MLL.Common.Optimization;
 using MLL.Common.Pooling;
 using Moq;
@@ -93,7 +93,7 @@ public class NetMementoTests
         Assert.Throws<InvalidOperationException>(state.Apply);
     }
 
-    private static (Net, NetMemento, Random, Pool<NetWeights>) Create()
+    private static (ClassificationEngine, NetMemento, Random, Pool<NetWeights>) Create()
     {
         var random = new Random();
 
@@ -102,7 +102,7 @@ public class NetMementoTests
         var optManager = new OptimizationManager();
         var buffers = NetLayersBuffers.CreateByWeights(weights);
 
-        var net = new Net(computers, weights, optManager, buffers);
+        var net = new ClassificationEngine(computers, weights, optManager, buffers);
 
         var pool = new Pool<NetWeights>(
             () => new NetWeights(CreateRandomWeights(random, COUNT)));

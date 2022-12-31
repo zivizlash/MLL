@@ -1,5 +1,5 @@
 ﻿using MLL.Common.Layer;
-using MLL.Common.Net;
+using MLL.Common.Engines;
 
 namespace MLL.Statistics.Collection;
 
@@ -9,14 +9,14 @@ public class StatisticsManager : IStatisticsManager
     private readonly IStatProcessor[] _processors;
 
     private readonly object _locker = new();
-    private readonly Net _computers;
+    private readonly ClassificationEngine _computers;
 
     private LayerWeights[]? _netCopy;
 
     private int _delimmer = 20;
 
     public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors,
-        int delimmer, Net computers)
+        int delimmer, ClassificationEngine computers)
     {
         _calculator = calculator;
         _processors = processors;
@@ -29,14 +29,14 @@ public class StatisticsManager : IStatisticsManager
         _calculator.AddOutputError(error);
     }
 
-    public void CollectStats(int epoch, Net net)
+    public void CollectStats(int epoch, ClassificationEngine net)
     {
         if (epoch % _delimmer != 0) return;
 
         var localCopy = _netCopy;
         var copy = NetReplicator.Copy(net, _computers, ref localCopy);
 
-        var container = new StatContainer<Net>(epoch, copy);
+        var container = new StatContainer<ClassificationEngine>(epoch, copy);
         _netCopy = localCopy;
 
         ThreadPool.QueueUserWorkItem(Process, container, false);
@@ -50,7 +50,7 @@ public class StatisticsManager : IStatisticsManager
         }
     }
 
-    private void Process(StatContainer<Net> net)
+    private void Process(StatContainer<ClassificationEngine> net)
     {
         lock (_locker)
         {

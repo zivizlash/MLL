@@ -1,4 +1,4 @@
-﻿using MLL.Common.Net;
+﻿using MLL.Common.Engines;
 
 namespace MLL.Statistics.Collection.Processors;
 
@@ -23,7 +23,7 @@ public class NetSaver : IStatProcessor
     {
     }
 
-    public void Save(Net net)
+    public void Save(ClassificationEngine net)
     {
         //NeuronWeightsSaver.Save(net);
     }

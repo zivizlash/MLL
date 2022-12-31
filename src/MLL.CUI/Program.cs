@@ -1,12 +1,11 @@
-﻿using LiteDB;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using MLL.Common.Branching;
 using MLL.Common.Builders.Computers;
 using MLL.Common.Builders.Weights;
+using MLL.Common.Engines;
 using MLL.Common.Factory;
 using MLL.Common.Files;
 using MLL.Common.Layer;
-using MLL.Common.Net;
 using MLL.Common.Optimization;
 using MLL.Common.Tools;
 using MLL.Computers.Factory;
@@ -59,7 +58,7 @@ public class Program
         var options = ImageRecognitionOptions.Default;
         var factory = new BranchesNetFactory(options);
 
-        var netBranches = new NetBranches(10, true, new(0.005f), factory);
+        var netBranches = new NetBranches(10, new(0.005f), factory);
 
         var layers = factory.GetDefinitions();
 
@@ -88,7 +87,7 @@ public class Program
                 var st = new StringBuilder();
 
                 var result = netBranches.RefNet.Predict(dataSets.First()[0].Data);
-                st.AppendLine("Recognized 1 by neurons: ");
+                st.AppendLine("Recognized 0 by neurons: ");
 
                 for (int i = 0; i < result.Length; i++)
                 {
@@ -142,7 +141,7 @@ public class Program
 
     private static StatisticsManager CreateStatisticsManager(
         int delimmer, IImageDataSetProvider test, IImageDataSetProvider train, 
-        Net net, LayerWeightsDefinition[] defines)
+        ClassificationEngine net, LayerWeightsDefinition[] defines)
     {
         var statCalc = new StatisticsCalculator(test, train);
 
@@ -167,8 +166,8 @@ public class Program
             .Build(forTrain);
     }
 
-    private static Net CreateNetManager(LayerComputerBuilderResult result, IEnumerable<LayerWeights> weights) =>
-        new Net(result.Computers, weights, 
+    private static ClassificationEngine CreateNetManager(LayerComputerBuilderResult result, IEnumerable<LayerWeights> weights) =>
+        new ClassificationEngine(result.Computers, weights, 
             new OptimizationManager(result.Collectors), 
             NetLayersBuffers.CreateByWeights(weights));
 

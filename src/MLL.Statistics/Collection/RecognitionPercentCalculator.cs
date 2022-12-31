@@ -1,5 +1,5 @@
-﻿using MLL.Common.Files;
-using MLL.Common.Net;
+﻿using MLL.Common.Engines;
+using MLL.Common.Files;
 using MLL.Common.Tools;
 using MLL.Files.ImageLoader;
 
@@ -7,7 +7,7 @@ namespace MLL.Statistics.Collection;
 
 public struct RecognitionPercentCalculator
 {
-    public static void Calculate(Net net, IImageDataSetProvider dataSetProvider, Span<float> percentage)
+    public static void Calculate(ClassificationEngine net, IImageDataSetProvider dataSetProvider, Span<float> percentage)
     {
         Check.LengthEqual(percentage.Length, 10, nameof(percentage));
 

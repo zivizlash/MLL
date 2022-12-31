@@ -2,12 +2,11 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace MLL.Network.Message.Protocol;
 
-public class ClientConnectionAcceptor : IDisposable
+public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
 {
     private readonly IPEndPoint _endpoint;
     private readonly IConnectionListener _listener;
@@ -66,6 +65,28 @@ public class ClientConnectionAcceptor : IDisposable
                         _tcpClient.Close();
                     }
                 });
+            }
+        }
+        catch { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        try
+        {
+            if (_clientInfo != null)
+            {
+                try
+                {
+                    await _listener.OnDisconnectedAsync(_clientInfo);
+                }
+                finally
+                {
+                    _tcpClient.Close();
+                }
             }
         }
         catch { }

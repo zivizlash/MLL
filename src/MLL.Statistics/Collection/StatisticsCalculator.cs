@@ -1,5 +1,5 @@
-﻿using MLL.Common.Files;
-using MLL.Common.Net;
+﻿using MLL.Common.Engines;
+using MLL.Common.Files;
 
 namespace MLL.Statistics.Collection;
 
@@ -17,7 +17,7 @@ public class StatisticsCalculator
         _trainSetProvider = trainSetProvider;
     }
 
-    public StatisticsInfo Calculate(Net net, EpochRange epochRange)
+    public StatisticsInfo Calculate(ClassificationEngine net, EpochRange epochRange)
     {
         NormalizeErrorPerEpoch(_outputErrors!, epochRange);
         var testRecognized = Recognize(net, _testSetProvider, true);
@@ -55,7 +55,7 @@ public class StatisticsCalculator
     }
 
     private static NeuronRecognizedStats Recognize(
-        Net net, IImageDataSetProvider provider, bool isTest)
+        ClassificationEngine net, IImageDataSetProvider provider, bool isTest)
     {
         var results = new float[10];
         RecognitionPercentCalculator.Calculate(net, provider, results);

@@ -92,5 +92,11 @@ public class MessageTcpProtocol
         }
     }
 
+    public void Stop()
+    {
+        _connection.Client.Dispose();
+        //_connection.
+    }
+
     private static void ThrowInvalidMagic() => throw new InvalidOperationException("Incorrect magic code");
 }

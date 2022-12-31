@@ -1,5 +1,5 @@
-using MessagePack;
-using MessagePack.Resolvers;
+//using MessagePack;
+//using MessagePack.Resolvers;
 using MLL.Network.Builders;
 using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
@@ -16,13 +16,15 @@ namespace MLL.Network.Tests;
 
 public class ServerTestMessageHandler
 {
-    private readonly IMessageSender _messageSender;
+    public readonly IMessageSender MessageSender;
 
     public PingMessage? LastPingMessage { get; private set; }
 
+    public GameFrameMessage? GameFrame;
+
     public ServerTestMessageHandler(IMessageSender messageSender)
     {
-        _messageSender = messageSender;
+        MessageSender = messageSender;
     }
 
     [MessageHandler]
@@ -31,18 +33,26 @@ public class ServerTestMessageHandler
         LastPingMessage = ping;
         if (ping.Count == 0) return;
 
-        await _messageSender.SendAsync(new PongMessage 
+        await MessageSender.SendAsync(new PongMessage 
         { 
             PongValue = ping.PingValue,
             PongSquareValue = ping.PingValue * ping.PingValue,
             Count = ping.Count - 1
         });
     }
+
+    [MessageHandler]
+    public void GameFrameHandler(GameFrameMessage gameFrame)
+    {
+        GameFrame = gameFrame;
+    }
 }
 
 public class ClientTestMessageHandler
 {
-    private readonly IMessageSender _sender;
+    public readonly IMessageSender MessageSender;
+
+    public volatile GameFrameMessage? GameFrame;
 
     private volatile int _pongCallsCount;
 
@@ -53,12 +63,12 @@ public class ClientTestMessageHandler
 
     public ClientTestMessageHandler(IMessageSender sender)
     {
-        _sender = sender;
+        MessageSender = sender;
     }
 
     public async Task SendPing(int pingValue, int count)
     {
-        await _sender.SendAsync(new PingMessage
+        await MessageSender.SendAsync(new PingMessage
         {
             PingValue = pingValue,
             Count = count
@@ -70,7 +80,7 @@ public class ClientTestMessageHandler
     {
         PongCallsCount++;
 
-        await _sender.SendAsync(new PingMessage
+        await MessageSender.SendAsync(new PingMessage
         {
             PingValue = pong.PongValue,
             Count = pong.Count
@@ -81,18 +91,17 @@ public class ClientTestMessageHandler
 [TestFixture]
 public class IntegrationProtocolTest
 {
-    private readonly MessagePackSerializerOptions _options;
-
     public IntegrationProtocolTest()
     {
-        _options = MessagePackSerializer.DefaultOptions
-            .WithResolver(ContractlessStandardResolver.Instance);
     }
 
     [Test]
     public async Task ServerManagerTest()
     {
-        var acceptableTypes = new List<Type> { typeof(PingMessage), typeof(PongMessage) }.ToArray();
+        var acceptableTypes = new Type[] 
+        { 
+            typeof(PingMessage), typeof(PongMessage), typeof(GameFrameMessage) 
+        };
 
         var serverFactory = new ReflectionHandlerFactory<ServerTestMessageHandler>();
         var serverSingleton = new SingletonHandlerFactory<ServerTestMessageHandler>(serverFactory);
@@ -126,15 +135,24 @@ public class IntegrationProtocolTest
         await clientManager.ConnectAsync();
         await clientSingleton.Instance.SendPing(pingValue, pingRepeats);
 
-        var spin = new SpinWait();
-        
-        for (;;)
+        await clientSingleton.Instance.MessageSender.SendAsync(new GameFrameMessage
         {
-            if (clientSingleton.Instance.PongCallsCount == pingRepeats)
-            {
-                break;
-            }
+            Frame = new byte[] { 1, 2, 3, 4, 5 },
+            ElapsedTime = 0
+        });
 
+        var spin = new SpinWait();
+
+        while (serverSingleton.Instance.GameFrame == null)
+        {
+            token.ThrowIfCancellationRequested();
+            spin.SpinOnce();
+        }
+
+        Assert.AreEqual(new byte[] { 1, 2, 3, 4, 5 }, serverSingleton.Instance.GameFrame!.Frame);
+
+        while (clientSingleton.Instance.PongCallsCount != pingRepeats)
+        {
             token.ThrowIfCancellationRequested();
             spin.SpinOnce();
         }

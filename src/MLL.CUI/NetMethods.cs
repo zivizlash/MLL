@@ -1,5 +1,5 @@
 ﻿using MLL.Common.Files;
-using MLL.Common.Net;
+using MLL.Common.Engines;
 using MLL.Common.Tools;
 using MLL.CUI;
 using MLL.Files.ImageLoader;
@@ -9,11 +9,11 @@ namespace MLL;
 
 public class NetMethods
 {
-    private readonly Net _net;
+    private readonly ClassificationEngine _net;
     private readonly float _learningRate;
     private readonly float[][] _expectedValues;
 
-    public NetMethods(Net net, float learningRate)
+    public NetMethods(ClassificationEngine net, float learningRate)
     {
         _net = net;
         _learningRate = learningRate;
