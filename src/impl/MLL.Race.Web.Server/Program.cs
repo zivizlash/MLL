@@ -16,6 +16,7 @@ using MLL.Race.Web.Common.Messages.Client;
 using MLL.Race.Web.Common.Messages.Server;
 using MLL.Race.Web.Server.Handler;
 using MLL.ThreadingOptimization;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
 namespace MLL.Race.Web.Server;
@@ -58,19 +59,18 @@ public class RaceNet
 
     public RaceNet(RaceNetFactory factory, Random random, float initialScore = float.MinValue)
     {
-        var net = factory.Create(true);
+        var net = factory.Create(isForTrain: true);
 
         LayerComputers = net.Computers.ToArray();
         Optimizator = net.OptimizationManager;
         LayerWeights = net.Weights.Layers;
         Buffers = net.Buffers;
         Random = random;
+        Score = initialScore;
 
         PredictContext = new PredictContext(new(LayerWeights), Buffers, LayerComputers);
         ReinforcementTrainContext = new ReinforcementTrainContext(
             new(LayerWeights), LayerComputers, 0.15f, Random);
-
-        Score = initialScore;
     }
 
     public void UpdateLearningRate(float learningRate)
@@ -80,34 +80,135 @@ public class RaceNet
     }
 }
 
-public class WeightsOffset
+public struct WeightsOffsetStats
 {
+    private readonly Dictionary<int, float> _scores;
+    private readonly int _resolution;
+    private readonly float _step;
 
+    public WeightsOffsetStats(int resolution)
+    {
+        _scores = new();
+        _resolution = resolution;
+        _step = 1.0f / resolution;
+    }
+
+    public void Add(int steps, float score)
+    {
+        _scores.Add(steps, score);
+    }
+
+    public float Get(int steps)
+    {
+        return _scores[steps];
+    }
+}
+
+public struct WeightsOffsetContext
+{
+    public float TimesApplied { get; set; }
+    public NetWeights Weights { get; set; }
+    public NetWeights Offsets { get; set; }
+
+    public WeightsOffsetContext(NetWeights weights, NetWeights offsets)
+    {
+        Weights = weights;
+        Offsets = offsets;
+        TimesApplied = 0;
+    }
+
+    public void Apply(float times)
+    {
+        var multiplier = times - TimesApplied;
+
+        var weightsLayers = Weights.Layers;
+        var offsetLayers = Offsets.Layers;
+
+        for (int layerIndex = 0; layerIndex < weightsLayers.Length; layerIndex++)
+        {
+            var weightsLayer = weightsLayers[layerIndex].Weights;
+            var offsetLayer = offsetLayers[layerIndex].Weights;
+
+            for (int neuronIndex = 0; neuronIndex < weightsLayer.Length; neuronIndex++)
+            {
+                var weights = weightsLayer[neuronIndex];
+                var offset = offsetLayer[neuronIndex];
+
+                for (int weightIndex = 0; weightIndex < weights.Length; weightIndex++)
+                {
+                    weights[weightIndex] += offset[weightIndex] * multiplier;
+                }
+            }
+        }
+
+        TimesApplied = times;
+    }
+}
+
+public readonly struct WeightsOffset
+{
+    public NetWeights Offsets { get; }
+
+    public WeightsOffset(NetWeights offsets)
+    {
+        Offsets = offsets;
+    }
+
+    public WeightsOffsetContext CreateContext(NetWeights weights)
+    {
+        return new WeightsOffsetContext(weights, Offsets);
+    }
 }
 
 public class WeightsRasterizer
 {
-    //public WeightsOffset FindOffset(NetWeights src, NetWeights dst)
-    //{
-    //    NetReplicator.Copy
-    //}
+    public WeightsOffset FindOffset(NetWeights from, NetWeights to, [NotNull] ref LayerWeights[]? offsetBuffer)
+    {
+        Check.LengthEqual(from.Layers.Length, to.Layers.Length, nameof(to));
+        offsetBuffer ??= NetReplicator.CopyWeights(from.Layers);
+        Check.LengthEqual(from.Layers.Length, offsetBuffer.Length, nameof(offsetBuffer));
+
+        var fromLayers = from.Layers;
+        var toLayers = to.Layers;
+
+        for (int i = 0; i < from.Layers.Length; i++)
+        {
+            var fromLayer = fromLayers[i].Weights;
+            var toLayer = toLayers[i].Weights;
+            var offsetsLayer = offsetBuffer[i].Weights;
+
+            for (int neuronIndex = 0; neuronIndex < fromLayer.Length; neuronIndex++)
+            {
+                var fromNeuron = fromLayer[neuronIndex];
+                var toNeuron = toLayer[neuronIndex];
+                var offset = offsetsLayer[neuronIndex]; 
+
+                for (int weightIndex = 0; weightIndex < fromNeuron.Length; weightIndex++)
+                {
+                    offset[weightIndex] = toNeuron[weightIndex] - fromNeuron[weightIndex];
+                }
+            }
+        }
+
+        return new WeightsOffset(new(offsetBuffer));
+    }
 }
 
-public class AdaptinveLearningRateContext
+public class AdaptiveLearningRate
 {
     private readonly int _newThreshold;
     private readonly int _oldThreshold;
     private readonly float _minimum;
 
-    private const float IncreaseMult = 1.5f;
-    private const float DecreaseMult = 0.95f;
+    public const float IncreaseMult = 1.5f;
+    public const float DecreaseMult = 0.95f;
 
-    private int NewSelectCount = 0;
-    private int OldSelectCount = 0;
+    private int _newSelectCount = 0;
+    private int _oldSelectCount = 0;
 
     public float LearningRate { get; private set; }
 
-    public AdaptinveLearningRateContext(float initialLearningRate, 
+    public AdaptiveLearningRate(float initialLearningRate, 
         int newThreshold, int oldThreshold, float minimum)
     {
         LearningRate = initialLearningRate;
@@ -118,11 +219,11 @@ public class AdaptinveLearningRateContext
 
     public float SelectOldAndGet()
     {
-        NewSelectCount = 0;
+        _newSelectCount = 0;
 
-        if (++OldSelectCount == _oldThreshold)
+        if (++_oldSelectCount == _oldThreshold)
         {
-            OldSelectCount = 0;
+            _oldSelectCount = 0;
             LearningRate = Math.Max(_minimum, LearningRate * DecreaseMult);
         }
 
@@ -131,11 +232,11 @@ public class AdaptinveLearningRateContext
 
     public float SelectNewAndGet()
     {
-        OldSelectCount = 0;
+        _oldSelectCount = 0;
 
-        if (++NewSelectCount == _newThreshold)
+        if (++_newSelectCount == _newThreshold)
         {
-            NewSelectCount = 0;
+            _newSelectCount = 0;
             LearningRate *= IncreaseMult;
         }
 
@@ -150,7 +251,7 @@ public class RaceNetManager
     private readonly RaceNet _referenceNet;
     private readonly float[] _frameBuffer;
 
-    private readonly AdaptinveLearningRateContext _learningRateContext;
+    private readonly AdaptiveLearningRate _learningRateContext;
 
     private int _updatingLayer;
 
@@ -171,21 +272,28 @@ public class RaceNetManager
 
     private int _counter;
 
-    public async Task RecognizeFrameAsync(GameFrameMessage gameFrame)
+    private MagickImage GetImage(byte[] frameBytes)
     {
         if (_image == null)
         {
-            _image = new MagickImage(gameFrame.Frame);
+            _image = new MagickImage(frameBytes);
         }
         else
         {
-            _image.Read(gameFrame.Frame);
+            _image.Read(frameBytes);
         }
 
-        var pixels = _image.GetPixelsUnsafe().ToByteArray(PixelMapping.RGB)
+        return _image;
+    }
+
+    public async Task RecognizeFrameAsync(GameFrameMessage gameFrame)
+    {
+        var image = GetImage(gameFrame.Frame);
+
+        var pixels = image.GetPixelsUnsafe().ToByteArray(PixelMapping.RGB)
             ?? throw new InvalidOperationException();
 
-        Check.LengthEqual(_frameBuffer.Length, _image.Width * _image.Height * 3 + 1, nameof(_image));
+        Check.LengthEqual(_frameBuffer.Length, image.Width * image.Height * 3 + 1, nameof(gameFrame));
 
         for (int i = 0; i < pixels.Length; i++)
         {
@@ -245,9 +353,6 @@ public class Program
     public static async Task Main(string[] args)
     {
         await ServeAsync();
-
-        Console.WriteLine("Done!");
-        Console.ReadLine();
     }
 
     private static async Task ServeAsync()
