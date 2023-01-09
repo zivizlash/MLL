@@ -28,7 +28,7 @@ public static class WeightsExtensions
         {
             for (int i = 0; i < neuron.Length; i++)
             {
-                neuron[i] = rnd.NextSingle() * 2 - 1;
+                neuron[i] = (float)(rnd.NextDouble() * 2 - 1);
             }
         }
 

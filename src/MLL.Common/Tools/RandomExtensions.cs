@@ -9,7 +9,7 @@ public static class RandomExtensions
             Throw.ArgumentOutOfRange(nameof(range));
         }
 
-        var value = random.NextSingle();
+        var value = (float)random.NextDouble();
         return (value - 0.5f) * 2 * range;
     }
 }

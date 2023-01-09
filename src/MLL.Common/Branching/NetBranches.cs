@@ -105,8 +105,8 @@ public class NetBranches
             {
                 commonResults[resultIndex] += results[resultIndex];
             }
-
-            Array.Clear(results);
+            
+            Array.Clear(results, 0, results.Length);
         }
 
         return commonResults.Select(r => r / commonScore).ToArray();
@@ -167,7 +167,7 @@ public class NetBranches
             {
                 for (int weightIndex = 0; weightIndex < weights.Length; weightIndex++)
                 {
-                    weights[weightIndex] *= 1 + (random.NextSingle() * val * 2 - val);
+                    weights[weightIndex] *= (float)(1 + (random.NextDouble() * val * 2 - val));
                 }
             }
         }
