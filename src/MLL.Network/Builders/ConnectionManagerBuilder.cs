@@ -1,4 +1,5 @@
-﻿using MLL.Network.Factories;
+﻿using Microsoft.Extensions.Logging;
+using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers;
 using MLL.Network.Message.Handlers.Binding;
@@ -13,6 +14,7 @@ public class ConnectionManagerBuilder :
     ConnectionManagerBuilder.IEndpointBuilder,
     ConnectionManagerBuilder.IFactoryBuilder,
     ConnectionManagerBuilder.IUsedTypesBuilder,
+    ConnectionManagerBuilder.ILoggerFactoryBuilder,
     ConnectionManagerBuilder.IBuilder
 {
     #region Interfaces
@@ -28,8 +30,13 @@ public class ConnectionManagerBuilder :
 
     public interface IUsedTypesBuilder
     {
-        IBuilder WithUsedTypes(IMessageTypesProvider typesProvider);
-        IBuilder WithUsedTypes(params Type[] types);
+        ILoggerFactoryBuilder WithUsedTypes(IMessageTypesProvider typesProvider);
+        ILoggerFactoryBuilder WithUsedTypes(params Type[] types);
+    }
+
+    public interface ILoggerFactoryBuilder
+    {
+        IBuilder WithLoggerFactory(ILoggerFactory loggerFactory);
     }
 
     public interface IBuilder
@@ -42,6 +49,7 @@ public class ConnectionManagerBuilder :
     private IPEndPoint? _endpoint;
     private IMessageHandlerFactory? _handlerFactory;
     private IMessageTypesProvider? _typesProvider;
+    private ILoggerFactory? _loggerFactory;
 
     public IFactoryBuilder WithAddress(IPEndPoint endpoint)
     {
@@ -55,15 +63,21 @@ public class ConnectionManagerBuilder :
         return this;
     }
 
-    IBuilder IUsedTypesBuilder.WithUsedTypes(IMessageTypesProvider typesProvider)
+    ILoggerFactoryBuilder IUsedTypesBuilder.WithUsedTypes(IMessageTypesProvider typesProvider)
     {
         _typesProvider = typesProvider ?? throw new ArgumentNullException(nameof(typesProvider));
         return this;
     }
 
-    IBuilder IUsedTypesBuilder.WithUsedTypes(params Type[] types)
+    ILoggerFactoryBuilder IUsedTypesBuilder.WithUsedTypes(params Type[] types)
     {
         _typesProvider = new MessageTypesProvider(types);
+        return this;
+    }
+
+    IBuilder ILoggerFactoryBuilder.WithLoggerFactory(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         return this;
     }
 
@@ -90,9 +104,9 @@ public class ConnectionManagerBuilder :
         var hashCode = new ProtocolVersionHashCode();
         var messageConverter = new MessageConverter(acceptableTypes, hashCode);
         var attributeMessageHandlerBinder = new AttributeMessageHandlerBinder();
-
-        return new ListenerMessageHandlerPipeFactory(
-            messageConverter, _handlerFactory!, attributeMessageHandlerBinder);
+        
+        return new ListenerMessageHandlerPipeFactory(messageConverter, 
+            _handlerFactory!, attributeMessageHandlerBinder, _loggerFactory!);
     }
 
     private void CheckNulls()
@@ -100,5 +114,6 @@ public class ConnectionManagerBuilder :
         _ = _endpoint ?? throw new NullReferenceException();
         _ = _handlerFactory ?? throw new NullReferenceException();
         _ = _typesProvider ?? throw new NullReferenceException();
+        _ = _loggerFactory ?? throw new NullReferenceException();
     }
 }

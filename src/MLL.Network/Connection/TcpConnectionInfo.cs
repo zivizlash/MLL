@@ -3,14 +3,16 @@ using System.Net.Sockets;
 
 namespace MLL.Network.Message.Protocol;
 
-public struct TcpConnectionInfo
+public readonly struct TcpConnectionInfo
 {
-    public TcpClient Client;
-    public TimeSpan RequestTimeout;
+    public readonly TcpClient Client;
+    public readonly TimeSpan RequestTimeout;
+    public readonly Guid Uid;
 
-    public TcpConnectionInfo(TcpClient client)
+    public TcpConnectionInfo(TcpClient client, Guid uid)
     {
         RequestTimeout = TimeSpan.FromMinutes(1);
         Client = client;
+        Uid = uid;
     }
 }
