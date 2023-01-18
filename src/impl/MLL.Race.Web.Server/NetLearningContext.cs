@@ -28,7 +28,7 @@ public class NetLearningContext
     public NetLearningContext(RaceNetFactory factory)
     {
         _updatingLayer = 0;
-        _learningRateContext = new(0.25f, 5, 25, 0.1f);
+        _learningRateContext = new(0.25f, 5, 25, 0.25f);
         _rasterizer = new();
         _net = new(factory, new Random());
         _referenceNet = new(factory, new Random());
@@ -40,15 +40,12 @@ public class NetLearningContext
 
     public (float forward, float left) Recognize(float[] image)
     {
-        //Console.WriteLine("Starting recognizing");
         var input = PredictionCalculator.Predict(_net.PredictContext, image);
-        //Console.WriteLine("Stopped recognizing");
         return (input[0], input[1]);
     }
 
     public void UpdateScore(float score)
     {
-        //Console.WriteLine("Starting score updating");
         _net.Score = score;
 
         switch (State)
@@ -123,8 +120,6 @@ public class NetLearningContext
             default:
                 throw new InvalidOperationException("Invalid NetLearningState");
         };
-
-        //Console.WriteLine("Stopped score updating");
     }
 
     private void IncrementUpdatingLayer()

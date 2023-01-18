@@ -1,9 +1,8 @@
-﻿//using MessagePack;
-//using MessagePack.Resolvers;
+﻿using MLL.Network.Message.Converters.Exceptions;
 using MLL.Network.Message.Protocol;
+using MsgPack;
 using MsgPack.Serialization;
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,14 +13,9 @@ public class MessageConverter
     private readonly Dictionary<ushort, Type> _typeIdToType;
     private readonly Dictionary<Type, ushort> _typeToTypeId;
 
-    //private static readonly MessagePackSerializerOptions _options;
-
+#pragma warning disable CS0618 // Type or member is obsolete
     private readonly Dictionary<Type, IMessagePackSingleObjectSerializer> _serializers;
-
-    static MessageConverter()
-    {
-        //_options = MessagePackSerializer.DefaultOptions; // MessagePackSerializerOptions.Standard;
-    }
+#pragma warning restore CS0618 // Type or member is obsolete
 
     public MessageConverter(IEnumerable<Type> acceptableTypes, ProtocolVersionHashCode hashCode)
     {
@@ -47,25 +41,58 @@ public class MessageConverter
 
     public (byte[], ushort) Serialize<T>(T obj)
     {
-        //var buffer = new ArrayBufferWriter<byte>();
-
-        //var messagePackWriter = new MessagePackWriter(buffer);
-        //MessagePackSerializer.Serialize(ref messagePackWriter, obj, _options);
+        //MessagePackSerializer.Get<T>();
 
         return (MessagePackSerializer.Get<T>().PackSingleObject(obj), _typeToTypeId[typeof(T)]);
-
-        //MessagePackSerializer.Typeless.Serialize(ref messagePackWriter, obj);
-
-        //return (buffer.GetMemory().ToArray(), _typeToTypeId[typeof(T)]);
     }
 
-    public object Deserialize(byte[] bytes, ushort messageType)
+    public object Deserialize(byte[] bytes, int start, int length, ushort messageType)
     {
-        //return MessagePackSerializer.Typeless.Deserialize(bytes.AsMemory());
+        if (start != 0)
+        {
+            throw new NotSupportedException($"Only zero value {nameof(start)} parameter supported at moment.");
+        }
 
-        return _serializers[_typeIdToType[messageType]].UnpackSingleObject(bytes);
+        if (!_typeIdToType.TryGetValue(messageType, out var type))
+        {
+            ThrowMessageTypeNotFound(messageType);
+        }
 
-        //return MessagePackSerializer.Deserialize(
-        //    _typeIdToType[messageType], bytes.AsMemory(), _options)!;
+        try
+        {
+            var arr = new byte[length];
+
+            for (int i = 0, j = start; i < length; i++, j++)
+            {
+                arr[i] = bytes[j];
+            }
+
+            var serializer = _serializers[type];
+            var result = serializer.UnpackSingleObject(arr);
+
+            if (result == null)
+            {
+                throw new MessageSerializationException("Can't deserialize object");
+            }
+
+            return result;
+        }
+        catch (System.Runtime.Serialization.SerializationException ex)
+        {
+            throw new MessageSerializationException(ex);
+        }
+        catch (MessageTypeException ex)
+        {
+            throw new MessageSerializationException(ex);
+        }
+        catch (InvalidMessagePackStreamException ex)
+        {
+            throw new MessageSerializationException(ex);
+        }
+    }
+
+    private static void ThrowMessageTypeNotFound(ushort messageType)
+    {
+        throw new MessageTypeNotFoundException($"MessageType {messageType} not registered");
     }
 }

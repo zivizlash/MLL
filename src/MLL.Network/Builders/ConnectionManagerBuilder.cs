@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using MLL.Common.Pooling;
 using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers;
@@ -92,9 +93,14 @@ public class ConnectionManagerBuilder :
     ServerConnectionAcceptor IBuilder.BuildServer()
     {
         CheckNulls();
-        var pipeFactory = CreatePipeFactory();
-        var listener = new ServerListenerToMessageHandler(pipeFactory);
-        return new ServerConnectionAcceptor(_endpoint!, listener);
+        var logger = _loggerFactory.CreateLogger<ServerConnectionAcceptor>();
+        var listener = new ServerListenerToMessageHandler(CreatePipeFactory());
+
+        return new ServerConnectionAcceptor(_endpoint!, listener, logger, tcpClient => 
+        {
+            tcpClient.ReceiveTimeout = 5000;
+            tcpClient.SendTimeout = 5000;
+        });
     }
 
     private ListenerMessageHandlerPipeFactory CreatePipeFactory()
@@ -104,9 +110,12 @@ public class ConnectionManagerBuilder :
         var hashCode = new ProtocolVersionHashCode();
         var messageConverter = new MessageConverter(acceptableTypes, hashCode);
         var attributeMessageHandlerBinder = new AttributeMessageHandlerBinder();
-        
-        return new ListenerMessageHandlerPipeFactory(messageConverter, 
-            _handlerFactory!, attributeMessageHandlerBinder, _loggerFactory!);
+
+        var dataPool = new CollectionPool<byte>(2048);
+        var internalPool = new CollectionPool<byte>(4);
+
+        return new ListenerMessageHandlerPipeFactory(messageConverter, _handlerFactory!, 
+            attributeMessageHandlerBinder, _loggerFactory!, dataPool, internalPool);
     }
 
     private void CheckNulls()

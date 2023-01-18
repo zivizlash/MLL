@@ -1,4 +1,5 @@
-﻿using MLL.Network.Message.Listening;
+﻿using MLL.Network.Exceptions;
+using MLL.Network.Message.Listening;
 using MLL.Network.Tools;
 using System;
 using System.Collections.Concurrent;
@@ -42,8 +43,7 @@ public class ClientListenerToMessageHandler : IConnectionListener
             throw new InvalidOperationException("Client not connected to server.");
         }
 
-        _pipe?.Stop();
-        return new ValueTask();
+        return _pipe?.StopAsync() ?? new ValueTask();
     }
 }
 
@@ -64,7 +64,7 @@ public class ServerListenerToMessageHandler : IConnectionListener
 
         if (!_clients.TryAdd(clientInfo.Uid, connection))
         {
-            throw new InvalidOperationException();
+            throw new InternalDictionaryInconsistentException(nameof(_clients));
         }
 
         try
@@ -75,7 +75,7 @@ public class ServerListenerToMessageHandler : IConnectionListener
             // checking if we concurrently want to disconnect
             if (!_clients.ContainsKey(clientInfo.Uid))
             {
-                connection.Listener.Stop();
+                return connection.Listener.StopAsync();
             }
         }
         catch
@@ -94,13 +94,14 @@ public class ServerListenerToMessageHandler : IConnectionListener
 
     public ValueTask OnDisconnectedAsync(RemoteConnectionInfo clientInfo)
     {
+        Console.WriteLine("Disconnected");
+
         if (!_clients.TryRemove(clientInfo.Uid, out var connection))
         {
-            throw new InvalidOperationException();
+            throw new InternalDictionaryInconsistentException(nameof(_clients));
         }
 
-        connection.Listener?.Stop();
-        return new ValueTask();
+        return connection.Listener?.StopAsync() ?? new ValueTask();
     }
 
     private class Connection

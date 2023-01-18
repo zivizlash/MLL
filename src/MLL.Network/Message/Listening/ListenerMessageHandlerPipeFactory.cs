@@ -4,6 +4,7 @@ using MLL.Network.Factories;
 using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers.Binding;
 using MLL.Network.Message.Protocol;
+using System;
 
 namespace MLL.Network.Message.Listening;
 
@@ -12,32 +13,37 @@ public class ListenerMessageHandlerPipeFactory : IListenerMessageHandlerPipeFact
     private readonly MessageConverter _messageConverter;
     private readonly AttributeMessageHandlerBinder _handlerBinder;
     private readonly IMessageHandlerFactory _handlerFactory;
-
     private readonly ILoggerFactory _loggerFactory;
+    private readonly CollectionPool<byte> _dataPool;
+    private readonly CollectionPool<byte> _internalPool;
 
     public ListenerMessageHandlerPipeFactory(MessageConverter messageConverter, 
         IMessageHandlerFactory handlerFactory, AttributeMessageHandlerBinder handlerBinder, 
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory, CollectionPool<byte> dataPool, CollectionPool<byte> internalPool)
     {
         _messageConverter = messageConverter;
         _handlerFactory = handlerFactory;
         _handlerBinder = handlerBinder;
         _loggerFactory = loggerFactory;
+        _dataPool = dataPool;
+        _internalPool = internalPool;
     }
 
     public ListenerMessageHandlerPipe Create(ListenerMessageHandlerPipeFactoryContext context)
     {
-        var protocolLogger = _loggerFactory.CreateLogger<MessageTcpProtocol>();
-        var connectionInfo = new TcpConnectionInfo(context.ClientInfo.Client, context.ClientInfo.Uid);
-        var bytesPool = new CollectionPool<byte>(512);
+        var clientInfo = context.ClientInfo;
+        var connectionInfo = new TcpConnectionInfo(clientInfo.Client, clientInfo.Uid);
 
-        var protocol = new MessageTcpProtocol(connectionInfo, bytesPool, protocolLogger);
-        var sender = new MessageSender(protocol, _messageConverter);
+        var socketInfo = new SocketConnectionInfo(clientInfo.Uid, socket, TimeSpan.FromSeconds(5));
+
+        var protocol = new MessageTcpProtocol(connectionInfo, _dataPool, _internalPool);
+        var senderLogger = _loggerFactory.CreateLogger<MessageSender>();
+        var sender = new MessageSender(protocol, _messageConverter, clientInfo.Uid, senderLogger);
 
         var factoryContext = new MessageHandlerFactoryContext(sender, context.ClientInfo.Uid);
         var handler = _handlerFactory.CreateMessageHandler(factoryContext);
-
         var bus = _handlerBinder.Bind(_handlerFactory.MessageHandlerType, handler);
-        return new ListenerMessageHandlerPipe(bus, _messageConverter, protocol);
+
+        return new ListenerMessageHandlerPipe(bus, _messageConverter, protocol, clientInfo);
     }
 }

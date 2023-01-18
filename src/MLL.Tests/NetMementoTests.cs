@@ -77,7 +77,7 @@ public class NetMementoTests
 
         state.Forget();
 
-        Assert.Throws<InvalidOperationException>(state.Forget);
+        Assert.Throws<ObjectDisposedException>(state.Forget);
     }
 
     [Test]

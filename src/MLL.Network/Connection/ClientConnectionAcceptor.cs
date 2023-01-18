@@ -28,7 +28,8 @@ public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
 
         await _tcpClient.ConnectAsync(_endpoint.Address, _endpoint.Port);
 
-        _clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), _tcpClient, _ => new ValueTask());
+        _clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), _tcpClient, 
+            _ => new ValueTask(), (_, _) => new ValueTask());
 
         if (!await _listener.OnConnectionVerifyAsync(_clientInfo))
         {
@@ -43,8 +44,6 @@ public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
         if (_disposed) Throw.Disposed(nameof(ClientConnectionAcceptor));
     }
 
-    // Кароче это всё фигня, надо делать как в TcpClient
-    // IDisposable не подходит из-за наличия ошибок которые нужны
     public void Dispose()
     {
         if (_disposed) return;
@@ -75,20 +74,19 @@ public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
 
-        try
+        if (_clientInfo != null)
         {
-            if (_clientInfo != null)
+            try
             {
-                try
-                {
-                    await _listener.OnDisconnectedAsync(_clientInfo);
-                }
-                finally
-                {
-                    _tcpClient.Close();
-                }
+                await _listener.OnDisconnectedAsync(_clientInfo);
+            }
+            catch
+            {
+            }
+            finally
+            {
+                _tcpClient.Dispose();
             }
         }
-        catch { }
     }
 }

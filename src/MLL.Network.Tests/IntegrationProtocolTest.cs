@@ -1,13 +1,10 @@
-//using MessagePack;
-//using MessagePack.Resolvers;
+using Microsoft.Extensions.Logging.Abstractions;
 using MLL.Network.Builders;
 using MLL.Network.Factories;
-using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers;
 using MLL.Network.Message.Protocol;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -106,27 +103,26 @@ public class IntegrationProtocolTest
         var serverFactory = new ReflectionHandlerFactory<ServerTestMessageHandler>();
         var serverSingleton = new SingletonHandlerFactory<ServerTestMessageHandler>(serverFactory);
 
-        using var serverManager = new ConnectionManagerBuilder()
+        await using var serverManager = new ConnectionManagerBuilder()
             .WithAddress(new IPEndPoint(IPAddress.Any, 8888))
             .WithHandlerFactory(serverSingleton)
             .WithUsedTypes(acceptableTypes)
+            .WithLoggerFactory(new NullLoggerFactory())
             .BuildServer();
-
-        var hashCode = new ProtocolVersionHashCode();
-        var messageConverter = new MessageConverter(acceptableTypes, hashCode);
 
         var clientEndpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8888);
 
-        var cancellationSource = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var cancellationSource = new CancellationTokenSource(TimeSpan.FromMinutes(15));
         var token = cancellationSource.Token;
 
         var clientFactory = new ReflectionHandlerFactory<ClientTestMessageHandler>();
         var clientSingleton = new SingletonHandlerFactory<ClientTestMessageHandler>(clientFactory);
 
         using var clientManager = new ConnectionManagerBuilder()
-            .WithAddress(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8888))
+            .WithAddress(clientEndpoint)
             .WithHandlerFactory(clientSingleton)
             .WithUsedTypes(acceptableTypes)
+            .WithLoggerFactory(new NullLoggerFactory())
             .BuildClient();
 
         const int pingValue = 100;

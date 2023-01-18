@@ -2,6 +2,25 @@
 
 namespace MLL.Common.Pooling;
 
+public static class PooledExtensions
+{
+    public static Span<T> AsSpan<T>(this Pooled<T[]> pooled, int length)
+    {
+        return pooled.Value.AsSpan(0, length);
+    }
+
+    public static ArrayFiller AsFiller(this Pooled<byte[]> pooled, int length)
+    {
+        return new ArrayFiller(pooled.Value, length);
+    }
+
+    public static void Clear(this Pooled<byte[]> pooled, int start)
+    {
+        var arr = pooled.Value;
+        Array.Clear(arr, start, arr.Length - start);
+    }
+}
+
 public readonly struct Pooled<T> : IDisposable
 {
     private readonly IPoolingSource<T> _pool;

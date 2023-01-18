@@ -1,9 +1,7 @@
 ﻿using MLL.Network.Message.Converters;
 using MLL.Network.Message.Handlers;
 using MLL.Network.Message.Protocol;
-using MLL.Network.Message.Protocol.Exceptions;
 using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,19 +9,19 @@ namespace MLL.Network.Message.Listening;
 
 public class ListenerMessageHandlerPipe
 {
-    private readonly CancellationTokenSource _tokenSource;
     private readonly IMessageHandler _messageHandler;
     private readonly MessageConverter _messageConverter;
-    private readonly MessageTcpProtocol _protocol;
+    private readonly IMessageProtocol _protocol;
+    private readonly RemoteConnectionInfo _connectionInfo;
+    private readonly CancellationTokenSource _tokenSource;
 
-    private int _disposed;
-
-    public ListenerMessageHandlerPipe(IMessageHandler messageHandler,
-        MessageConverter messageConverter, MessageTcpProtocol protocol)
+    public ListenerMessageHandlerPipe(IMessageHandler messageHandler, MessageConverter messageConverter, 
+        IMessageProtocol protocol, RemoteConnectionInfo connectionInfo)
     {
         _messageHandler = messageHandler;
         _messageConverter = messageConverter;
         _protocol = protocol;
+        _connectionInfo = connectionInfo;
         _tokenSource = new();
         Task.Run(Listen);
     }
@@ -34,29 +32,44 @@ public class ListenerMessageHandlerPipe
 
         try
         {
-            while (!token.IsCancellationRequested)
+            for (; ;)
             {
-                var raw = await _protocol.ReadAsync(token).ConfigureAwait(false);
-                var message = _messageConverter.Deserialize(raw.Data, raw.MessageType);
+                token.ThrowIfCancellationRequested();
+
+                RawMessage? raw = default;
+                object? message = default;
+
+                try
+                {
+                    raw = await _protocol.ReadAsync(token).ConfigureAwait(false);
+                    var msg = raw.Value;
+                    message = _messageConverter.Deserialize(msg.Data.Value, 0, msg.Length, msg.MessageType);
+                }
+                finally
+                {
+                    raw?.Data.Dispose();
+                }
+
                 await _messageHandler.HandleAsync(message).ConfigureAwait(false);
             }
         }
-        catch (ProtocolException ex)
+        catch (ObjectDisposedException ex)
         {
-
+            await _connectionInfo.DisconnectWithErrorAsync(ex);
         }
-        catch (OperationCanceledException ex)
+        catch (OperationCanceledException)
         {
-
+            await _connectionInfo.DisconnectAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
+            await _connectionInfo.DisconnectWithErrorAsync(ex);
         }
     }
 
-    public void Stop()
+    public ValueTask StopAsync()
     {
         _tokenSource.Cancel();
+        return _connectionInfo.DisconnectAsync();
     }
 }

@@ -1,59 +1,53 @@
-﻿using Microsoft.Extensions.Logging;
-using MLL.Common.Pooling;
+﻿using MLL.Common.Pooling;
+using MLL.Common.Tools;
 using MLL.Network.Message.Protocol.Exceptions;
 using MLL.Network.Tools;
 using System;
-using System.Buffers;
-using System.IO;
-using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MLL.Network.Message.Protocol;
 
-public readonly struct LoggerEnabled
+public interface IMessageProtocol
 {
-    public readonly bool None;
-    public readonly bool Trace;
-    public readonly bool Debug;
-    public readonly bool Information;
-    public readonly bool Error;
-    public readonly bool Critical;
-    public readonly bool Warning;
+    Task<RawMessage> ReadAsync(CancellationToken cancellationToken = default);
+    Task WriteAsync(byte[] data, ushort contentType, CancellationToken cancellationToken = default);
+}
 
-    public LoggerEnabled(ILogger logger)
+public readonly struct SocketConnectionInfo
+{
+    public Guid Uid { get; }
+    public Socket Socket { get; }
+    public TimeSpan RequestTimeout { get; }
+
+    public SocketConnectionInfo(Guid uid, Socket socket, TimeSpan requestTimeout)
     {
-        None = logger.IsEnabled(LogLevel.None);
-        Trace = logger.IsEnabled(LogLevel.Trace);
-        Debug = logger.IsEnabled(LogLevel.Debug);
-        Information = logger.IsEnabled(LogLevel.Information);
-        Error = logger.IsEnabled(LogLevel.Error);
-        Warning = logger.IsEnabled(LogLevel.Warning);
-        Critical = logger.IsEnabled(LogLevel.Critical);
+        Uid = uid;
+        Socket = socket;
+        RequestTimeout = requestTimeout;
     }
 }
 
-public class MessageTcpProtocol
+public class SocketMessageTcpProtocol : IMessageProtocol
 {
     public static readonly int ContentLengthSize = Marshal.SizeOf<uint>();
     public static readonly int ContentTypeSize = Marshal.SizeOf<ushort>();
     public static readonly byte[] Magic = BitConverter.GetBytes((short)0x228);
     public static readonly int HeaderSize = Magic.Length + ContentLengthSize + ContentTypeSize;
+    public static readonly int MaxContentLength = 1024 * 1024 * 8;
 
-    private readonly TcpConnectionInfo _connection;
-    private readonly ILogger<MessageTcpProtocol> _logger;
-    private readonly LoggerEnabled _loggerEnabled;
-    private readonly CollectionPool<byte> _bytesPool;
+    private readonly SocketConnectionInfo _connection;
+    private readonly CollectionPool<byte> _dataPool;
+    private readonly CollectionPool<byte> _internalPool;
 
-    private const string _errorMessage = "Uid: {Uid}; ";
-
-    public MessageTcpProtocol(TcpConnectionInfo connection, CollectionPool<byte> bytesPool, ILogger<MessageTcpProtocol> logger)
+    public SocketMessageTcpProtocol(SocketConnectionInfo connection,
+        CollectionPool<byte> dataPool, CollectionPool<byte> internalPool)
     {
         _connection = connection;
-        _bytesPool = bytesPool;
-        _logger = logger;
-        _loggerEnabled = new(logger);
+        _dataPool = dataPool;
+        _internalPool = internalPool;
     }
 
     public async Task<RawMessage> ReadAsync(CancellationToken cancellationToken = default)
@@ -64,62 +58,215 @@ public class MessageTcpProtocol
         }
         catch (InvalidMagicCodeException ex)
         {
-            var message = "Protocol Error: Invalid Magic Code.";
-
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, _errorMessage + message, _connection.Uid);
-            }
-
-            throw new ProtocolException(message, ex);
+            throw new ProtocolException("Invalid magic code. See inner exception.", ex);
+        }
+        catch (InvalidHeadersException ex)
+        {
+            throw new ProtocolException("Invalid headers. See inner exception.", ex);
         }
         catch (OverflowException ex)
         {
-            var message = "Internal error due casting UInt32 to Int32.";
-
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, _errorMessage + message, _connection.Uid);
-            }
-
-            throw new ProtocolException(message, ex);
+            throw new ProtocolException("Internal error due casting UInt32 to Int32.", ex);
         }
-        catch (OperationCanceledException ex)
+        catch (ObjectDisposedException ex)
         {
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, _errorMessage + "Operation canceled.", _connection.Uid);
-            }
+            throw new ProtocolException("Client closed.", ex);
+        }
+    }
 
+    private async Task<RawMessage> ReadMessageAsync(CancellationToken token)
+    {
+        uint contentLengthRaw;
+        ushort contentType;
+
+        using (var headerPooled = _internalPool.Get(HeaderSize))
+        {
+            Array.Clear(headerPooled.Value, 0, headerPooled.Value.Length);
+
+            var headerBuffer = headerPooled.AsFiller(HeaderSize);
+            await ReadInternalAsync(_connection.Socket, headerBuffer, token);
+            (contentLengthRaw, contentType) = ParseHeader(headerPooled.AsSpan(HeaderSize));
+        }
+
+        var contentLength = checked((int)contentLengthRaw);
+        var contentPooled = _dataPool.Get(contentLength);
+        var contentBuffer = contentPooled.AsFiller(contentLength);
+
+        try
+        {
+            await ReadInternalAsync(_connection.Socket, contentBuffer, token);
+        }
+        catch
+        {
+            contentPooled.Dispose();
             throw;
         }
-        catch (Exception ex)
-        {
-            var message = "Unknown exception";
 
-            if (_logger.IsEnabled(LogLevel.Warning))
+        return new RawMessage
+        {
+            MessageType = contentType,
+            Data = contentPooled,
+            Length = contentLength
+        };
+    }
+
+    public async Task WriteAsync(byte[] data, ushort contentType, CancellationToken cancellationToken = default)
+    {
+        using var tokenBound = cancellationToken.CombineWithTimeout(_connection.RequestTimeout);
+        
+        var token = tokenBound.Token;
+        var socket = _connection.Socket;
+
+        try
+        {
+            await socket.SendAsync(Magic, SocketFlags.None, token);
+            await socket.SendAsync(BitConverter.GetBytes((uint)data.Length), SocketFlags.None, token);
+            await socket.SendAsync(BitConverter.GetBytes(contentType), SocketFlags.None, token);
+            await socket.SendAsync(data, SocketFlags.None, token);
+        }
+        catch (SocketException ex)
+        {
+            throw new ProtocolException("Socket error. See inner exception.", ex);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            throw new ProtocolException("Client closed.", ex);
+        }
+    }
+
+    private static async Task<ArrayFiller> ReadInternalAsync(Socket socket, int length, CancellationToken token)
+    {
+        var buffer = new ArrayFiller(new byte[length]);
+        await ReadInternalAsync(socket, buffer, token);
+        return buffer;
+    }
+
+    private static async Task ReadInternalAsync(Socket socket, ArrayFiller buffer, CancellationToken token)
+    {
+        while (!buffer.IsFilled)
+        {
+            token.ThrowIfCancellationRequested();
+            var readedLength = await socket.ReceiveAsync(buffer.AsFreeMemory(), SocketFlags.None, token);
+
+            if (readedLength == 0)
             {
-                _logger.LogError(ex, _errorMessage + message, _connection.Uid);
+                throw new OperationCanceledException("NetworkStream ended.");
             }
 
-            throw new ProtocolException(message, ex);
+            buffer.AddLength(readedLength);
+        }
+    }
+
+    private (uint contentLength, ushort contentType) ParseHeader(Span<byte> header)
+    {
+        CheckMagic(header[..Magic.Length]);
+
+        int offset = Magic.Length;
+        var contentLength = BitConverter.ToUInt32(header[offset..(offset + ContentLengthSize)]);
+
+        if (contentLength == 0 || contentLength > MaxContentLength)
+        {
+            ThrowInvalidHeaders("Content length must be greater than 1 byte and less than 8 megabytes.");
+        }
+
+        offset += ContentLengthSize;
+        var contentType = BitConverter.ToUInt16(header[offset..]);
+
+        return (contentLength, contentType);
+    }
+
+    private static void CheckMagic(Span<byte> bytes)
+    {
+        for (int i = 0; i < Magic.Length; i++)
+        {
+            if (Magic[i] != bytes[i]) ThrowInvalidMagic();
+        }
+    }
+
+    private static void ThrowInvalidHeaders(string message) => throw new InvalidHeadersException(message);
+    private static void ThrowInvalidMagic() => throw new InvalidMagicCodeException("Incorrect magic code");
+}
+
+public class MessageTcpProtocol : IMessageProtocol
+{
+    public static readonly int ContentLengthSize = Marshal.SizeOf<uint>();
+    public static readonly int ContentTypeSize = Marshal.SizeOf<ushort>();
+    public static readonly byte[] Magic = BitConverter.GetBytes((short)0x228);
+    public static readonly int HeaderSize = Magic.Length + ContentLengthSize + ContentTypeSize;
+    public static readonly int MaxContentLength = 1024 * 1024 * 8;
+     
+    private readonly TcpConnectionInfo _connection;
+    private readonly CollectionPool<byte> _dataPool;
+    private readonly CollectionPool<byte> _internalPool;
+
+    public MessageTcpProtocol(TcpConnectionInfo connection, 
+        CollectionPool<byte> dataPool, CollectionPool<byte> internalPool)
+    {
+        _connection = connection;
+        _dataPool = dataPool;
+        _internalPool = internalPool;
+    }
+
+    public async Task<RawMessage> ReadAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await ReadMessageAsync(cancellationToken);
+        }
+        catch (InvalidMagicCodeException ex)
+        {
+            throw new ProtocolException("Invalid magic code. See inner exception.", ex);
+        }
+        catch (InvalidHeadersException ex)
+        {
+            throw new ProtocolException("Invalid headers. See inner exception.", ex);
+        }
+        catch (OverflowException ex)
+        {
+            throw new ProtocolException("Internal error due casting UInt32 to Int32.", ex);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            throw new ProtocolException("Client closed.", ex);
         }
     }
 
     private async Task<RawMessage> ReadMessageAsync(CancellationToken token)
     {
         var networkStream = _connection.Client.GetStream();
-        
-        var headerData = await ReadInternalAsync(networkStream, HeaderSize, token);
-        var (contentLengthRaw, contentType) = ParseHeader(headerData);
+
+        uint contentLengthRaw;
+        ushort contentType;
+
+        using (var headerPooled = _internalPool.Get(HeaderSize))
+        {
+            Array.Clear(headerPooled.Value, 0, headerPooled.Value.Length);
+
+            var headerBuffer = headerPooled.AsFiller(HeaderSize);
+            await ReadInternalAsync(networkStream, headerBuffer, token);
+            (contentLengthRaw, contentType) = ParseHeader(headerPooled.AsSpan(HeaderSize));
+        }
 
         var contentLength = checked((int)contentLengthRaw);
-        var content = await ReadInternalAsync(networkStream, contentLength, token);
+        var contentPooled = _dataPool.Get(contentLength);
+        var contentBuffer = contentPooled.AsFiller(contentLength);
+
+        try
+        {
+            await ReadInternalAsync(networkStream, contentBuffer, token);
+            //contentPooled.Clear(contentLength);
+        }
+        catch
+        {
+            contentPooled.Dispose();
+            throw;
+        }
 
         return new RawMessage
         {
             MessageType = contentType,
-            Data = content.Buffer
+            Data = contentPooled,
+            Length = contentLength
         };
     }
 
@@ -138,52 +285,51 @@ public class MessageTcpProtocol
             await networkStream.WriteAsync(data, token);
             await networkStream.FlushAsync(token);
         }
-        catch (OperationCanceledException ex)
+        catch (ObjectDisposedException ex)
         {
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-
-            }
-
-            throw;
-        }
-        catch (IOException ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-
-            }
-
-            throw;
+            throw new ProtocolException("Client closed.", ex);
         }
     }
 
-    private static Task<BufferLengthWrapper> ReadInternalAsync(Stream stream, int length, CancellationToken token)
+    private static async Task<ArrayFiller> ReadInternalAsync(NetworkStream stream, int length, CancellationToken token)
     {
-        return ReadInternalAsync(stream, new BufferLengthWrapper(new byte[length]), token);
+        var buffer = new ArrayFiller(new byte[length]);
+        await ReadInternalAsync(stream, buffer, token);
+        return buffer;
     }
 
-    private static async Task<BufferLengthWrapper> ReadInternalAsync(Stream stream, BufferLengthWrapper buffer, CancellationToken token)
+    private static async Task ReadInternalAsync(NetworkStream stream, ArrayFiller buffer, CancellationToken token)
     {
         while (!buffer.IsFilled)
         {
             token.ThrowIfCancellationRequested();
-            buffer.AddLength(await stream.ReadAsync(buffer.AsFreeMemory(), token));
-        }
+            var (arr, offset, count) = buffer;
 
-        return buffer;
+            var readedLength = await stream.ReadAsync(arr, offset, count, token);
+
+            if (readedLength == 0)
+            {
+                throw new OperationCanceledException("NetworkStream ended.");
+            }
+
+            buffer.AddLength(readedLength);
+        }
     }
 
-    private (uint contentLength, ushort contentType) ParseHeader(BufferLengthWrapper header)
+    private (uint contentLength, ushort contentType) ParseHeader(Span<byte> header)
     {
-        var span = header.Buffer.AsSpan();
-        CheckMagic(span[..Magic.Length]);
+        CheckMagic(header[..Magic.Length]);
 
         int offset = Magic.Length;
-        var contentLength = BitConverter.ToUInt32(span[offset..(offset + ContentLengthSize)]);
+        var contentLength = BitConverter.ToUInt32(header[offset..(offset + ContentLengthSize)]);
+
+        if (contentLength == 0 || contentLength > MaxContentLength)
+        {
+            ThrowInvalidHeaders("Content length must be greater than 1 byte and less than 8 megabytes.");
+        }
 
         offset += ContentLengthSize;
-        var contentType = BitConverter.ToUInt16(span[offset..]);
+        var contentType = BitConverter.ToUInt16(header[offset..]);
 
         return (contentLength, contentType);
     }
@@ -196,10 +342,6 @@ public class MessageTcpProtocol
         }
     }
 
-    public void Stop()
-    {
-        _connection.Client.Dispose();
-    }
-
+    private static void ThrowInvalidHeaders(string message) => throw new InvalidHeadersException(message);
     private static void ThrowInvalidMagic() => throw new InvalidMagicCodeException("Incorrect magic code");
 }

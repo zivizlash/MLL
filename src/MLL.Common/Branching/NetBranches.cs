@@ -51,11 +51,6 @@ public class NetBranches
         }
     }
 
-    private float GetCloseness(float actual, float original)
-    {
-        return 1.0f - (float)(Math.Pow(Math.Abs(original - actual), 2));
-    }
-
     private void CalculateNetScore(IImageDataSet[] dataSets, float[] results, int layerIndex, NetBranchContext branch)
     {
         foreach (var dataSet in dataSets)
