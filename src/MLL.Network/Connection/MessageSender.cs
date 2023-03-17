@@ -34,8 +34,7 @@ public class MessageSender : IMessageSender
         }
         catch (Exception ex)
         {
-            var name = typeof(T).Name;
-            _logger.LogError(ex, "Uid: {Uid}; Error while sending {MessageTypeName}", _uid, name);
+            _logger.LogError(ex, "Uid: {Uid}; Error while sending {MessageTypeName}", _uid, typeof(T).Name);
         }
     }
 }

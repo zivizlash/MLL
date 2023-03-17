@@ -76,19 +76,19 @@ public class ServerConnectionAcceptor : IAsyncDisposable
     private readonly ConcurrentDictionary<Guid, RemoteConnectionInfo> _clients;
     private readonly ConcurrentDictionary<IPEndPoint, Guid> _endpoints;
 
-    private readonly TcpListener _tcpListener;
     private readonly CancellationTokenSource _cancellationSource;
+    private readonly IPEndPoint _endpoint;
     private readonly IConnectionListener _connectionListener;
     private readonly ILogger<ServerConnectionAcceptor> _logger;
-    private readonly Action<TcpClient> _clientSetup;
+    private readonly Action<Socket> _socketSetup;
 
-    private readonly Func<RemoteConnectionInfo, ValueTask> _disconnectFunc;
-    private readonly Func<RemoteConnectionInfo, Exception, ValueTask> _disconnectErrorFunc;
+    private readonly Func<RemoteConnectionInfo, ValueTask> _disconnect;
+    private readonly Func<RemoteConnectionInfo, Exception, ValueTask> _disconnectError;
 
     private bool _disposed;
     private TaskCompletionSource<bool>? _workingTask;
 
-    //private readonly Socket _socketListener;
+    private readonly Socket _socketListener;
 
     public Task<bool> WorkingTask
     {
@@ -100,68 +100,22 @@ public class ServerConnectionAcceptor : IAsyncDisposable
     }
     
     public ServerConnectionAcceptor(IPEndPoint endpoint, IConnectionListener listener, 
-        ILogger<ServerConnectionAcceptor> logger, Action<TcpClient> clientSetup)
+        ILogger<ServerConnectionAcceptor> logger, Action<Socket> socketSetup)
     {
         _clients = new();
         _endpoints = new();
 
-        _tcpListener = new(endpoint);
         _cancellationSource = new();
+        _endpoint = endpoint;
         _connectionListener = listener;
         _logger = logger;
-        _clientSetup = clientSetup;
+        _socketSetup = socketSetup;
 
-        _disconnectFunc = DisconnectAsync;
-        _disconnectErrorFunc = DisconnectWithErrorAsync;
-
-        //_socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        _disconnect = DisconnectAsync;
+        _disconnectError = DisconnectWithErrorAsync;
+        _socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
         Task.Run(ListenClientConnectionsAsync);
-        Task.Run(CheckDisconnectsAsync);
-    }
-
-    private async Task CheckDisconnectsAsync()
-    {
-        var token = _cancellationSource.Token;
-
-        for (; ; )
-        {
-            await Task.Delay(5000, token);
-
-            foreach (var info in IPGlobal.GetConnectionsInfo())
-            {
-                if (info.State == ConnectionState.Connecting || info.State == ConnectionState.Connected)
-                {
-                    continue;
-                }
-
-                if (_endpoints.TryGetValue(info.RemoteEndPoint, out var clientUid))
-                {
-                    if (_clients.TryGetValue(clientUid, out var client))
-                    {
-                        if (client.TrySetClosingStatus())
-                        {
-                            _logger.LogInformation("{Uid} client starting disconnecting");
-                            await client.DisconnectAsync();
-                        }
-                        else
-                        {
-                            _logger.LogInformation("Client {Uid} was not disconnected due " +
-                                "disconnecting already started", clientUid);
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Can't find client {Uid} for endpoint {Remote}", 
-                            clientUid, info.RemoteEndPoint);
-                    }
-                }
-                else
-                {
-                    //_logger.LogWarning("Can't find client for endpoint {EndPoint}", info.RemoteEndPoint);
-                }
-            }
-        }
     }
 
     private async Task ListenClientConnectionsAsync()
@@ -170,7 +124,8 @@ public class ServerConnectionAcceptor : IAsyncDisposable
 
         try
         {
-            _tcpListener.Start();
+            _socketListener.Bind(_endpoint);
+            _socketListener.Listen(5);
             _logger.LogInformation("Starting accepting connections");
         }
         catch (SocketException se)
@@ -184,12 +139,12 @@ public class ServerConnectionAcceptor : IAsyncDisposable
             for (; ;)
             {
                 token.ThrowIfCancellationRequested();
-                TcpClient tcpClient;
+                Socket clientSocket;
 
                 try
                 {
-                    tcpClient = await _tcpListener.AcceptTcpClientAsync();
-                    _clientSetup.Invoke(tcpClient);
+                    clientSocket = await _socketListener.AcceptAsync();
+                    _socketSetup.Invoke(clientSocket);
                 }
                 catch (SocketException se)
                 {
@@ -205,15 +160,14 @@ public class ServerConnectionAcceptor : IAsyncDisposable
                     throw;
                 }
 
-                var clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), 
-                    tcpClient, _disconnectFunc, _disconnectErrorFunc);
+                var clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), clientSocket, _disconnect, _disconnectError);
 
                 try
                 {
                     if (!await _connectionListener.OnConnectionVerifyAsync(clientInfo))
                     {
                         _logger.LogWarning("Uid: {Uid}; Connection verification failure", clientInfo.Uid);
-                        tcpClient.Close();
+                        clientSocket.Close();
                         continue;
                     }
                 }
@@ -222,7 +176,7 @@ public class ServerConnectionAcceptor : IAsyncDisposable
                     _logger.LogError(ex, "Uid: {Uid}; Connection vertification failure " +
                         "due ConnectionListener.OnConnectionVerifyAsync threw exception", clientInfo.Uid);
 
-                    tcpClient.Close();
+                    clientSocket.Close();
                     continue;
                 }
 
@@ -236,7 +190,7 @@ public class ServerConnectionAcceptor : IAsyncDisposable
                     await _connectionListener.OnConnectedAsync(clientInfo);
                     _logger.LogInformation("Uid: {Uid}; Client connected", clientInfo.Uid);
 
-                    var client = (IPEndPoint)clientInfo.Client.Client.RemoteEndPoint;
+                    var client = (IPEndPoint)clientInfo.Socket.RemoteEndPoint;
                     _endpoints.TryAdd(client, clientInfo.Uid);
                 }
                 catch (Exception ex)
@@ -244,7 +198,7 @@ public class ServerConnectionAcceptor : IAsyncDisposable
                     _logger.LogError(ex, "Uid: {Uid}; Client connection failure " +
                         "due ConnectionListener.OnConnectedAsync threw exception.", clientInfo.Uid);
 
-                    tcpClient.Close();
+                    clientSocket.Close();
 
                     if (!_clients.TryRemove(clientInfo.Uid, out _))
                     {
@@ -252,8 +206,6 @@ public class ServerConnectionAcceptor : IAsyncDisposable
                     }
                 }
             }
-
-            _workingTask?.SetResult(true);
         }
         catch (OperationCanceledException)
         {
@@ -280,7 +232,7 @@ public class ServerConnectionAcceptor : IAsyncDisposable
 
         try
         {
-            _tcpListener.Stop();
+            _socketListener.Dispose();
         }
         catch (Exception ex)
         {
@@ -328,7 +280,8 @@ public class ServerConnectionAcceptor : IAsyncDisposable
             }
         }
 
-        clientInfo.Client.Dispose();
+        clientInfo.Socket.Close();
+
         _logger.LogInformation("Uid: {Uid}; Client disconnected", clientInfo.Uid);
     }
 

@@ -41,7 +41,7 @@ public class ListenerMessageHandlerPipe
 
                 try
                 {
-                    raw = await _protocol.ReadAsync(token).ConfigureAwait(false);
+                    raw = await _protocol.ReadAsync(token);
                     var msg = raw.Value;
                     message = _messageConverter.Deserialize(msg.Data.Value, 0, msg.Length, msg.MessageType);
                 }

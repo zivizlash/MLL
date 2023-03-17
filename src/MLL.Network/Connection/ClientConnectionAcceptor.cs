@@ -10,7 +10,9 @@ public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
 {
     private readonly IPEndPoint _endpoint;
     private readonly IConnectionListener _listener;
-    private readonly TcpClient _tcpClient;
+    //private readonly TcpClient _tcpClient;
+
+    private readonly Socket _socket;
 
     private volatile RemoteConnectionInfo? _clientInfo;
     private bool _disposed;
@@ -19,16 +21,19 @@ public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
     {
         _endpoint = endpoint;
         _listener = listener;
-        _tcpClient = new();
+        _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        //_tcpClient = new();
     }
 
     public async Task ConnectAsync()
     {
         CheckDisposed();
 
-        await _tcpClient.ConnectAsync(_endpoint.Address, _endpoint.Port);
+        //await _tcpClient.ConnectAsync(_endpoint.Address, _endpoint.Port);
 
-        _clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), _tcpClient, 
+        await _socket.ConnectAsync(_endpoint.Address, _endpoint.Port);
+
+        _clientInfo = new RemoteConnectionInfo(Guid.NewGuid(), _socket, 
             _ => new ValueTask(), (_, _) => new ValueTask());
 
         if (!await _listener.OnConnectionVerifyAsync(_clientInfo))
@@ -61,7 +66,8 @@ public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
                     }
                     finally
                     {
-                        _tcpClient.Close();
+                        _socket.Disconnect(false);
+                        _socket.Dispose();
                     }
                 });
             }
@@ -78,15 +84,17 @@ public class ClientConnectionAcceptor : IDisposable, IAsyncDisposable
         {
             try
             {
-                await _listener.OnDisconnectedAsync(_clientInfo);
+                try
+                {
+                    await _listener.OnDisconnectedAsync(_clientInfo);
+                }
+                finally
+                {
+                    _socket.Disconnect(false);
+                    _socket.Dispose();
+                }
             }
-            catch
-            {
-            }
-            finally
-            {
-                _tcpClient.Dispose();
-            }
+            catch { }
         }
     }
 }

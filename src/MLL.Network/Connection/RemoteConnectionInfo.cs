@@ -18,7 +18,6 @@ public class RemoteConnectionInfo
 #pragma warning restore IDE1006 // Naming Styles
 
     public Guid Uid { get; set; }
-    public TcpClient Client { get; }
     public Socket Socket { get; set; }
 
     internal bool IsClosing => _status == StatusClosing;
@@ -41,21 +40,11 @@ public class RemoteConnectionInfo
 
     internal ValueTask DisconnectWithErrorAsync(Exception ex)
     {
-        if (TrySetClosingStatus())
-        {
-            return _expDisconnect.Invoke(this, ex);
-        }
-
-        return new ValueTask();
+        return _expDisconnect.Invoke(this, ex);
     }
 
     public ValueTask DisconnectAsync()
     {
-        if (TrySetClosingStatus())
-        {
-            return _disconnect.Invoke(this);
-        }
-
-        return new ValueTask();
+        return _disconnect.Invoke(this);
     }
 }

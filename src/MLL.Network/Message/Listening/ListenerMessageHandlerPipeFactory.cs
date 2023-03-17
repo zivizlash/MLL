@@ -32,15 +32,14 @@ public class ListenerMessageHandlerPipeFactory : IListenerMessageHandlerPipeFact
     public ListenerMessageHandlerPipe Create(ListenerMessageHandlerPipeFactoryContext context)
     {
         var clientInfo = context.ClientInfo;
-        var connectionInfo = new TcpConnectionInfo(clientInfo.Client, clientInfo.Uid);
+        
+        var socketInfo = new SocketConnectionInfo(clientInfo.Uid, clientInfo.Socket, TimeSpan.FromSeconds(5));
+        var protocol = new MessageTcpProtocol(socketInfo, _dataPool, _internalPool);
 
-        var socketInfo = new SocketConnectionInfo(clientInfo.Uid, socket, TimeSpan.FromSeconds(5));
-
-        var protocol = new MessageTcpProtocol(connectionInfo, _dataPool, _internalPool);
         var senderLogger = _loggerFactory.CreateLogger<MessageSender>();
         var sender = new MessageSender(protocol, _messageConverter, clientInfo.Uid, senderLogger);
 
-        var factoryContext = new MessageHandlerFactoryContext(sender, context.ClientInfo.Uid);
+        var factoryContext = new MessageHandlerFactoryContext(sender, clientInfo.Uid);
         var handler = _handlerFactory.CreateMessageHandler(factoryContext);
         var bus = _handlerBinder.Bind(_handlerFactory.MessageHandlerType, handler);
 

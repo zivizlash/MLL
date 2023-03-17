@@ -94,8 +94,6 @@ public class ServerListenerToMessageHandler : IConnectionListener
 
     public ValueTask OnDisconnectedAsync(RemoteConnectionInfo clientInfo)
     {
-        Console.WriteLine("Disconnected");
-
         if (!_clients.TryRemove(clientInfo.Uid, out var connection))
         {
             throw new InternalDictionaryInconsistentException(nameof(_clients));
