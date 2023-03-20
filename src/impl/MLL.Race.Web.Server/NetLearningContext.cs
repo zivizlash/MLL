@@ -1,5 +1,7 @@
 ﻿using MLL.Common.Engines;
+using MLL.Common.Factory;
 using MLL.Common.Layer;
+using Newtonsoft.Json;
 
 namespace MLL.Race.Web.Server;
 
@@ -7,6 +9,95 @@ public enum NetLearningState
 {
     Searching = 1,
     Rasterizing = 2
+}
+
+public class NetSaver
+{
+    private readonly string _folder;
+
+    public int LastLoadedGen { get; private set; }
+    public float LastLoadedScore { get; private set; }
+
+    public NetSaver(string folder)
+    {
+        _folder = folder;
+        Directory.CreateDirectory(_folder);
+    }
+
+    public void Save(NetInstance instance)
+    {
+        var filePath = Path.Combine(_folder, $"net_save_{instance.Gen}.json");
+
+        var json = JsonConvert.SerializeObject(instance);
+        File.WriteAllText(filePath, json);
+    }
+
+    public NetInstance? Load()
+    {
+        var file = Directory.EnumerateFiles(_folder)
+            .Where(filePath => Path.GetFileName(filePath).StartsWith("net_save_"))
+            .Select(filePath => new 
+            { 
+                filePath, 
+                gen = int.Parse(Path.GetFileNameWithoutExtension(filePath).Split("_")[2]) 
+            })
+            .OrderByDescending(x => x.gen)
+            .FirstOrDefault();
+
+        if (file == null)
+        {
+            return null;
+        }
+
+        var json = File.ReadAllText(file.filePath);
+
+        var writableInstance = JsonConvert.DeserializeObject<WritableNetInstance>(json)
+            ?? throw new InvalidOperationException();
+
+        LastLoadedGen = writableInstance.Gen;
+        LastLoadedScore = writableInstance.Score;
+
+        return new NetInstance
+        {
+            Gen = writableInstance.Gen,
+            Score = writableInstance.Score,
+            Weights = writableInstance.Weights.Select(w => new LayerWeights(w.Weights)).ToArray()
+        };
+    }
+
+    public class NetInstance
+    {
+        public float Score { get; set; }
+        public int Gen { get; set; }
+        public LayerWeights[] Weights { get; set; }
+
+        public NetInstance()
+        {
+            Weights = Array.Empty<LayerWeights>();
+        }
+    }
+
+    public class WritableLayerWeights
+    {
+        public float[][] Weights;
+
+        public WritableLayerWeights()
+        {
+            Weights = Array.Empty<float[]>();
+        }
+    }
+
+    public class WritableNetInstance
+    {
+        public float Score { get; set; }
+        public int Gen { get; set; }
+        public WritableLayerWeights[] Weights { get; set; }
+
+        public WritableNetInstance()
+        {
+            Weights = Array.Empty<WritableLayerWeights>();
+        }
+    }
 }
 
 public class NetLearningContext
@@ -18,23 +109,28 @@ public class NetLearningContext
 
     private readonly AdaptiveLearningRate _learningRateContext;
     private readonly WeightsRasterizer _rasterizer;
+    private readonly NetSaver _netSaver;
 
     private WeightsOffsetContext _offsetsContext;
     private WeightsOffsetStats? _offsetStats;
+
     private int _currentVariant;
-
     private int _updatingLayer;
+    private int _generation;
 
-    public NetLearningContext(RaceNetFactory factory)
+    public NetLearningContext(NetFactory factory, NetSaver netSaver)
     {
         _updatingLayer = 0;
-        _learningRateContext = new(0.25f, 5, 25, 0.25f);
+        _learningRateContext = new(10f, 1, 100, 0.001f);
         _rasterizer = new();
         _net = new(factory, new Random());
         _referenceNet = new(factory, new Random());
+        _netSaver = netSaver;
+
+        _generation = netSaver.LastLoadedGen;
+        _net.Score = netSaver.LastLoadedScore;
 
         State = NetLearningState.Searching;
-
         NetReplicator.CopyWeights(_referenceNet.LayerWeights, _net.LayerWeights);
     }
 
@@ -58,12 +154,14 @@ public class NetLearningContext
                 if (_net.Score >= _referenceNet.Score)
                 {
                     (src, dst) = (_net, _referenceNet);
-                    _learningRateContext.SelectNewAndGet();
-                    Console.WriteLine($"Updated net was selected; LearningRate: {_learningRateContext.LearningRate}");
+                    _learningRateContext.ChooseNew();
 
-                    LayerWeights[]? layerWeights = default;
+                    Console.WriteLine($"New selected; LR: {_learningRateContext.LearningRate}; Score: {_net.Score}");
+                    Console.WriteLine($"Gen: {++_generation}");
 
-                    var offsets = _rasterizer.FindOffset(new(src.LayerWeights), new(dst.LayerWeights), ref layerWeights);
+                    LayerWeights[]? offsetWeights = default;
+
+                    var offsets = _rasterizer.FindOffset(new(src.LayerWeights), new(dst.LayerWeights), ref offsetWeights);
                     _offsetsContext = offsets.CreateContext(new(src.LayerWeights));
 
                     _offsetStats = new(4, _referenceNet.Score, _net.Score);
@@ -71,13 +169,23 @@ public class NetLearningContext
 
                     _currentVariant = variant;
                     _offsetsContext.Apply(offsetTimes);
+
+                    _netSaver.Save(new NetSaver.NetInstance
+                    {
+                        Gen = _generation,
+                        Weights = src.LayerWeights,
+                        Score = src.Score
+                    });
+
                     State = NetLearningState.Rasterizing;
                 }
                 else
                 {
                     (src, dst) = (_referenceNet, _net);
-                    Console.WriteLine($"Old net was selected; LearningRate: {_learningRateContext.LearningRate}");
-                    learningRate = _learningRateContext.SelectOldAndGet();
+                    Console.WriteLine($"Old selected; LR: {_learningRateContext.LearningRate}; Score: {_net.Score}");
+                    Console.WriteLine($"Gen: {_generation}");
+
+                    learningRate = _learningRateContext.ChooseOld();
 
                     dst.Score = src.Score;
                     NetReplicator.CopyLayer(new(src.LayerWeights), new(dst.LayerWeights), _updatingLayer);
@@ -110,7 +218,7 @@ public class NetLearningContext
                     _net.Score = bestScore;
                     _referenceNet.Score = bestScore;
 
-                    learningRate = _learningRateContext.SelectNewAndGet();
+                    learningRate = _learningRateContext.ChooseNew();
                     _net.UpdateLearningRate(learningRate);
                     ReinforcementTrainer.RandomizeWeights(_net.ReinforcementTrainContext, _updatingLayer);
                     State = NetLearningState.Searching;

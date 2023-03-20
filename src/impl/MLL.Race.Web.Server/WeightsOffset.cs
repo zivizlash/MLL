@@ -5,7 +5,6 @@ namespace MLL.Race.Web.Server;
 public class WeightsOffsetStats
 {
     private readonly Dictionary<int, float> _stepsToScore;
-    private readonly int _resolution;
     private readonly float _step;
     private readonly Stack<int> _variants;
 
@@ -13,7 +12,6 @@ public class WeightsOffsetStats
 
     public WeightsOffsetStats(int resolution, float sourceScore, float changedScore)
     {
-        _resolution = resolution;
         _step = 1.0f / resolution;
 
         _stepsToScore = new(2)

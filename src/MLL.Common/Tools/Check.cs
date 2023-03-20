@@ -6,6 +6,7 @@ namespace MLL.Common.Tools;
 public class Throw
 {
     public static void ArgumentOutOfRange(string name) => throw new ArgumentOutOfRangeException(name);
+    public static void ArgumentOutOfRange(string name, string msg) => throw new ArgumentOutOfRangeException(name, msg);
     public static void Argument(string message, string paramName) => throw new ArgumentOutOfRangeException(message, paramName);
     public static void InvalidOperation(string message) => throw new InvalidOperationException(message);
     public static void ArgumentNull(string paramName) => throw new ArgumentNullException(paramName);
@@ -19,9 +20,13 @@ public class Check
         if (!buffers.IsFitWeights(weights)) Throw.Argument("Buffer has wrong size", paramName);
     }
 
-    public static void LengthEqual(int len1, int len2, string name)
+    public static void LengthEqual(int expected, int actual, string name)
     {
-        if (len1 != len2) Throw.ArgumentOutOfRange(name);
+        if (expected != actual)
+        {
+            var msg = $"Specified argument was out of the range of valid values; Expected {expected}; Actual: {actual}";
+            Throw.ArgumentOutOfRange(name, msg);
+        }
     }
 
     public static void NotNull(object? obj, string paramName)

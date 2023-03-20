@@ -126,7 +126,7 @@ public class ServerConnectionAcceptor : IAsyncDisposable
         {
             _socketListener.Bind(_endpoint);
             _socketListener.Listen(5);
-            _logger.LogInformation("Starting accepting connections");
+            _logger.LogInformation("Listening at: {address}", _endpoint);
         }
         catch (SocketException se)
         {

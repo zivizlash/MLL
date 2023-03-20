@@ -22,19 +22,18 @@ public class ReflectionHandlerFactory<THandler> : IMessageHandlerFactory
             .Where(x => x.Params.Length < 2)
             .OrderByDescending(x => x.Params.Length);
 
-        foreach (var ctorInfo in ctorInfos)
-        {
-            var handlerFactory = Generate(ctorInfo.Ctor);
+        var handlerFactory = ctorInfos
+            .Select(ctor => Generate(ctor.Ctor))
+            .Where(factory => factory != null)
+            .FirstOrDefault();
 
-            if (handlerFactory != null)
-            {
-                _handlerFactory = handlerFactory;
-                return;
-            }
+        if (handlerFactory == null)
+        {
+            throw new InvalidOperationException(
+                $"Constructor accepting {nameof(IMessageSender)} or empty constructor not found.");
         }
 
-        throw new InvalidOperationException(
-            $"Constructor accepting {nameof(IMessageSender)} or empty constructor not found.");
+        _handlerFactory = handlerFactory;
     }
 
     public object CreateMessageHandler(MessageHandlerFactoryContext context)

@@ -87,7 +87,7 @@ public readonly struct ReinforcementSelectResult
     }
 }
 
-public class PredictionCalculator
+public static class PredictionCalculator
 {
     public static float[] Predict(in PredictContext ctx, float[] input)
     {

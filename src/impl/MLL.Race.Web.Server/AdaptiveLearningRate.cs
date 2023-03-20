@@ -23,7 +23,7 @@ public class AdaptiveLearningRate
         _minimum = minimum;
     }
 
-    public float SelectOldAndGet()
+    public float ChooseOld()
     {
         _newSelectCount = 0;
 
@@ -36,7 +36,7 @@ public class AdaptiveLearningRate
         return LearningRate;
     }
 
-    public float SelectNewAndGet()
+    public float ChooseNew()
     {
         _oldSelectCount = 0;
 

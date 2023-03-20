@@ -1,5 +1,4 @@
 ﻿using BigGustave;
-using ImageMagick;
 using Microsoft.Extensions.Logging;
 using MLL.Common.Builders.Computers;
 using MLL.Common.Builders.Weights;
@@ -23,29 +22,74 @@ using System.Net;
 
 namespace MLL.Race.Web.Server;
 
-public class RaceNetFactory : RandomFillNetFactory
+public abstract class RaceFactoryBase : RandomFillNetFactory
 {
-    public RaceNetFactory() : base(146) { }
+    private readonly NetSaver _netSaver;
+
+    public RaceFactoryBase(NetSaver netSaver, int seed) : base(seed)
+    {
+        _netSaver = netSaver;
+    }
+
+    public override void PostCreation(ClassificationEngine net)
+    {
+        var savedInstance = _netSaver.Load();
+
+        if (savedInstance != null)
+        {
+            net.Weights = new(savedInstance.Weights);
+        }
+        else
+        {
+            base.PostCreation(net);
+        }
+    }
+
+    protected static ILayerComputerFactory GetComputerFactory() =>
+        new BasicLayerComputerFactory(GetThreadingOptimizator());
+
+    private static ThreadingOptimizatorFactory GetThreadingOptimizator() =>
+        new ThreadingOptimizatorFactory(new(10000, 0.25f, Environment.ProcessorCount));
+}
+
+public class DistanceRanceNetFactory : RaceFactoryBase
+{
+    public DistanceRanceNetFactory(NetSaver netSaver) : base(netSaver, 146) { }
 
     public override LayerComputerBuilderResult GetComputers(bool isForTrain) =>
         new LayerComputerBuilder(GetComputerFactory())
             .UseLayer<SigmoidLayerDefine>()
             .UseLayer<SigmoidLayerDefine>()
             .UseLayer<SumLayerDefine>()
+            .Build(isForTrain);
+
+    public override LayerWeightsDefinition[] GetDefinitions() =>
+        LayerWeightsDefinition.Builder
+            .WithInputLayer(20, 3)
+            .WithLayer(20)
+            .WithLayer(2)
             .Build();
+}
+
+public class ImageRaceNetFactory : RaceFactoryBase
+{
+    public ImageRaceNetFactory(NetSaver netSaver) : base(netSaver, 146) { }
+
+    public override LayerComputerBuilderResult GetComputers(bool isForTrain) =>
+        new LayerComputerBuilder(GetComputerFactory())
+            .UseLayer<SigmoidLayerDefine>()
+            .UseLayer<SigmoidLayerDefine>()
+            .UseLayer<SigmoidLayerDefine>()
+            .UseLayer<SumLayerDefine>()
+            .Build(isForTrain);
 
     public override LayerWeightsDefinition[] GetDefinitions() => 
         LayerWeightsDefinition.Builder
-            .WithInputLayer(100, (240 * 320 * 3) + 1) // image pixel + value 1 const
-            .WithLayer(10)
+            .WithInputLayer(200, (240 * 320 * 3) + 1) // image pixel + value 1 const
+            .WithLayer(300)
+            .WithLayer(100)
             .WithLayer(2)
             .Build();
-
-    private static ILayerComputerFactory GetComputerFactory() =>
-        new BasicLayerComputerFactory(GetThreadingOptimizator());
-
-    private static ThreadingOptimizatorFactory GetThreadingOptimizator() =>
-        new ThreadingOptimizatorFactory(new(10000, 0.25f, Environment.ProcessorCount));
 }
 
 public class RaceNet
@@ -61,7 +105,7 @@ public class RaceNet
 
     public float Score;
 
-    public RaceNet(RaceNetFactory factory, Random random, float initialScore = float.MinValue)
+    public RaceNet(NetFactory factory, Random random, float initialScore = float.MinValue)
     {
         var net = factory.Create(isForTrain: true);
 
@@ -84,11 +128,20 @@ public class RaceNet
     }
 }
 
-public class RaceNetManager
+public interface IRaceNetManager
 {
-    private readonly IMessageSender _messageSender;
+    Task RecognizeFrameAsync(GameFrameMessage gameFrame);
+    Task UpdateScoreAsync(GameResultMessage gameResult);
+}
+
+public interface IFrameMessageInputConverter
+{
+    float[] Convert(GameFrameMessage gameFrame);
+}
+
+public class ImageFrameMessageInputConverter : IFrameMessageInputConverter
+{
     private readonly float[] _frameBuffer;
-    private readonly NetLearningContext _learningContext;
 
 #pragma warning disable IDE1006 // Naming Styles
     private const int ImageWidth = 320;
@@ -99,20 +152,16 @@ public class RaceNetManager
     private const int InputArrayLength = ImageInputParamsLength + ConstInputParamsCount;
 #pragma warning restore IDE1006 // Naming Styles
 
-    public RaceNetManager(IMessageSender messageSender, RaceNetFactory factory)
+    public ImageFrameMessageInputConverter()
     {
-        _messageSender = messageSender;
         _frameBuffer = new float[InputArrayLength];
         _frameBuffer[^1] = 1;
-        _learningContext = new(factory);
     }
 
-    private int _counter;
-
-    public async Task RecognizeFrameAsync(GameFrameMessage gameFrame)
+    public float[] Convert(GameFrameMessage gameFrame)
     {
         var image = Png.Open(gameFrame.Frame);
-        
+
         Check.LengthEqual(_frameBuffer.Length, image.Width * image.Height * 3 + 1, nameof(gameFrame));
 
         int counter = 0;
@@ -130,9 +179,51 @@ public class RaceNetManager
             }
         }
 
-        _frameBuffer[^1] = 1;
+        return _frameBuffer;
+    }
+}
 
-        var (forward, left) = _learningContext.Recognize(_frameBuffer);
+public class DistanceFrameMessageInputConverter : IFrameMessageInputConverter
+{
+    private float[] _buffer;
+
+    public DistanceFrameMessageInputConverter()
+    {
+        _buffer = new float[3];
+        _buffer[^1] = 1;
+    }
+
+    public float[] Convert(GameFrameMessage msg)
+    {
+        var floatSize = sizeof(float);
+
+        Check.LengthEqual(floatSize * 2, msg.Frame.Length, nameof(msg));
+
+        _buffer[0] = BitConverter.ToSingle(msg.Frame, floatSize * 0);
+        _buffer[1] = BitConverter.ToSingle(msg.Frame, floatSize * 1);
+
+        return _buffer;
+    }
+}
+
+public class RaceNetManager : IRaceNetManager
+{
+    private readonly IMessageSender _messageSender;
+    private readonly IFrameMessageInputConverter _frameMessageInputConverter;
+    private readonly NetLearningContext _learningContext;
+
+    public RaceNetManager(IMessageSender messageSender, NetFactory factory, 
+        NetSaver netSaver, IFrameMessageInputConverter frameMessageInputConverter)
+    {
+        _messageSender = messageSender;
+        _frameMessageInputConverter = frameMessageInputConverter;
+        _learningContext = new(factory, netSaver);
+    }
+
+    public async Task RecognizeFrameAsync(GameFrameMessage gameFrame)
+    {
+        var netInput = _frameMessageInputConverter.Convert(gameFrame);
+        var (forward, left) = _learningContext.Recognize(netInput);
 
         await _messageSender.SendAsync(new CarMovementUpdateMessage 
         {
@@ -167,13 +258,16 @@ public class Program
             Console.WriteLine(type.FullName);
         }
 
+        const bool imageBased = false;
+
         Console.WriteLine();
 
         var loggerFactory = LoggerFactory.Create(builder => builder.AddNLog());
+        var handlerFactory = new ServerHandlerFactory(imageBased);
 
         await using var server = new ConnectionManagerBuilder()
             .WithAddress(new IPEndPoint(IPAddress.Any, 8888))
-            .WithHandlerFactory(new ReflectionHandlerFactory<ServerMessageHandler>())
+            .WithHandlerFactory(handlerFactory)
             .WithUsedTypes(typesProvider)
             .WithLoggerFactory(loggerFactory)
             .BuildServer();
