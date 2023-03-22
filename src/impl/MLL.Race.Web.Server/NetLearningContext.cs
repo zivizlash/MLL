@@ -129,6 +129,7 @@ public class NetLearningContext
 
         _generation = netSaver.LastLoadedGen;
         _net.Score = netSaver.LastLoadedScore;
+        _referenceNet.Score = netSaver.LastLoadedScore;
 
         State = NetLearningState.Searching;
         NetReplicator.CopyWeights(_referenceNet.LayerWeights, _net.LayerWeights);
@@ -192,7 +193,7 @@ public class NetLearningContext
                     IncrementUpdatingLayer();
 
                     _net.UpdateLearningRate(learningRate);
-                    ReinforcementTrainer.RandomizeWeights(_net.ReinforcementTrainContext, _updatingLayer);
+                    ReinforcementTrainer.Randomize(_net.ReinforcementTrainContext, _updatingLayer);
                 }
                 break;
 
@@ -220,7 +221,7 @@ public class NetLearningContext
 
                     learningRate = _learningRateContext.ChooseNew();
                     _net.UpdateLearningRate(learningRate);
-                    ReinforcementTrainer.RandomizeWeights(_net.ReinforcementTrainContext, _updatingLayer);
+                    ReinforcementTrainer.Randomize(_net.ReinforcementTrainContext, _updatingLayer);
                     State = NetLearningState.Searching;
                 }
                 break;

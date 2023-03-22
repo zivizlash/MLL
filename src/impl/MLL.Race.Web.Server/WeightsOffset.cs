@@ -34,7 +34,6 @@ public class WeightsOffsetStats
     public (float, float) GetBest()
     {
         var item = _stepsToScore.MaxBy(s => s.Value);
-
         return (item.Key * _step, item.Value);
     }
 

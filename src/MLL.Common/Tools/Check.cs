@@ -7,7 +7,7 @@ public class Throw
 {
     public static void ArgumentOutOfRange(string name) => throw new ArgumentOutOfRangeException(name);
     public static void ArgumentOutOfRange(string name, string msg) => throw new ArgumentOutOfRangeException(name, msg);
-    public static void Argument(string message, string paramName) => throw new ArgumentOutOfRangeException(message, paramName);
+    public static void Argument(string message, string paramName) => throw new ArgumentException(message, paramName);
     public static void InvalidOperation(string message) => throw new InvalidOperationException(message);
     public static void ArgumentNull(string paramName) => throw new ArgumentNullException(paramName);
     public static void Disposed(string objectName) => throw new ObjectDisposedException(objectName);

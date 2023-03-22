@@ -35,6 +35,37 @@ public readonly struct SupervisedTrainContext
     }
 }
 
+public readonly struct ThreadedRandomContext
+{
+    public readonly Random[] Randoms;
+
+    public ThreadedRandomContext(Random[] randoms)
+    {
+        Randoms = randoms;
+    }
+}
+
+public static class ThreadedRandomBuilder
+{
+    public static ThreadedRandomContext Create(int threads, int seed) =>
+        CreateInternal(threads, new Random(seed));
+
+    public static ThreadedRandomContext Create(int threads) =>
+        CreateInternal(threads, new Random());
+
+    private static ThreadedRandomContext CreateInternal(int threads, Random seedRandom)
+    {
+        var randoms = new Random[threads];
+
+        for (int i = 0; i < threads; i++)
+        {
+            randoms[i] = new Random(seedRandom.Next());
+        }
+
+        return new ThreadedRandomContext(randoms);
+    }
+}
+
 public readonly struct ReinforcementTrainContext
 {
     public readonly NetWeights Weights;
@@ -190,7 +221,7 @@ public class SupervisedTrainer
 
 public class ReinforcementTrainer
 {
-    public static void RandomizeWeights(in ReinforcementTrainContext ctx, int layerIndex)
+    public static void Randomize(in ReinforcementTrainContext ctx, int layerIndex)
     {
         var layerWeights = ctx.Weights.Layers[layerIndex].Weights;
 
