@@ -10,7 +10,6 @@ using MLL.Common.Tools;
 using MLL.Computers.Factory;
 using MLL.Computers.Factory.Defines;
 using MLL.Network.Builders;
-using MLL.Network.Factories;
 using MLL.Network.Message.Handlers;
 using MLL.Network.Message.Protocol;
 using MLL.Race.Web.Common.Messages.Client;
@@ -22,7 +21,7 @@ using System.Net;
 
 namespace MLL.Race.Web.Server;
 
-public abstract class RaceFactoryBase : RandomFillNetFactory
+public abstract class RaceFactoryBase : RandomFillerNetFactory
 {
     private readonly NetSaver _netSaver;
 
@@ -85,7 +84,7 @@ public class ImageRaceNetFactory : RaceFactoryBase
 
     public override LayerWeightsDefinition[] GetDefinitions() => 
         LayerWeightsDefinition.Builder
-            .WithInputLayer(200, (240 * 320 * 3) + 1) // image pixel + value 1 const
+            .WithInputLayer(200, (240 * 320 * 3) + 1) // image pixels + value 1 const
             .WithLayer(300)
             .WithLayer(100)
             .WithLayer(2)
@@ -107,7 +106,7 @@ public class RaceNet
 
     public RaceNet(NetFactory factory, Random random, float initialScore = float.MinValue)
     {
-        var net = factory.Create(isForTrain: true);
+        var net = factory.Create(forTrain: true);
 
         LayerComputers = net.Computers.ToArray();
         Optimizator = net.OptimizationManager;

@@ -1,4 +1,6 @@
-﻿namespace MLL.CUI.Options;
+﻿using System.Runtime.InteropServices;
+
+namespace MLL.CUI.Options;
 
 public readonly struct ImageRecognitionOptions
 {
@@ -18,5 +20,5 @@ public readonly struct ImageRecognitionOptions
         RandomSeed = randomSeed;
     }
 
-    public static readonly ImageRecognitionOptions Default = new(32, 32, 10, 0.000003f, 234578); 
+    public static readonly ImageRecognitionOptions Default = new(32, 32, 10, 0.0002f, 234578); 
 }

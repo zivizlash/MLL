@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MLL.Common.Tools;
+using System;
 
 namespace MLL.Network.Factories;
 
@@ -16,10 +17,10 @@ public class SingletonHandlerFactory<THandler> : IMessageHandlerFactory
         {
             if (_handler == null)
             {
-                throw new InvalidOperationException("Handler not created yet.");
+                Throw.InvalidOperation("Handler not created yet.");
             }
 
-            return _handler;
+            return _handler!;
         }
     }
 
