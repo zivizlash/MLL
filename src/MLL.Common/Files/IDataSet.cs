@@ -1,9 +1,8 @@
 ﻿namespace MLL.Common.Files;
 
-public interface IImageDataSet
+public interface IDataSet
 {
-    public object Value { get; }
+    public float[] Value { get; }
     public int Count { get; }
-    ImageDataSetOptions Options { get; }
     ImageData this[int index] { get; }
 }
