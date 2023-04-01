@@ -240,8 +240,8 @@ public class ReinforcementTrainer
     public static ReinforcementSelectResult SelectBest(ReinforcementSelectContext context)
     {
         var (index, _) = context.Items.FindMax(item => item.Score);
-        var isReference = index == 0;
-        return new ReinforcementSelectResult(isReference, context.Items[index]);
+        var isSource = index == 0;
+        return new ReinforcementSelectResult(isSource, context.Items[index]);
     }
 }
 

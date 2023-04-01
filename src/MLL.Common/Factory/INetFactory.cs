@@ -6,11 +6,11 @@ using MLL.Common.Optimization;
 using MLL.Common.Tools;
 using Engines;
 
-public abstract class RandomFillNetFactory : NetFactory
+public abstract class RandomFillerNetFactory : NetFactory
 {
     private readonly int _randomSeed;
 
-    protected RandomFillNetFactory(int randomSeed)
+    protected RandomFillerNetFactory(int randomSeed)
     {
         _randomSeed = randomSeed;
     }
@@ -31,10 +31,10 @@ public abstract class NetFactory : INetFactory
     {
     }
 
-    public virtual ClassificationEngine Create(bool isForTrain)
+    public virtual ClassificationEngine Create(bool forTrain)
     {
         var weights = GetDefinitions().ToWeights();
-        var computers = GetComputers(isForTrain);
+        var computers = GetComputers(forTrain);
 
         var optimizator = new OptimizationManager(computers.Collectors);
         var buffer = NetLayersBuffers.CreateByWeights(weights);
