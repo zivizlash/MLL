@@ -6,21 +6,21 @@ namespace MLL.Files.ImageLoader;
 public class ImageDataSet : IDataSet
 {
     private readonly IFilesProvider _filesProvider;
-    private readonly Dictionary<int, ImageData> _indexToImage;
+    private readonly Dictionary<int, SetData> _indexToImage;
 
     public ImageDataSetOptions Options { get; }
 
     public float[] Value { get; }
     public int Count => _filesProvider.Count;
 
-    public ImageData this[int index] => GetOrLoad(index);
+    public SetData this[int index] => GetOrLoad(index);
 
     public ImageDataSet(IFilesProvider filesProvider, float[] value, ImageDataSetOptions options)
     {
         Options = options;
         Value = value ?? throw new ArgumentNullException(nameof(value));
 
-        _indexToImage = new Dictionary<int, ImageData>();
+        _indexToImage = new Dictionary<int, SetData>();
         _filesProvider = filesProvider;
     }
 
@@ -29,7 +29,7 @@ public class ImageDataSet : IDataSet
         for (int i = 0; i < Count; i++) GetOrLoad(i);
     }
 
-    private ImageData GetOrLoad(int index)
+    private SetData GetOrLoad(int index)
     {
         if (index >= Count || index < 0)
             throw new ArgumentOutOfRangeException(nameof(index));

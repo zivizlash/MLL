@@ -163,7 +163,7 @@ public class JsonDataSetProvider : IDataSetProvider
 
     public class FileImageDataSet : IDataSet
     {
-        public ImageData this[int index]
+        public SetData this[int index]
         {
             get
             {
@@ -176,7 +176,7 @@ public class JsonDataSetProvider : IDataSetProvider
             }
         }
 
-        private readonly ImageData _image;
+        private readonly SetData _image;
 
         public float[] Value { get; }
 
@@ -184,7 +184,7 @@ public class JsonDataSetProvider : IDataSetProvider
 
         public ImageDataSetOptions Options { get; }
 
-        public FileImageDataSet(ImageDataSetOptions options, float[] value, ImageData imageData)
+        public FileImageDataSet(ImageDataSetOptions options, float[] value, SetData imageData)
         {
             Options = options;
             Value = value;

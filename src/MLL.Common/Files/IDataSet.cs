@@ -4,5 +4,5 @@ public interface IDataSet
 {
     public float[] Value { get; }
     public int Count { get; }
-    ImageData this[int index] { get; }
+    SetData this[int index] { get; }
 }
