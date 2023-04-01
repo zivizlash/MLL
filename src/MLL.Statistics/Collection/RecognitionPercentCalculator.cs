@@ -1,7 +1,6 @@
 ﻿using MLL.Common.Engines;
 using MLL.Common.Files;
 using MLL.Common.Tools;
-using MLL.Files.ImageLoader;
 
 namespace MLL.Statistics.Collection;
 
@@ -11,9 +10,11 @@ public struct RecognitionPercentCalculator
     {
         Check.LengthEqual(percentage.Length, 10, nameof(percentage));
 
-        for (int imageNumber = 0; imageNumber < 10; imageNumber++)
+        var dataSets = dataSetProvider.GetDataSets();
+
+        for (int imageNumber = 0; imageNumber < dataSets.Length && imageNumber < 10; imageNumber++)
         {
-            var dataSet = dataSetProvider.GetDataSet(imageNumber);
+            var dataSet = dataSets[imageNumber];
 
             for (int imageIndex = 0; imageIndex < dataSet.Count; imageIndex++)
             {

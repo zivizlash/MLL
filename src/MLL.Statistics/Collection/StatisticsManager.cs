@@ -12,8 +12,7 @@ public class StatisticsManager : IStatisticsManager
     private readonly ClassificationEngine _computers;
 
     private LayerWeights[]? _netCopy;
-
-    private int _delimmer = 20;
+    private int _delimmer;
 
     public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors,
         int delimmer, ClassificationEngine computers)

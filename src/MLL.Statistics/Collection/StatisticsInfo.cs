@@ -5,16 +5,14 @@ namespace MLL.Statistics.Collection;
 public class StatisticsInfo
 {
     public NeuronRecognizedStats TestStats { get; }
-    public NeuronRecognizedStats TrainStats { get; }
     public NeuronErrorStats ErrorStats { get; }
     public ClassificationEngine Net { get; }
     public EpochRange EpochRange { get; }
 
-    public StatisticsInfo(NeuronRecognizedStats testStats, NeuronRecognizedStats trainStats,
-        NeuronErrorStats errorStats, EpochRange epochRange, ClassificationEngine net)
+    public StatisticsInfo(NeuronRecognizedStats testStats, NeuronErrorStats errorStats, 
+        EpochRange epochRange, ClassificationEngine net)
     {
         TestStats = testStats;
-        TrainStats = trainStats;
         ErrorStats = errorStats;
         EpochRange = epochRange;
         Net = net;

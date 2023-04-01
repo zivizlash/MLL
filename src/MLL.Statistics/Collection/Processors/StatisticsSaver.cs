@@ -1,65 +1,36 @@
-﻿using MLL.Common.Builders.Weights;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using MLL.Repository;
 
 namespace MLL.Statistics.Collection.Processors;
 
+public class EpochNetStats
+{
+    public int Epoch { get; set; }
+}
+
 public class StatisticsSaver : IStatProcessor
 {
-    private readonly string _workingDirectory;
-    private readonly StatisticsJArrays _stats;
-    private readonly LayerWeightsDefinition[] _layers;
+    private readonly INetInfo _netInfo;
+    private readonly INetData _globalData;
 
-    public StatisticsSaver(LayerWeightsDefinition[] layers)
+    private int _lastEpoch;
+
+    public StatisticsSaver(INetInfo netInfo, INetData globalData)
     {
-        _workingDirectory = Directory.CreateDirectory(GetFullPath()).FullName;
-        _stats = new();
-        _layers = layers;
+        _netInfo = netInfo;
+        _globalData = globalData;
     }
 
     public void Process(StatisticsInfo stats)
     {
-        int epoch = stats.EpochRange.Start;
-
-        if (epoch % 100 == 0)
-            _stats.Net.Add(ToArrayElement(epoch, stats.Net));
-
-        _stats.TestRecognize.Add(ToArrayElement(epoch, stats.TestStats));
-        _stats.TrainRecognize.Add(ToArrayElement(epoch, stats.TrainStats));
-        _stats.TrainErrors.Add(ToArrayElement(epoch, stats.ErrorStats));
+        var data = _netInfo.AddSnapshot(stats.Net.Weights).Data;
+        data.Set(stats.TestStats);
+        data.Set(stats.ErrorStats);
+        data.Set(new EpochNetStats { Epoch = stats.EpochRange.End });
+        _lastEpoch = stats.EpochRange.End;
     }
 
     public void Flush()
     {
-        WriteContent("net.json", _stats.Net.ToString());
-        WriteContent("train.json", _stats.TrainRecognize.ToString());
-        WriteContent("test.json", _stats.TestRecognize.ToString());
-        WriteContent("errors.json", _stats.TrainErrors.ToString());
-        WriteAndSerialize("layers.json", _layers);
-    }
-
-    private void WriteAndSerialize(string filename, object obj)
-    {
-        var json = JsonConvert.SerializeObject(obj, Formatting.Indented);
-        WriteContent(filename, json);
-    }
-
-    private void WriteContent(string filename, string content)
-    {
-        var filepath = Path.Combine(_workingDirectory, filename);
-        File.WriteAllText(filepath, content);
-    }
-
-    private static JObject ToArrayElement<T>(int epoch, T val)
-    {
-        var container = new StatContainer<T>(epoch, val);
-        return JObject.FromObject(container);
-    }
-
-    private static string GetFullPath()
-    {
-        var directoryName = $"{DateTime.Now:yyyy.M.d hh-mm-ss}";
-        var current = Environment.CurrentDirectory;
-        return Path.Combine(current, "..", "..", "Stats", directoryName);
+        _globalData.Set(new EpochNetStats { Epoch = _lastEpoch });
     }
 }

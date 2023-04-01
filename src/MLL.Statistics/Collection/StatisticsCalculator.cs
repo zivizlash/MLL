@@ -6,25 +6,20 @@ namespace MLL.Statistics.Collection;
 public class StatisticsCalculator
 {
     private readonly IImageDataSetProvider _testSetProvider;
-    private readonly IImageDataSetProvider _trainSetProvider;
-
     private float[]? _outputErrors;
 
-    public StatisticsCalculator(IImageDataSetProvider testSetProvider,
-        IImageDataSetProvider trainSetProvider)
+    public StatisticsCalculator(IImageDataSetProvider testSetProvider)
     {
         _testSetProvider = testSetProvider;
-        _trainSetProvider = trainSetProvider;
     }
 
     public StatisticsInfo Calculate(ClassificationEngine net, EpochRange epochRange)
     {
         NormalizeErrorPerEpoch(_outputErrors!, epochRange);
         var testRecognized = Recognize(net, _testSetProvider, true);
-        var trainRecognized = Recognize(net, _trainSetProvider, false);
         var trainErrors = new NeuronErrorStats(_outputErrors!);
 
-        return new StatisticsInfo(testRecognized, trainRecognized, trainErrors, epochRange, net);
+        return new StatisticsInfo(testRecognized, trainErrors, epochRange, net);
     }
 
     public void Clear()
@@ -37,7 +32,9 @@ public class StatisticsCalculator
         _outputErrors ??= new float[error.Length];
 
         for (var i = 0; i < error.Length; i++)
+        {
             _outputErrors[i] += Math.Abs(error[i]);
+        }
     }
 
     private static void NormalizeErrorPerEpoch(float[] errors, EpochRange epochRange)
@@ -46,7 +43,9 @@ public class StatisticsCalculator
         if (epochCount == 0) return;
 
         for (int i = 0; i < errors.Length; i++)
+        {
             errors[i] /= epochCount;
+        }
     }
 
     private static int GetDelta(EpochRange range)
