@@ -18,6 +18,20 @@ public static class ImageTools
         return greyscale;
     }
 
+    public static float[] RgbToSingles(byte[] pixels)
+    {
+        var greyscale = new float[pixels.Length];
+
+        for (int pi = 0; pi < pixels.Length; pi += 3)
+        {
+            greyscale[pi + 0] = pixels[pi + 0] / 255.0f;
+            greyscale[pi + 1] = pixels[pi + 1] / 255.0f;
+            greyscale[pi + 2] = pixels[pi + 2] / 255.0f;
+        }
+
+        return greyscale;
+    }
+
     private static float[] NormalizeAndConvert(MagickImage magickImage, ImageDataSetOptions options)
     {
         magickImage.Resize(new MagickGeometry(options.Width, options.Height));
@@ -33,6 +47,13 @@ public static class ImageTools
 
     public static float[] LoadImageData(string filepath, ImageDataSetOptions options) =>
         NormalizeAndConvert(new MagickImage(new FileInfo(filepath)), options);
+
+    public static float[] LoadImageDataRaw(string filepath)
+    {
+        var image = new MagickImage(new FileInfo(filepath));
+        var pixels = image.GetPixels().ToByteArray(PixelMapping.RGB)!;
+        return RgbToSingles(pixels);
+    }
 
     // not tested
     public static void NormalizePixels(double[] pixels)
