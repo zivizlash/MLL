@@ -6,5 +6,4 @@ public interface IImageDataSet
     public int Count { get; }
     ImageDataSetOptions Options { get; }
     ImageData this[int index] { get; }
-    void EnsureAllImagesLoaded();
 }

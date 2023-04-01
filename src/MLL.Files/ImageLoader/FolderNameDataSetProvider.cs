@@ -23,25 +23,30 @@ public class FolderNameDataSetProvider : IImageDataSetProvider
     public IImageDataSet GetDataSet(string name, object value)
     {
         if (!_cachedFolders.TryGetValue(name, out var folder))
+        {
             folder = _cachedFolders[name] = _dataSetNameToFolder.Invoke(name);
+        }
 
         if (string.IsNullOrEmpty(folder))
+        {
             throw new ArgumentOutOfRangeException(nameof(name));
+        }
 
         if (_dataSets.TryGetValue(folder, out var imageDataSet))
+        {
             return imageDataSet;
+        }
 
         var filesProvider = _filesProviderFactory.Create(folder);
         var imageData = new ImageDataSet(filesProvider, value, _options);
         return _dataSets[folder] = imageData;
     }
 
-    public int GetLargestImageDataSetCount(IEnumerable<(string name, object value)> indices) =>
-        indices.Select(t => GetDataSet(t.name, t.value).Count).Max();
-
-    public void LoadAllImages(IEnumerable<(string name, object value)> indices)
+    public IImageDataSet[] GetDataSets()
     {
-        foreach (var dataSet in _dataSets.Values)
-            dataSet.EnsureAllImagesLoaded();
+        //Enumerable.Range(0, 10)
+        //    .Select(number => GetDataSet(number.ToString(), number));
+
+        throw new NotImplementedException();
     }
 }
