@@ -5,10 +5,10 @@ namespace MLL.Statistics.Collection;
 
 public class StatisticsCalculator
 {
-    private readonly IImageDataSetProvider _testSetProvider;
+    private readonly IDataSetProvider _testSetProvider;
     private float[]? _outputErrors;
 
-    public StatisticsCalculator(IImageDataSetProvider testSetProvider)
+    public StatisticsCalculator(IDataSetProvider testSetProvider)
     {
         _testSetProvider = testSetProvider;
     }
@@ -54,7 +54,7 @@ public class StatisticsCalculator
     }
 
     private static NeuronRecognizedStats Recognize(
-        ClassificationEngine net, IImageDataSetProvider provider, bool isTest)
+        ClassificationEngine net, IDataSetProvider provider, bool isTest)
     {
         var results = new float[10];
         RecognitionPercentCalculator.Calculate(net, provider, results);

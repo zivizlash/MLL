@@ -3,19 +3,19 @@ using MLL.Files.Tools;
 
 namespace MLL.Files.ImageLoader;
 
-public class ImageDataSet : IImageDataSet
+public class ImageDataSet : IDataSet
 {
     private readonly IFilesProvider _filesProvider;
     private readonly Dictionary<int, ImageData> _indexToImage;
 
     public ImageDataSetOptions Options { get; }
 
-    public object Value { get; }
+    public float[] Value { get; }
     public int Count => _filesProvider.Count;
 
     public ImageData this[int index] => GetOrLoad(index);
 
-    public ImageDataSet(IFilesProvider filesProvider, object value, ImageDataSetOptions options)
+    public ImageDataSet(IFilesProvider filesProvider, float[] value, ImageDataSetOptions options)
     {
         Options = options;
         Value = value ?? throw new ArgumentNullException(nameof(value));

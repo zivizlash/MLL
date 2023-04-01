@@ -45,32 +45,34 @@ public class NetBranches
 
         for (int i = 0; i < branchesCount; i++)
         {
-            var net = factory.Create(isForTrain: false);
+            var net = factory.Create(forTrain: false);
             _branches[i] = new NetBranchContext(i, net);
             _randoms[i] = new Random(447 + i);
         }
     }
 
-    private void CalculateNetScore(IImageDataSet[] dataSets, float[] results, int layerIndex, NetBranchContext branch)
+    private void CalculateNetScore(IDataSet[] dataSets, float[] results, int layerIndex, NetBranchContext branch)
     {
+        throw new NotImplementedException();
+
         foreach (var dataSet in dataSets)
         {
-            var number = (int)dataSet.Value;
+            var number = dataSet.Value;
 
-            for (int imageIndex = 0; imageIndex < dataSet.Count; imageIndex++)
-            {
-                var image = dataSet[imageIndex];
-                var result = branch.Net.Predict(image.Data);
+            //for (int imageIndex = 0; imageIndex < dataSet.Count; imageIndex++)
+            //{
+            //    var image = dataSet[imageIndex];
+            //    var result = branch.Net.Predict(image.Data);
 
-                for (int resultIndex = 0; resultIndex < result.Length; resultIndex++)
-                {
-                    var resultValue = result[resultIndex];
-                    var expected = resultIndex == number ? 1.0f : -1.0f;
+            //    for (int resultIndex = 0; resultIndex < result.Length; resultIndex++)
+            //    {
+            //        var resultValue = result[resultIndex];
+            //        var expected = resultIndex == number ? 1.0f : -1.0f;
 
-                    var score = MathTools.GetCloseness(resultValue, expected, 2);
-                    results[branch.Id] += score;
-                }
-            }
+            //        var score = MathTools.GetCloseness(resultValue, expected, 2);
+            //        results[branch.Id] += score;
+            //    }
+            //}
         }
     }
 
@@ -82,7 +84,7 @@ public class NetBranches
         }
     }
 
-    public float[] Train(IImageDataSet[] dataSets)
+    public float[] Train(IDataSet[] dataSets)
     {
         var commonScore = dataSets.Sum(ds => ds.Count);
         var results = new float[_branches.Length];

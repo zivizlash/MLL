@@ -2,18 +2,15 @@
 using MLL.Common.Builders.Computers;
 using MLL.Common.Builders.Weights;
 using MLL.Common.Engines;
-using MLL.Common.Factory;
 using MLL.Common.Files;
-using MLL.Common.Layer;
+using MLL.Common.Manager;
 using MLL.Common.Optimization;
 using MLL.Common.Tools;
 using MLL.Computers.Factory;
 using MLL.Computers.Factory.Defines;
 using MLL.CUI.Options;
-using MLL.Files.ImageLoader;
 using MLL.Files.Tools;
 using MLL.Repository;
-using MLL.Repository.Data;
 using MLL.Repository.Factory;
 using MLL.Repository.Tools;
 using MLL.Statistics.Collection;
@@ -53,38 +50,6 @@ public class RaceImageRecognitionNetBuilder : NetInfoFillerNetFactory
             .Build();
 }
 
-internal class BranchesNetFactory : RandomFillerNetFactory
-{
-    private readonly ImageRecognitionOptions _options;
-
-    public BranchesNetFactory(ImageRecognitionOptions options) : base(options.RandomSeed ?? 0)
-    {
-        _options = options;
-    }
-
-    public override LayerComputerBuilderResult GetComputers(bool isForTrain)
-    {
-        var settings = new ThreadingOptimizatorFactorySettings(100000, 0.2f, 8);
-        var optimizatorFactory = new ThreadingOptimizatorFactory(settings);
-        var computerFactory = new BasicLayerComputerFactory(optimizatorFactory);
-
-        return new LayerComputerBuilder(computerFactory)
-            //.UseLayer<SigmoidLayerDefine>()
-            //.UseLayer<SigmoidLayerDefine>()
-            .UseLayer<SumLayerDefine>()
-            .Build(isForTrain);
-    }
-
-    public override LayerWeightsDefinition[] GetDefinitions()
-    {
-        return LayerWeightsDefinition.Builder
-            .WithInputLayer(10, _options.ImageWidth * _options.ImageHeight)
-            //.WithLayer(10 * 2)
-            //.WithLayer(10)
-            .Build();
-    }
-}
-
 public class Program
 {
     private static void Main()
@@ -101,20 +66,19 @@ public class Program
         var options = ImageRecognitionOptions.Default;
         var factory = new RaceImageRecognitionNetBuilder(netInfo, options);
 
-        var net = factory.Create(true);
-
+        var net = factory.Create(forTrain: true);
         var epochStats = netInfo.Data.GetOrNew<EpochNetStats>();
-        var errorStats = netInfo.Data.GetOrNew<NeuronErrorStats>();
         
-        var netManager = new NetManager(net, options.LearningRate, epochStats, errorStats);
-        var testSet = CreateSetDataProvider(false);
+        var netManager = new NetManager(net, options.LearningRate, epochStats.Epoch);
+        var testSet = CreateSetDataProvider(isEven: false);
 
         if (args.Train)
         {
-            var trainSet = CreateSetDataProvider(true);
-            var stats = CreateStatisticsManager(delimmer, testSet, net, netInfo, netInfo.Data);
+            var testNet = factory.Create(forTrain: false);
+            var trainSet = CreateSetDataProvider(isEven: true);
+            var stats = CreateStatisticsManager(delimmer, testSet, testNet, netInfo);
 
-            netManager.Train(trainSet, stats);
+            netManager.Train(trainSet, stats, ArgumentParser.IsExitRequested);
             stats.Flush();
         }
 
@@ -136,24 +100,18 @@ public class Program
         });
     }
 
-    private static StatisticsManager CreateStatisticsManager(int delimmer, IImageDataSetProvider test, 
-        ClassificationEngine net, INetInfo netInfo, INetData globalData)
+    private static StatisticsManager CreateStatisticsManager(int delimmer, 
+        IDataSetProvider test, ClassificationEngine net, INetInfo netInfo)
     {
         var statCalc = new StatisticsCalculator(test);
 
-        var statSaver = new StatisticsSaver(netInfo, globalData);
+        var statSaver = new StatisticsSaver(netInfo, netInfo.Data);
         var statConsoleWriter = new StatisticsConsoleWriter();
 
         var processors = new IStatProcessor[] { statConsoleWriter, statSaver };
         return new StatisticsManager(statCalc, processors, delimmer, net);
     }
-
-    private static ClassificationEngine CreateNetManager(LayerComputerBuilderResult result, IEnumerable<LayerWeights> weights) =>
-        new ClassificationEngine(
-            result.Computers, weights, 
-            new OptimizationManager(result.Collectors), 
-            NetLayersBuffers.CreateByWeights(weights));
-
+    
     private static IConfiguration CreateConfiguration() =>
         new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
@@ -161,23 +119,16 @@ public class Program
             .AddEnvironmentVariables()
             .Build();
 
-    private static IImageDataSetProvider CreateSetDataProvider(bool isEven) =>
+    private static IDataSetProvider CreateSetDataProvider(bool isEven) =>
         new JsonDataSetProvider("C:\\Auto\\screenshots", isEven);
-
-    private static IImageDataSetProvider CreateDataSetProvider(bool isEven, ImageRecognitionOptions options) =>
-        new FolderNameDataSetProvider(new NotOrEvenFilesProviderFactory(isEven),
-            NameToFolder, options.ImageWidth, options.ImageHeight);
-
-    private static string NameToFolder(string name) =>
-        $"C:\\Auto\\datasets\\Font\\Font\\Sample{int.Parse(name) + 1:d3}";
 }
 
-public class JsonDataSetProvider : IImageDataSetProvider
+public class JsonDataSetProvider : IDataSetProvider
 {
     private readonly string _folder;
     private readonly bool _isEven;
     private readonly Info[] _infos;
-    private IImageDataSet[]? _imageDataSet;
+    private IDataSet[]? _imageDataSet;
 
     public JsonDataSetProvider(string folder, bool isEven = false)
     {
@@ -188,7 +139,7 @@ public class JsonDataSetProvider : IImageDataSetProvider
         _infos = JsonConvert.DeserializeObject<Info[]>(json) ?? throw new InvalidOperationException();
     }
 
-    public IImageDataSet[] GetDataSets()
+    public IDataSet[] GetDataSets()
     {
         var counter = _isEven ? 0 : 1;
 
@@ -210,7 +161,7 @@ public class JsonDataSetProvider : IImageDataSetProvider
             .ToArray();
     }
 
-    public class FileImageDataSet : IImageDataSet
+    public class FileImageDataSet : IDataSet
     {
         public ImageData this[int index]
         {
@@ -227,13 +178,13 @@ public class JsonDataSetProvider : IImageDataSetProvider
 
         private readonly ImageData _image;
 
-        public object Value { get; }
+        public float[] Value { get; }
 
         public int Count => 1;
 
         public ImageDataSetOptions Options { get; }
 
-        public FileImageDataSet(ImageDataSetOptions options, object value, ImageData imageData)
+        public FileImageDataSet(ImageDataSetOptions options, float[] value, ImageData imageData)
         {
             Options = options;
             Value = value;

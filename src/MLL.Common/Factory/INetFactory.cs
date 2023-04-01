@@ -48,5 +48,5 @@ public abstract class NetFactory : INetFactory
 
 public interface INetFactory
 {
-    ClassificationEngine Create(bool isForTrain);
+    ClassificationEngine Create(bool forTrain);
 }

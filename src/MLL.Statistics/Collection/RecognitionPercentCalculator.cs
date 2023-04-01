@@ -6,7 +6,7 @@ namespace MLL.Statistics.Collection;
 
 public struct RecognitionPercentCalculator
 {
-    public static void Calculate(ClassificationEngine net, IImageDataSetProvider dataSetProvider, Span<float> percentage)
+    public static void Calculate(ClassificationEngine net, IDataSetProvider dataSetProvider, Span<float> percentage)
     {
         Check.LengthEqual(percentage.Length, 10, nameof(percentage));
 

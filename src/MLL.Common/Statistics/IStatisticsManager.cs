@@ -1,6 +1,6 @@
 ﻿using MLL.Common.Engines;
 
-namespace MLL.Statistics.Collection;
+namespace MLL.Common.Statistics;
 
 public interface IStatisticsManager
 {
