@@ -1,4 +1,5 @@
 ﻿using MLL.Repository;
+using MLL.Repository.Data;
 
 namespace MLL.Statistics.Collection.Processors;
 
