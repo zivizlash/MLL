@@ -20,9 +20,31 @@ public static class VectorCalculator
         float sum = Vector.Sum(accVector);
 
         for (; i < arr.Length; i++)
+        {
             sum += MathF.Abs(arr[i]);
+        }
 
         return sum;
+    }
+
+    public static void Substract(float[] arr1, float[] arr2, float[] result)
+    {
+        var vectorSize = Vector<float>.Count;
+        
+        int i;
+
+        for (i = 0; i < arr1.Length - vectorSize; i += vectorSize)
+        {
+            var v1 = new Vector<float>(arr1, i);
+            var v2 = new Vector<float>(arr2, i);
+
+            Vector.Subtract(v2, v1).CopyTo(result, i);
+        }
+
+        for (; i < arr1.Length; i++)
+        {
+            result[i] = arr2[i] - arr1[i];
+        }
     }
 
     public static float CalculateMultiplySum(float[] arr1, float[] arr2)
@@ -45,7 +67,9 @@ public static class VectorCalculator
         float sum = Vector.Sum(accVector);
 
         for (; i < arr1.Length; i++)
+        {
             sum += arr1[i] * arr2[i];
+        }
 
         return sum;
     }

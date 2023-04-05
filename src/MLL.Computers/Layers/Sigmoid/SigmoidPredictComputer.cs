@@ -2,7 +2,7 @@
 using MLL.Common.Layer.Computers;
 using MLL.Common.Threading;
 using MLL.Common.Tools;
-using MLL.Computers.Layers.Sigmoid.WorkItems;
+using MLL.Computers.Layers.Common.WorkInfo;
 using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sigmoid;
@@ -13,27 +13,45 @@ public class SigmoidPredictComputer : IPredictComputer, IThreadedComputer
 
     private SigmoidPredictWorkItem[] _workItems = Array.Empty<SigmoidPredictWorkItem>();
 
-    public void Predict(LayerWeights layer, float[] input, float[] results)
+    public SigmoidPredictComputer()
     {
         ThreadInfo = new(1);
+    }
+
+    public void Predict(LayerWeights layer, float[] input, float[] results)
+    {
         var neurons = layer.Weights;
 
         Check.LengthEqual(neurons.Length, results.Length, nameof(results));
         Check.LengthEqual(neurons[0].Length, input.Length, nameof(input));
 
-        var fork = ForkHelper.Create(ThreadInfo, neurons.Length);
-
+        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length);
         WorkItemsFiller.EnsurePredictWorkItems(ref _workItems, layer, input, results, fork);
-        ThreadTools.ExecuteOnThreadPool(_workItems, fork.ThreadsCount);
+        ThreadTools.ExecuteOnThreadPool(_workItems, fork.Countdown);
+    }
 
-        var (start, _) = ThreadTools.Loop(fork.ProcessingCount, fork.ThreadsCount);
+    private class SigmoidPredictWorkItem : IHasExecuteDelegate, IHasPredictWorkInfo
+    {
+        public PredictWorkInfo WorkInfo { get; set; }
+        public Action<object?> ExecuteDelegate { get; }
 
-        for (int ni = start; ni < neurons.Length; ni++)
+        public SigmoidPredictWorkItem()
         {
-            var sum = VectorCalculator.CalculateMultiplySum(neurons[ni], input);
-            results[ni] = NumberTools.Sigmoid(sum);
+            ExecuteDelegate = Execute;
         }
 
-        fork.Countdown?.Wait();
+        public void Execute(object? _)
+        {
+            var neurons = WorkInfo.Layer.Weights;
+            var (start, stop) = WorkInfo.ProcessingRange;
+
+            for (int ni = start; ni < stop; ni++)
+            {
+                var sum = VectorCalculator.CalculateMultiplySum(neurons[ni], WorkInfo.Input);
+                WorkInfo.Results[ni] = NumberTools.Sigmoid(sum);
+            }
+
+            WorkInfo.Countdown?.Signal();
+        }
     }
 }

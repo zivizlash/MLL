@@ -156,7 +156,7 @@ public class JsonDataSetProvider : IDataSetProvider
                 Array.Copy(sourceImageData, 0, imageData, 0, sourceImageData.Length);
                 imageData[^1] = 1;
 
-                return new FileImageDataSet(options, value, new ImageData(value, imageData));
+                return new FileImageDataSet(options, value, new SetData(imageData));
             })
             .ToArray();
     }

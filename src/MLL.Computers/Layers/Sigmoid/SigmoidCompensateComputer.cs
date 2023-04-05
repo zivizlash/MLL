@@ -2,7 +2,7 @@
 using MLL.Common.Layer.Computers;
 using MLL.Common.Threading;
 using MLL.Common.Tools;
-using MLL.Computers.Layers.Sigmoid.WorkItems;
+using MLL.Computers.Layers.Common.WorkInfo;
 using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sigmoid;
@@ -13,39 +13,57 @@ public class SigmoidCompensateComputer : ICompensateComputer, IThreadedComputer
 
     private SigmoidCompensateWorkItem[] _workItems = Array.Empty<SigmoidCompensateWorkItem>();
 
+    public SigmoidCompensateComputer()
+    {
+        ThreadInfo = new LayerThreadInfo(1);
+    }
+
     public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
     {
-        ThreadInfo = new(1);
         var neurons = layer.Weights;
 
         Check.LengthEqual(neurons[0].Length, input.Length, nameof(input));
         Check.LengthEqual(neurons.Length, errors.Length, nameof(errors));
         Check.LengthEqual(neurons.Length, outputs.Length, nameof(outputs));
 
-        var fork = ForkHelper.Create(ThreadInfo, neurons.Length);
-
+        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length);
         WorkItemsFiller.EnsureCompensateWorkItems(ref _workItems, layer, input, learningRate, errors, outputs, fork);
-        ThreadTools.ExecuteOnThreadPool(_workItems, fork.ThreadsCount);
-
-        var (start, _) = ThreadTools.Loop(outputs.Length, fork.ThreadsCount);
-
-        for (int ni = start; ni < neurons.Length; ni++)
-        {
-            var weights = neurons[ni];
-            var generalError = GetGeneralError(learningRate, outputs[ni], errors[ni]);
-
-            for (int wi = 0; wi < weights.Length; wi++)
-            {
-                weights[wi] += generalError * input[wi];
-            }
-        }
-
-        fork.Countdown?.Wait();
+        ThreadTools.ExecuteOnThreadPool(_workItems, fork.Countdown);
     }
 
-    private static float GetGeneralError(float learningRate, float output, float error)
+    public class SigmoidCompensateWorkItem : IHasExecuteDelegate, IHasCompensateWorkInfo
     {
-        float sigmoidDerivative = NumberTools.SigmoidDerivative(output);
-        return learningRate * error * sigmoidDerivative;
+        public CompensateWorkInfo WorkInfo { get; set; }
+        public Action<object?> ExecuteDelegate { get; }
+
+        public SigmoidCompensateWorkItem()
+        {
+            ExecuteDelegate = Execute;
+        }
+
+        public void Execute(object? _)
+        {
+            var neurons = WorkInfo.Layer.Weights;
+            var (start, stop) = WorkInfo.ProcessingRange;
+
+            for (int ni = start; ni < stop; ni++)
+            {
+                var weights = neurons[ni];
+                var generalError = GetGeneralError(WorkInfo.LearningRate, WorkInfo.Outputs[ni], WorkInfo.Errors[ni]);
+
+                for (int wi = 0; wi < weights.Length; wi++)
+                {
+                    weights[wi] += generalError * WorkInfo.Input[wi];
+                }
+            }
+
+            WorkInfo.Countdown?.Signal();
+        }
+
+        private static float GetGeneralError(float learningRate, float output, float error)
+        {
+            float sigmoidDerivative = NumberTools.SigmoidDerivative(output);
+            return learningRate * error * sigmoidDerivative;
+        }
     }
 }

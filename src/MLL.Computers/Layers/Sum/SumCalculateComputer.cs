@@ -1,14 +1,14 @@
 ﻿using MLL.Common.Layer.Computers;
 using MLL.Common.Threading;
 using MLL.Common.Tools;
-using MLL.Computers.Layers.Sum.WorkItems;
+using MLL.Computers.Layers.Common.WorkItems;
 using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sum;
 
 public class SumCalculateComputer : ICalculateComputer, IThreadedComputer
 {
-    private SumErrorCalcWorkItem[] _items = Array.Empty<SumErrorCalcWorkItem>();
+    private CommonErrorCalcWorkItem[] _items = Array.Empty<CommonErrorCalcWorkItem>();
 
     public LayerThreadInfo ThreadInfo { get; set; }
 
@@ -22,18 +22,8 @@ public class SumCalculateComputer : ICalculateComputer, IThreadedComputer
         Check.LengthEqual(outputs.Length, errors.Length, nameof(errors));
         Check.LengthEqual(outputs.Length, expected.Length, nameof(expected));
 
-        var fork = ForkHelper.Create(ThreadInfo, outputs.Length);
-
+        var fork = ForkJoinHelper.Create(ThreadInfo, outputs.Length);
         WorkItemsFiller.EnsureCalculateWorkItems(ref _items, outputs, expected, errors, fork);
-        ThreadTools.ExecuteOnThreadPool(_items, fork.ThreadsCount);
-
-        var (start, _) = ThreadTools.Loop(fork.ProcessingCount, fork.ThreadsCount);
-
-        for (int neuronIndex = start; neuronIndex < outputs.Length; neuronIndex++)
-        {
-            errors[neuronIndex] = expected[neuronIndex] - outputs[neuronIndex];
-        }
-
-        fork.Countdown?.Wait();
+        ThreadTools.ExecuteOnThreadPool(_items, fork.Countdown);
     }
 }

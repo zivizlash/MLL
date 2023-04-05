@@ -11,9 +11,9 @@ public class StatisticsManager : IStatisticsManager
 
     private readonly object _locker = new();
     private readonly ClassificationEngine _computers;
+    private readonly int _delimmer;
 
     private LayerWeights[]? _netCopy;
-    private int _delimmer;
 
     public StatisticsManager(StatisticsCalculator calculator, IStatProcessor[] processors,
         int delimmer, ClassificationEngine computers)
@@ -33,13 +33,16 @@ public class StatisticsManager : IStatisticsManager
     {
         if (epoch % _delimmer != 0) return;
 
-        var localCopy = _netCopy;
-        var copy = NetReplicator.Copy(net, _computers, ref localCopy);
+        lock (_locker)
+        {
+            var localCopy = _netCopy;
+            var copy = NetReplicator.Copy(net, _computers, ref localCopy);
 
-        var container = new StatContainer<ClassificationEngine>(epoch, copy);
-        _netCopy = localCopy;
+            var container = new StatContainer<ClassificationEngine>(epoch, copy);
+            _netCopy = localCopy;
 
-        ThreadPool.QueueUserWorkItem(Process, container, false);
+            ThreadPool.QueueUserWorkItem(Process, container, false);
+        }
     }
 
     public void Flush()

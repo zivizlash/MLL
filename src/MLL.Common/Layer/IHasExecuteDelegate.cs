@@ -2,5 +2,5 @@
 
 public interface IHasExecuteDelegate
 {
-    WaitCallback ExecuteDelegate { get; }
+    Action<object?> ExecuteDelegate { get; }
 }

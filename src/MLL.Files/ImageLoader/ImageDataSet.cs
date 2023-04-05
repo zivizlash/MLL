@@ -40,6 +40,6 @@ public class ImageDataSet : IDataSet
         using var imageStream = _filesProvider.OpenStream(index, out _);
 
         var imageValue = ImageTools.LoadImageData(imageStream, Options);
-        return _indexToImage[index] = new ImageData(Value, imageValue);
+        return _indexToImage[index] = new SetData(imageValue);
     }
 }

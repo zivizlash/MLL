@@ -2,23 +2,40 @@
 
 namespace MLL.Computers.Tools;
 
-public static class ThreadTools
+public readonly struct ProcessingRange
 {
-    public static void ExecuteOnThreadPool(IHasExecuteDelegate[] hasDelegates, int threadsCount)
+    public readonly int Start;
+    public readonly int Stop;
+
+    public ProcessingRange(int start, int stop)
     {
-        if (threadsCount > 0)
-        {
-            for (int i = 0; i < hasDelegates.Length; i++)
-            {
-                ThreadPool.QueueUserWorkItem(hasDelegates[i].ExecuteDelegate);
-            }
-        }
+        Start = start; Stop = stop;
     }
 
-    public static (int start, int end) Loop(int itemsPerThread, int index)
+    public void Deconstruct(out int start, out int stop)
+    {
+        start = Start;
+        stop = Stop;
+    }
+}
+
+public static class ThreadTools
+{
+    public static void ExecuteOnThreadPool(IHasExecuteDelegate[] works, CountdownEvent? countdown)
+    {
+        for (int i = 0; i < works.Length - 1; i++)
+        {
+            ThreadPool.QueueUserWorkItem(works[i].ExecuteDelegate, null, false);
+        }
+
+        works[^1].ExecuteDelegate.Invoke(null);
+        countdown?.Wait();
+    }
+
+    public static ProcessingRange Loop(int itemsPerThread, int index)
     {
         int start = index * itemsPerThread;
-        return (start, start + itemsPerThread);
+        return new ProcessingRange(start, start + itemsPerThread);
     }
 
     public static int Counts(int threadsCount, int itemsCount)
