@@ -31,11 +31,11 @@ public class ThreadingOptimizatorFactory : IThreadingOptimizatorFactory
         return Create(timeTracker, param, с => с.Predict = computer);
     }
 
-    public (ICalculateComputer, IOptimizator) Create(
-        ICalculateComputer computer, OptimizatorFactoryParams param)
+    public (IErrorComputer, IOptimizator) Create(
+        IErrorComputer computer, OptimizatorFactoryParams param)
     {
-        var timeTracker = new CalculateComputerTimeTracker(computer);
-        return Create(timeTracker, param, с => с.Calculate = computer);
+        var timeTracker = new ErrorComputerTimeTracker(computer);
+        return Create(timeTracker, param, с => с.Error = computer);
     }
 
     public (IErrorBackpropagation, IOptimizator) Create(

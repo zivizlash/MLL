@@ -31,7 +31,7 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
         bool isSigmoid = typeof(SigmoidLayerDefine) == type;
         
         var computers = new LayerComputers(
-            new SumCalculateComputer(), 
+            new CommonErrorComputer(), 
             CreatePredict(isSigmoid), 
             CreateCompensate(isSigmoid), 
             new ThreadedErrorBackpropagation());
@@ -60,9 +60,9 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
 
         if (param.IsRequiredErrorCalculation)
         {
-            var arg = CreateParams(computers.Calculate);
-            var (calculate, opt) = _factory.Create(computers.Calculate, arg);
-            computers.Calculate = calculate;
+            var arg = CreateParams(computers.Error);
+            var (calculate, opt) = _factory.Create(computers.Error, arg);
+            computers.Error = calculate;
             yield return opt;
         }
 

@@ -146,7 +146,7 @@ public class NetMementoTests
         for (int i = 0; i < count; i++)
         {
             computers[i] = new LayerComputers(
-                Mock.Of<ICalculateComputer>(), Mock.Of<IPredictComputer>(),
+                Mock.Of<IErrorComputer>(), Mock.Of<IPredictComputer>(),
                 Mock.Of<ICompensateComputer>(), Mock.Of<IErrorBackpropagation>());
         }
 

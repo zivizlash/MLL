@@ -6,13 +6,13 @@ using MLL.Computers.Tools;
 
 namespace MLL.Computers.Layers.Sum;
 
-public class SumCalculateComputer : ICalculateComputer, IThreadedComputer
+public class CommonErrorComputer : IErrorComputer, IThreadedComputer
 {
     private CommonErrorCalcWorkItem[] _items = Array.Empty<CommonErrorCalcWorkItem>();
 
     public LayerThreadInfo ThreadInfo { get; set; }
 
-    public SumCalculateComputer()
+    public CommonErrorComputer()
     {
         ThreadInfo = new LayerThreadInfo(1);
     }

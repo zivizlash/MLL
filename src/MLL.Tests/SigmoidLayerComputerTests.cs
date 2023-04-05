@@ -16,13 +16,13 @@ public class SigmoidLayerComputerTests
     public SigmoidLayerComputerTests()
     {
         _layerComputer = new LayerComputers(
-            new SumCalculateComputer { ThreadInfo = new(1) },
+            new CommonErrorComputer { ThreadInfo = new(1) },
             new SigmoidPredictComputer { ThreadInfo = new(1) },
             new SigmoidCompensateComputer { ThreadInfo = new(1) }, 
             new ErrorBackpropagation());
 
         _threadedLayerComputer = new LayerComputers(
-            new SumCalculateComputer { ThreadInfo = new(8) },
+            new CommonErrorComputer { ThreadInfo = new(8) },
             new SigmoidPredictComputer { ThreadInfo = new(8) },
             new SigmoidCompensateComputer { ThreadInfo = new(8) },
             new ThreadedErrorBackpropagation {  ThreadInfo = new(1) });
@@ -72,8 +72,8 @@ public class SigmoidLayerComputerTests
         var expected = Helper.FillRandom(random, new float[10]);
         var outputs = Helper.FillRandom(random, new float[10]);
 
-        _layerComputer.Calculate.CalculateErrors(outputs, expected, errors);
-        _threadedLayerComputer.Calculate.CalculateErrors(outputs, expected, threadedErrors);
+        _layerComputer.Error.CalculateErrors(outputs, expected, errors);
+        _threadedLayerComputer.Error.CalculateErrors(outputs, expected, threadedErrors);
 
         CollectionAssert.AreEqual(errors, threadedErrors);
     }

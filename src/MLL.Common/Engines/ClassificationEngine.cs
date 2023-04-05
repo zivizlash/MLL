@@ -212,7 +212,7 @@ public class SupervisedTrainer
         var computer = ctx.Computers[^1];
         var layers = ctx.Weights.Layers;
 
-        computer.Calculate.CalculateErrors(output, expected, errorBuffer);
+        computer.Error.CalculateErrors(output, expected, errorBuffer);
         computer.Compensate.Compensate(layers[^1], previousOutput, ctx.LearningRate, errorBuffer, output);
 
         return errorBuffer;
