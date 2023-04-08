@@ -173,7 +173,7 @@ public class NaiveVsVectorizedSubstractBench
     [Benchmark]
     public void Vectorized()
     {
-        VectorCalculator.Substract(_actual, _expected, _results);
+        VectorCalculator.Substract(_actual, _expected, _results, 0, _actual.Length);
     }
 }
 

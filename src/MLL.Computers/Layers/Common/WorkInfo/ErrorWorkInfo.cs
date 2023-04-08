@@ -1,4 +1,4 @@
-﻿using MLL.Computers.Tools;
+﻿using MLL.Common.Tools;
 
 namespace MLL.Computers.Layers.Common.WorkInfo;
 
