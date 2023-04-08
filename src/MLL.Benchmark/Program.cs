@@ -2,6 +2,7 @@
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+using MLL.Computers.Tools;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -9,12 +10,9 @@ using System.Runtime.Intrinsics.X86;
 
 namespace MLL.Benchmark;
 
-public class NaiveVsVectorBench
+public static class Tools
 {
-    private readonly double[] _input;
-    private readonly double[] _weights;
-
-    private static double[] GetRandomArray(Random rnd, int count)
+    public static double[] GetRandomArray(Random rnd, int count)
     {
         var data = new double[count];
 
@@ -24,11 +22,27 @@ public class NaiveVsVectorBench
         return data;
     }
 
+    public static float[] GetSingleRandomArray(Random rnd, int count)
+    {
+        var data = new float[count];
+
+        for (int i = 0; i < data.Length; i++)
+            data[i] = rnd.NextSingle();
+
+        return data;
+    }
+}
+
+public class NaiveVsVectorBench
+{
+    private readonly double[] _input;
+    private readonly double[] _weights;
+
     public NaiveVsVectorBench()
     {
         var rnd = new Random(42);
-        _input = GetRandomArray(rnd, 16 * 1024);
-        _weights = GetRandomArray(rnd, 16 * 1024);
+        _input = Tools.GetRandomArray(rnd, 16 * 1024);
+        _weights = Tools.GetRandomArray(rnd, 16 * 1024);
     }
 
     [Benchmark]
@@ -84,6 +98,7 @@ public class NaiveVsVectorBench
                 {
                     var v1 = Avx2.LoadVector256(weightsPtr + i);
                     var v2 = Avx2.LoadVector256(inputPtr + i);
+
                     accVector = Avx2.Add(accVector, Avx2.Multiply(v1, v2));
                 }
             }
@@ -128,6 +143,40 @@ public class NaiveVsVectorBench
     }
 }
 
+public class NaiveVsVectorizedSubstractBench
+{
+    private readonly float[] _actual;
+    private readonly float[] _expected;
+    private readonly float[] _results;
+
+    public NaiveVsVectorizedSubstractBench()
+    {
+        var rnd = new Random(42);
+        var count = 16 * 1024 * 1024;
+
+        _actual = Tools.GetSingleRandomArray(rnd, count);
+        _expected = Tools.GetSingleRandomArray(rnd, count);
+        _results = new float[count];
+    }
+
+    [Benchmark(Baseline = true)]
+    public float[] Naive()
+    {
+        for (int i = 0; i < _results.Length; i++)
+        {
+            _results[i] = _expected[i] - _actual[i];
+        }
+
+        return _results;
+    }
+
+    [Benchmark]
+    public void Vectorized()
+    {
+        VectorCalculator.Substract(_actual, _expected, _results);
+    }
+}
+
 public class BenchConfig : ManualConfig
 {
     public BenchConfig()
@@ -146,7 +195,9 @@ public class Program
 {
     public static void Main()
     {
-        var config = ManualConfig.Union(DefaultConfig.Instance, new BenchConfig());
-        BenchmarkRunner.Run<NaiveVsVectorBench>(config);
+        //var config = ManualConfig.Union(DefaultConfig.Instance, new BenchConfig());
+        //BenchmarkRunner.Run<NaiveVsVectorBench>(config);
+
+        BenchmarkRunner.Run<NaiveVsVectorizedSubstractBench>(DefaultConfig.Instance);
     }
 }

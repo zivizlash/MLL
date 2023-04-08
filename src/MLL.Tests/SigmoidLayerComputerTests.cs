@@ -25,7 +25,7 @@ public class SigmoidLayerComputerTests
             new CommonErrorComputer { ThreadInfo = new(8) },
             new SigmoidPredictComputer { ThreadInfo = new(8) },
             new SigmoidCompensateComputer { ThreadInfo = new(8) },
-            new ThreadedErrorBackpropagation {  ThreadInfo = new(1) });
+            new ThreadedErrorBackpropagation { ThreadInfo = new(1) });
     }
 
     [Test]

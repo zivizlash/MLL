@@ -37,10 +37,32 @@ public struct ForkJoinHelper
 
     public static ForkJoinHelper Create(LayerThreadInfo threadInfo, int neuronsCount)
     {
-        int threadsCount = Math.Min(threadInfo.Threads, neuronsCount);
-        var countdown = threadsCount > 1 ? new CountdownEvent(threadsCount) : null;
-        int processingCount = ThreadTools.Counts(threadInfo.Threads, neuronsCount);
+        CountdownEvent? countdown = null;
+        return Create(threadInfo, neuronsCount, ref countdown);
+    }
 
+    public static ForkJoinHelper Create(LayerThreadInfo threadInfo, int neuronsCount, ref CountdownEvent? countdown)
+    {
+        int threadsCount = Math.Min(threadInfo.Threads, neuronsCount);
+
+        if (threadsCount > 1)
+        {
+            if (countdown == null)
+            {
+                countdown = new CountdownEvent(threadsCount);
+            }
+            else
+            {
+                countdown.Reset(threadsCount);
+            }
+        }
+        else
+        {
+            countdown?.Dispose();
+            countdown = null;
+        }
+
+        int processingCount = ThreadTools.Counts(threadInfo.Threads, neuronsCount);
         return new ForkJoinHelper(neuronsCount, threadsCount, processingCount, countdown);
     }
 }

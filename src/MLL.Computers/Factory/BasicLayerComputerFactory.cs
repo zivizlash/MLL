@@ -26,7 +26,10 @@ public class BasicLayerComputerFactory : ILayerComputerFactory
 
     public FactoryResolveResult Resolve(Type type, FactoryResolveParams arg)
     {
-        if (!IsCanResolve(type)) throw new InvalidOperationException();
+        if (!IsCanResolve(type))
+        {
+            throw new InvalidOperationException();
+        }
 
         bool isSigmoid = typeof(SigmoidLayerDefine) == type;
         

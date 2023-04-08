@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace MLL.Computers.Tools;
 
@@ -27,30 +28,42 @@ public static class VectorCalculator
         return sum;
     }
 
-    public static void Substract(float[] arr1, float[] arr2, float[] result)
+    public static void Substract(float[] left, float[] right, float[] result, int startIndex, int stopIndex)
     {
+        if (right.Length != left.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(left));
+        }
+
+        if (right.Length != result.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(result));
+        }
+
         var vectorSize = Vector<float>.Count;
         
         int i;
 
-        for (i = 0; i < arr1.Length - vectorSize; i += vectorSize)
+        for (i = startIndex; i < stopIndex - vectorSize; i += vectorSize)
         {
-            var v1 = new Vector<float>(arr1, i);
-            var v2 = new Vector<float>(arr2, i);
+            var leftVector = new Vector<float>(left, i);
+            var rightVector = new Vector<float>(right, i);
 
-            Vector.Subtract(v2, v1).CopyTo(result, i);
+            Vector.Subtract(leftVector, rightVector).CopyTo(result, i);
         }
 
-        for (; i < arr1.Length; i++)
+        for (; i < stopIndex; i++)
         {
-            result[i] = arr2[i] - arr1[i];
+            result[i] = left[i] - right[i];
         }
     }
 
     public static float CalculateMultiplySum(float[] arr1, float[] arr2)
     {
         if (arr1.Length != arr2.Length)
+        {
             throw new InvalidOperationException();
+        }
 
         var vectorSize = Vector<float>.Count;
         var accVector = Vector<float>.Zero;
