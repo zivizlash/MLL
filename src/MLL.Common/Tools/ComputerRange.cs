@@ -8,7 +8,7 @@ public enum SliceDistribution
     FillRemainderEvenly
 }
 
-public readonly struct ComputerRangeSliced : IEnumerable<ProcessingRange>
+public readonly struct ProcessingRangeSliced : IEnumerable<ProcessingRange>
 {
     public readonly int SlicesCount;
     public readonly int ItemsCount;
@@ -19,7 +19,7 @@ public readonly struct ComputerRangeSliced : IEnumerable<ProcessingRange>
     private readonly int _sliceLength;
     private readonly int _sliceRemainder;
 
-    public ComputerRangeSliced(int start, int stop, int count, SliceDistribution distribution)
+    public ProcessingRangeSliced(int start, int stop, int count, SliceDistribution distribution)
     {
         SlicesCount = count;
         ItemsStart = start;
@@ -85,7 +85,7 @@ public readonly struct ProcessingRange : IEquatable<ProcessingRange>
     public static ProcessingRange From<T>(T[] arr) =>
         new(0, arr.Length);
 
-    public ComputerRangeSliced Slice(int count, SliceDistribution distribution) =>
+    public ProcessingRangeSliced Slice(int count, SliceDistribution distribution) =>
         new(Start, Stop, count, distribution);
 
     public override string ToString() =>
