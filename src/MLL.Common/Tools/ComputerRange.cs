@@ -8,6 +8,19 @@ public enum SliceDistribution
     FillRemainderEvenly
 }
 
+public static class ProcessingRangeExtensions
+{
+    public static Memory<T> AsMemory<T>(this T[] arr, ProcessingRange range)
+    {
+        return arr.AsMemory(range.Start, range.Length);
+    }
+
+    public static Span<T> AsSpan<T>(this T[] arr, ProcessingRange range)
+    {
+        return arr.AsSpan(range.Start, range.Length);
+    }
+}
+
 public readonly struct ProcessingRangeSliced : IEnumerable<ProcessingRange>
 {
     public readonly int SlicesCount;
@@ -62,11 +75,15 @@ public readonly struct ProcessingRangeSliced : IEnumerable<ProcessingRange>
         }
     }
 
-    public IEnumerator<ProcessingRange> GetEnumerator() =>
-        Enumerable.Range(0, SlicesCount).Select(GetSlice).GetEnumerator();
+    public IEnumerator<ProcessingRange> GetEnumerator()
+    {
+        return Enumerable.Range(0, SlicesCount).Select(GetSlice).GetEnumerator();
+    }
 
-    IEnumerator IEnumerable.GetEnumerator() =>
-        Enumerable.Range(0, SlicesCount).Select(GetSlice).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return Enumerable.Range(0, SlicesCount).Select(GetSlice).GetEnumerator();
+    }
 }
 
 public readonly struct ProcessingRange : IEquatable<ProcessingRange>
@@ -76,36 +93,63 @@ public readonly struct ProcessingRange : IEquatable<ProcessingRange>
 
     public int Length => Stop - Start;
 
-    public ProcessingRange(int start, int stop) =>
+    public ProcessingRange(int start, int stop)
+    {
         (Start, Stop) = (start, stop);
+    }
 
-    public static ProcessingRange FromLength(int start, int length) =>
-        new(start, start + length);
+    public static ProcessingRange FromLength(int start, int length)
+    {
+        return new ProcessingRange(start, start + length);
+    }
 
-    public static ProcessingRange From<T>(T[] arr) =>
-        new(0, arr.Length);
+    public static ProcessingRange From<T>(T[] arr)
+    {
+        return new ProcessingRange(0, arr.Length);
+    }
 
-    public ProcessingRangeSliced Slice(int count, SliceDistribution distribution) =>
-        new(Start, Stop, count, distribution);
+    public ProcessingRangeSliced Slice(int count, SliceDistribution distribution)
+    {
+        return new ProcessingRangeSliced(Start, Stop, count, distribution);
+    }
 
-    public override string ToString() =>
-        $"Start: {Start}; Stop: {Stop}";
+    public bool IsCanBeAppliedTo<T>(T[] arr)
+    {
+        return Start < arr.Length && Stop <= arr.Length;
+    }
 
-    public override bool Equals(object? obj) =>
-        obj is ProcessingRange range && Equals(range);
+    public override string ToString()
+    {
+        return $"Start: {Start}; Stop: {Stop}";
+    }
 
-    public bool Equals(ProcessingRange other) =>
-        Start == other.Start && Stop == other.Stop;
+    public override bool Equals(object? obj)
+    {
+        return obj is ProcessingRange range && Equals(range);
+    }
 
-    public override int GetHashCode() =>
-        HashCode.Combine(Start, Stop, Length);
+    public bool Equals(ProcessingRange other)
+    {
+        return Start == other.Start && Stop == other.Stop;
+    }
 
-    public static bool operator ==(ProcessingRange left, ProcessingRange right) =>
-        left.Equals(right);
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Start, Stop, Length);
+    }
 
-    public static bool operator !=(ProcessingRange left, ProcessingRange right) =>
-        !(left == right);
+    public static bool operator ==(ProcessingRange left, ProcessingRange right)
+    {
+        return left.Equals(right);
+    }
 
-    public void Deconstruct(out int start, out int stop) =>
+    public static bool operator !=(ProcessingRange left, ProcessingRange right)
+    {  
+        return !(left == right);
+    }
+
+    public void Deconstruct(out int start, out int stop)
+    {
         (start, stop) = (Start, Stop);
+    }
 }

@@ -18,15 +18,18 @@ public class SigmoidCompensateComputer : ICompensateComputer, IThreadedComputer
         ThreadInfo = new LayerThreadInfo(1);
     }
 
-    public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
+    public void Compensate(LayerWeights layer, float[] input, float learningRate, 
+        float[] errors, float[] outputs, ProcessingRange range)
     {
         var neurons = layer.Weights;
 
         Check.LengthEqual(neurons[0].Length, input.Length, nameof(input));
         Check.LengthEqual(neurons.Length, errors.Length, nameof(errors));
         Check.LengthEqual(neurons.Length, outputs.Length, nameof(outputs));
+        Check.WithinRange(layer.Weights, range, nameof(layer));
 
-        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length);
+        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length, range);
+
         WorkItemsFiller.EnsureCompensateWorkItems(ref _workItems, layer, input, learningRate, errors, outputs, fork);
         ThreadTools.ExecuteOnThreadPool(_workItems, fork.Countdown);
     }
@@ -35,6 +38,10 @@ public class SigmoidCompensateComputer : ICompensateComputer, IThreadedComputer
     {
         public CompensateWorkInfo WorkInfo { get; set; }
         public Action<object?> ExecuteDelegate { get; }
+
+        private CompensateWorkInfo _w;
+
+        public ref CompensateWorkInfo Get => ref _w;
 
         public SigmoidCompensateWorkItem()
         {

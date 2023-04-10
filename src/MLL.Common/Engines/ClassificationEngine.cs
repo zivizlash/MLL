@@ -144,7 +144,7 @@ public static class PredictionCalculator
             var weights = layers[i];
             float[] buffer = buffers[i];
 
-            computer.Predict.Predict(weights, layerInput, buffer);
+            computer.Predict.Predict(weights, layerInput, buffer, ProcessingRange.From(buffer));
             layerInput = buffer;
         }
 
@@ -196,7 +196,7 @@ public class SupervisedTrainer
         var errorBackprop = computers[layerIndex + 1].ErrorBackpropagation;
 
         errorBackprop.ReorganizeErrors(new(previousWeights.Weights, previousErrors), errors);
-        compensate.Compensate(layer, input, ctx.LearningRate, errors, output);
+        compensate.Compensate(layer, input, ctx.LearningRate, errors, output, ProcessingRange.From(output));
     }
 
     private static float[] CompensateOutputLayerError(
@@ -212,8 +212,9 @@ public class SupervisedTrainer
         var computer = ctx.Computers[^1];
         var layers = ctx.Weights.Layers;
 
-        computer.Error.CalculateErrors(output, expected, errorBuffer);
-        computer.Compensate.Compensate(layers[^1], previousOutput, ctx.LearningRate, errorBuffer, output);
+        computer.Error.CalculateErrors(output, expected, errorBuffer, ProcessingRange.From(errorBuffer));
+        computer.Compensate.Compensate(layers[^1], previousOutput, ctx.LearningRate, 
+            errorBuffer, output, ProcessingRange.From(errorBuffer));
 
         return errorBuffer;
     }

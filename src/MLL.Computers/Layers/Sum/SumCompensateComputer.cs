@@ -18,7 +18,8 @@ public class SumCompensateComputer : ICompensateComputer, IThreadedComputer
         ThreadInfo = new(1);
     }
 
-    public void Compensate(LayerWeights layer, float[] input, float learningRate, float[] errors, float[] outputs)
+    public void Compensate(LayerWeights layer, float[] input, float learningRate, 
+        float[] errors, float[] outputs, ProcessingRange range)
     {
         var neurons = layer.Weights;
 
@@ -26,7 +27,7 @@ public class SumCompensateComputer : ICompensateComputer, IThreadedComputer
         Check.LengthEqual(neurons.Length, errors.Length, nameof(errors));
         Check.LengthEqual(neurons.Length, outputs.Length, nameof(outputs));
 
-        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length);
+        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length, range);
         WorkItemsFiller.EnsureCompensateWorkItems(ref _workItems, layer, input, learningRate, errors, outputs, fork);
         ThreadTools.ExecuteOnThreadPool(_workItems, fork.Countdown);
     }

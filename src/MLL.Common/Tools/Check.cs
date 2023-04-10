@@ -17,7 +17,18 @@ public class Check
 {
     public static void BufferFit(NetLayersBuffers buffers, LayerWeights[] weights, string paramName)
     {
-        if (!buffers.IsFitWeights(weights)) Throw.Argument("Buffer has wrong size", paramName);
+        if (!buffers.IsFitWeights(weights))
+        {
+            Throw.Argument("Buffer has wrong size", paramName);
+        }
+    }
+
+    public static void WithinRange<T>(T[] arr, ProcessingRange range, string paramName)
+    {
+        if (!range.IsCanBeAppliedTo(arr))
+        {
+            Throw.ArgumentOutOfRange(paramName, "ProcessingRange can't be applied to array");
+        }
     }
 
     public static void LengthEqual(int expected, int actual, string name)
@@ -31,6 +42,9 @@ public class Check
 
     public static void NotNull(object? obj, string paramName)
     {
-        if (obj == null) Throw.ArgumentNull(paramName);
+        if (obj == null)
+        {
+            Throw.ArgumentNull(paramName);
+        }
     }
 }

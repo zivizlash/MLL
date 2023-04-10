@@ -17,14 +17,14 @@ public class SumPredictComputer : IPredictComputer, IThreadedComputer
         ThreadInfo = new LayerThreadInfo(1);
     }
 
-    public void Predict(LayerWeights layer, float[] input, float[] results)
+    public void Predict(LayerWeights layer, float[] input, float[] results, ProcessingRange range)
     {
         var neurons = layer.Weights;
 
         Check.LengthEqual(neurons.Length, results.Length, nameof(results));
         Check.LengthEqual(neurons[0].Length, input.Length, nameof(input));
 
-        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length);
+        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length, range);
 
         WorkItemsFiller.EnsurePredictWorkItems(ref _workItems, layer, input, results, fork);
         ThreadTools.ExecuteOnThreadPool(_workItems, fork.Countdown);

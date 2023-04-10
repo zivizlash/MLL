@@ -1,4 +1,5 @@
 ﻿using MLL.Common.Layer;
+using MLL.Common.Tools;
 using MLL.Computers.Layers.Backpropagation;
 using MLL.Computers.Layers.Sigmoid;
 using MLL.Computers.Layers.Sum;
@@ -38,8 +39,10 @@ public class SigmoidLayerComputerTests
         var input = Helper.FillRandom(random, new float[100]);
         var weights = new LayerWeights(Helper.FillRandom(random, new float[10][], 100));
 
-        _layerComputer.Predict.Predict(weights, input, results);
-        _threadedLayerComputer.Predict.Predict(weights, input, threadedResults);
+        _layerComputer.Predict.Predict(weights, input, 
+            results, ProcessingRange.From(results));
+        _threadedLayerComputer.Predict.Predict(weights, input, 
+            threadedResults, ProcessingRange.From(threadedResults));
 
         CollectionAssert.AreEqual(results, threadedResults);
     }
@@ -56,8 +59,10 @@ public class SigmoidLayerComputerTests
         var weights = new LayerWeights(Helper.FillRandom(random, new float[10][], 100));
         var threadedWeights = new LayerWeights(Helper.Copy(weights.Weights));
 
-        _layerComputer.Compensate.Compensate(weights, input, learningRate, errors, outputs);
-        _layerComputer.Compensate.Compensate(threadedWeights, input, learningRate, errors, outputs);
+        _layerComputer.Compensate.Compensate(weights, input, learningRate, errors, 
+            outputs, ProcessingRange.From(weights.Weights));
+        _layerComputer.Compensate.Compensate(threadedWeights, input, learningRate, 
+            errors, outputs, ProcessingRange.From(threadedWeights.Weights));
 
         CollectionAssert.AreEqual(weights.Weights, threadedWeights.Weights);
     }
@@ -72,8 +77,10 @@ public class SigmoidLayerComputerTests
         var expected = Helper.FillRandom(random, new float[10]);
         var outputs = Helper.FillRandom(random, new float[10]);
 
-        _layerComputer.Error.CalculateErrors(outputs, expected, errors);
-        _threadedLayerComputer.Error.CalculateErrors(outputs, expected, threadedErrors);
+        _layerComputer.Error.CalculateErrors(outputs, expected, 
+            errors, ProcessingRange.From(errors));
+        _threadedLayerComputer.Error.CalculateErrors(outputs, expected, 
+            threadedErrors, ProcessingRange.From(threadedErrors));
 
         CollectionAssert.AreEqual(errors, threadedErrors);
     }

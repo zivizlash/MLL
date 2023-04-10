@@ -7,54 +7,34 @@ public struct ForkJoinHelper
 {
     public readonly CountdownEvent? Countdown;
     public readonly int ThreadsCount;
-    public readonly int ProcessingCount;
+    public readonly ProcessingRangeSliced Range;
 
-    private readonly int _itemsTotal;
-
-    public ForkJoinHelper(int itemsTotal, int threadsCount, int processingCount, CountdownEvent? countdown)
+    public ForkJoinHelper(int threadsCount, ProcessingRange range, CountdownEvent? countdown)
     {
-        _itemsTotal = itemsTotal;
         ThreadsCount = threadsCount;
-        ProcessingCount = processingCount;
         Countdown = countdown;
+        Range = range.Slice(threadsCount, SliceDistribution.FillRemainderEvenly);
     }
 
     public ProcessingRange GetProcessingRange(int thread)
     {
-        if (thread >= ThreadsCount)
-        {
-            Throw.ArgumentOutOfRange(nameof(thread));
-        }
-
-        var start = ProcessingCount * thread;
-
-        var length = thread == ThreadsCount - 1 
-            ? ProcessingCount + (_itemsTotal % ThreadsCount) 
-            : ProcessingCount;
-
-        return new ProcessingRange(start, start + length);
+        return Range.GetSlice(thread);
     }
 
-    public static ForkJoinHelper Create(LayerThreadInfo threadInfo, int neuronsCount)
+    public static ForkJoinHelper Create(LayerThreadInfo threadInfo, int neuronsCount, ProcessingRange range)
     {
         CountdownEvent? countdown = null;
-        return Create(threadInfo, neuronsCount, ref countdown);
+        return Create(threadInfo, neuronsCount, range, ref countdown);
     }
 
-    public static ForkJoinHelper Create(LayerThreadInfo threadInfo, int neuronsCount, ref CountdownEvent? countdown)
+    public static ForkJoinHelper Create(LayerThreadInfo threadInfo, int neuronsCount, 
+        ProcessingRange range, ref CountdownEvent? countdown)
     {
-        int threadsCount = Math.Min(threadInfo.Threads, neuronsCount);
+        int threadsCount = Math.Min(threadInfo.Threads, range.Length);
 
         if (threadsCount > 1)
         {
-            if (countdown == null)
-            {
-                countdown = new CountdownEvent(threadsCount);
-            }
-            else
-            {
-                countdown.Reset(threadsCount);
-            }
+            (countdown ??= new(threadsCount)).Reset(threadsCount);
         }
         else
         {
@@ -62,7 +42,6 @@ public struct ForkJoinHelper
             countdown = null;
         }
 
-        int processingCount = ThreadTools.Counts(threadInfo.Threads, neuronsCount);
-        return new ForkJoinHelper(neuronsCount, threadsCount, processingCount, countdown);
+        return new ForkJoinHelper(threadsCount, range, countdown);
     }
 }

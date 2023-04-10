@@ -18,14 +18,14 @@ public class SigmoidPredictComputer : IPredictComputer, IThreadedComputer
         ThreadInfo = new(1);
     }
 
-    public void Predict(LayerWeights layer, float[] input, float[] results)
+    public void Predict(LayerWeights layer, float[] input, float[] results, ProcessingRange range)
     {
         var neurons = layer.Weights;
 
         Check.LengthEqual(neurons.Length, results.Length, nameof(results));
         Check.LengthEqual(neurons[0].Length, input.Length, nameof(input));
 
-        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length);
+        var fork = ForkJoinHelper.Create(ThreadInfo, neurons.Length, range);
         WorkItemsFiller.EnsurePredictWorkItems(ref _workItems, layer, input, results, fork);
         ThreadTools.ExecuteOnThreadPool(_workItems, fork.Countdown);
     }
@@ -45,10 +45,10 @@ public class SigmoidPredictComputer : IPredictComputer, IThreadedComputer
             var neurons = WorkInfo.Layer.Weights;
             var (start, stop) = WorkInfo.ProcessingRange;
 
-            for (int ni = start; ni < stop; ni++)
+            for (int i = start; i < stop; i++)
             {
-                var sum = VectorCalculator.CalculateMultiplySum(neurons[ni], WorkInfo.Input);
-                WorkInfo.Results[ni] = NumberTools.Sigmoid(sum);
+                var sum = VectorCalculator.CalculateMultiplySum(neurons[i], WorkInfo.Input);
+                WorkInfo.Results[i] = NumberTools.Sigmoid(sum);
             }
 
             WorkInfo.Countdown?.Signal();
