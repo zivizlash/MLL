@@ -1,5 +1,6 @@
 ﻿using MLL.Common.Tools;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace MLL.Common.Pooling;
 
@@ -37,32 +38,44 @@ public class Pool<T> : IPoolingSource<T>
 
     bool IPoolingSource<T>.ReplaceReturn(Pooled<T> pooled, bool throwIfAlreadyReturned, T value)
     {
-        var isSuccessful = ((IPoolingSource<T>)this).Return(pooled, throwIfAlreadyReturned);
+        bool isCanReturn = CanReturnToPool(pooled, throwIfAlreadyReturned);
 
-        if (isSuccessful)
+        if (isCanReturn)
         {
             pooled.PoolItem.Value = value;
+            ReturnToPoolInternal(pooled);
         }
 
-        return isSuccessful;
+        return isCanReturn;
     }
 
     bool IPoolingSource<T>.Return(Pooled<T> pooled, bool throwIfAlreadyReturned)
     {
-        var poolItem = pooled.PoolItem;
+        bool isCanReturn = CanReturnToPool(pooled, throwIfAlreadyReturned);
 
-        if (pooled.Version != poolItem.CurrentVersion)
+        if (isCanReturn)
         {
-            if (throwIfAlreadyReturned)
-            {
-                Throw.Disposed("Object already in a pool");
-            }
-
-            return false;
+            ReturnToPoolInternal(pooled);
         }
 
-        poolItem.CurrentVersion++;
-        _pool.Enqueue(poolItem);
-        return true;
+        return isCanReturn;
+    }
+
+    private static bool CanReturnToPool(Pooled<T> pooled, bool throwIfAlreadyReturned)
+    {
+        bool isPooled = pooled.Version != pooled.PoolItem.CurrentVersion;
+
+        if (isPooled && throwIfAlreadyReturned)
+        {
+            Throw.Disposed("Object already in a pool");
+        }
+
+        return !isPooled;
+    }
+
+    private void ReturnToPoolInternal(Pooled<T> pooled)
+    {
+        pooled.PoolItem.CurrentVersion++;
+        _pool.Enqueue(pooled.PoolItem);
     }
 }
