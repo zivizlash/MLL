@@ -1,13 +1,20 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using ILGPU;
+using ILGPU.Runtime.Cuda;
+using Microsoft.Extensions.Configuration;
 using MLL.Common.Builders.Computers;
 using MLL.Common.Builders.Weights;
 using MLL.Common.Engines;
 using MLL.Common.Files;
+using MLL.Common.Layer;
 using MLL.Common.Manager;
 using MLL.Common.Optimization;
 using MLL.Common.Tools;
 using MLL.Computers.Factory;
 using MLL.Computers.Factory.Defines;
+using MLL.Computers.Layers.Backpropagation;
+using MLL.Computers.Layers.Sigmoid;
+using MLL.Computers.Layers.Sum;
+using MLL.Cuda;
 using MLL.CUI.Options;
 using MLL.Files.Tools;
 using MLL.Repository;
@@ -19,6 +26,154 @@ using MLL.ThreadingOptimization;
 using Newtonsoft.Json;
 
 namespace MLL.CUI;
+
+public readonly struct LayerBaseInfo
+{
+    public readonly int? NeuronsCount;
+    public readonly int? WeightsCount;
+
+    public LayerBaseInfo(int? neuronsCount, int? weightsCount)
+    {
+        NeuronsCount = neuronsCount;
+        WeightsCount = weightsCount;
+    }
+}
+
+public interface ILayerFactory
+{
+    LayerComputers CreateComputers();
+    LayerBaseInfo BaseInfo { get; }
+}
+
+public static class LayerSettingsBagExtensions
+{
+    public static LayerSettingsBag SetupThreading(this LayerSettingsBag settingsBag)
+    {
+        //return settingsBag
+        //    .Add(new );
+
+        return settingsBag;
+    }
+}
+
+public class LayerSettingsBag
+{
+    private readonly Dictionary<Type, object> _typesToObjects;
+
+    public LayerSettingsBag Add(object arg)
+    {
+        _typesToObjects.Add(arg.GetType(), arg);
+        return this;
+    }
+
+    public LayerSettingsBag()
+    {
+        _typesToObjects = new Dictionary<Type, object>();
+    }
+}
+
+public readonly struct LayerFactoryContext
+{
+
+}
+
+public interface ILayerBuilder
+{
+    ILayerBuilder AddLayer(ILayerFactory factory);
+}
+
+public interface IInputLayerBuilder
+{
+    ILayerBuilder AddInputLayer(int neuronsCount, Action<ILayerBuilder> builder);
+}
+
+public static class SigmoidNetBuilderExtensions
+{
+    public static ILayerBuilder UseSigmoid(this ILayerBuilder builder)
+    {
+        return UseSigmoid(builder, _ => { });
+    }
+
+    public static ILayerBuilder UseSigmoid(this ILayerBuilder builder, Action<SigmoidLayerSettings> setup)
+    {
+        var settings = new SigmoidLayerSettings();
+        setup.Invoke(settings);
+
+        return builder.AddLayer(new SigmoidFactory
+        {
+            NeuronsCount = settings.NeuronsCount
+        });
+    }
+
+    private class SigmoidFactory : ILayerFactory
+    {
+        public LayerBaseInfo BaseInfo => new(NeuronsCount, WeightsCount);
+
+        public int? NeuronsCount { get; set; }
+        public int? WeightsCount { get; set; }
+
+        public LayerComputers CreateComputers()
+        {
+            return new LayerComputers(new CommonErrorComputer(), new SigmoidPredictComputer(),
+                new SigmoidCompensateComputer(), new ThreadedErrorBackpropagation());
+        }
+    }
+}
+
+public class SigmoidLayerSettings
+{
+    internal int? NeuronsCount { get; set; }
+    internal int? WeightsCount { get; set; }
+
+    public SigmoidLayerSettings Neurons(int count)
+    {
+        NeuronsCount = count;
+        return this;
+    }
+
+    public SigmoidLayerSettings Weights(int count)
+    {
+        WeightsCount = count;
+        return this;
+    }
+}
+
+public abstract class AdvancedNetFactory
+{
+    protected abstract void Configure(ILayerBuilder builder);
+
+    public void Construct()
+    {
+        var builder = new FactoryLayerBuilder();
+        Configure(builder);
+    }
+
+    private class FactoryLayerBuilder : ILayerBuilder, IInputLayerBuilder
+    {
+        public List<ILayerFactory> Factories { get; } = new();
+
+        public ILayerBuilder AddInputLayer(int neuronsCount, Action<ILayerBuilder> builder)
+        {
+            builder.Invoke(this);
+            return this;
+        }
+
+        public ILayerBuilder AddLayer(ILayerFactory factory)
+        {
+            Factories.Add(factory);
+            return this;
+        }
+    }
+}
+
+public class TestAdvancedFactory : AdvancedNetFactory
+{
+    protected override void Configure(ILayerBuilder builder) => 
+        builder
+            .UseSigmoid(s => s.Weights(100).Neurons(10))
+            .UseSigmoid(s => s.Neurons(10))
+            .UseSigmoid(s => s.Neurons(20));
+}
 
 public class RaceImageRecognitionNetBuilder : NetInfoFillerNetFactory
 {
@@ -54,6 +209,52 @@ public class Program
 {
     private static void Main()
     {
+        // Execute();
+
+        using var context = Context.Create(ctx => ctx.AllAccelerators());
+
+        var device = context.GetPreferredDevice(preferCPU: false);
+        using var accelerator = device.CreateAccelerator(context);
+
+        var computer = new VectorCudaComputer(accelerator);
+
+        var weights = new float[4, 16];
+
+        var input = Enumerable.Range(0, 16).Select(i => (float)i).ToArray();
+        var localOutput = new float[weights.GetLength(0)];
+
+        for (int wi = 0; wi < weights.GetLength(0); wi++)
+        {
+            for (int ii = 0; ii < weights.GetLength(1); ii++)
+            {
+                weights[wi, ii] = wi + ii;
+            }
+        }
+
+        for (int x = 0; x < weights.GetLength(0); x++)
+        {
+            for (int y = 0; y < weights.GetLength(1); y++)
+            {
+                localOutput[x] += weights[x, y] * input[y];
+            }
+        }
+
+        computer.Prepare(weights, input);
+
+        computer.Execute();
+
+        var output = new float[localOutput.Length];
+
+        computer.CopyOutput(output);
+
+        //computer.Execute(weights, input);
+
+        Console.WriteLine($"Local output: {string.Join(", ", localOutput)}");
+        Console.WriteLine($"Output: {string.Join(", ", output)}");
+    }
+
+    private static void Execute()
+    {
         int delimmer = 100;
 
         var args = ArgumentParser.GetArguments();
@@ -68,7 +269,7 @@ public class Program
 
         var net = factory.Create(forTrain: true);
         var epochStats = netInfo.Data.GetOrNew<EpochNetStats>();
-        
+
         var netManager = new NetManager(net, options.LearningRate, epochStats.Epoch);
         var testSet = CreateSetDataProvider(isEven: false);
 

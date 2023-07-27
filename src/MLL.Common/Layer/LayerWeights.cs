@@ -15,10 +15,13 @@ public readonly struct LayerWeights : IEquatable<LayerWeights>
     {
         return obj is LayerWeights weights && Equals(weights);
     }
-
+ 
     public bool Equals(LayerWeights other)
     {
-        if (Weights.Length != other.Weights.Length) return false;
+        if (Weights.Length != other.Weights.Length)
+        {
+            return false;
+        }
 
         for (int i = 0; i < Weights.Length; i++)
         {

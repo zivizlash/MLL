@@ -39,10 +39,6 @@ public class SigmoidCompensateComputer : ICompensateComputer, IThreadedComputer
         public CompensateWorkInfo WorkInfo { get; set; }
         public Action<object?> ExecuteDelegate { get; }
 
-        private CompensateWorkInfo _w;
-
-        public ref CompensateWorkInfo Get => ref _w;
-
         public SigmoidCompensateWorkItem()
         {
             ExecuteDelegate = Execute;

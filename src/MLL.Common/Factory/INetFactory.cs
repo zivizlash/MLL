@@ -1,10 +1,10 @@
-﻿namespace MLL.Common.Factory;
-
-using MLL.Common.Builders.Computers;
+﻿using MLL.Common.Builders.Computers;
 using MLL.Common.Builders.Weights;
+using MLL.Common.Engines;
 using MLL.Common.Optimization;
 using MLL.Common.Tools;
-using Engines;
+
+namespace MLL.Common.Factory;
 
 public abstract class RandomFillerNetFactory : NetFactory
 {

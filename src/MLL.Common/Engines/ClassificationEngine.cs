@@ -155,7 +155,7 @@ public static class PredictionCalculator
 
 public class SupervisedTrainer
 {
-    public static ReadOnlySpan<float> Train(in SupervisedTrainContext ctx, float[] input, float[] expected)
+    public static float[] Train(in SupervisedTrainContext ctx, float[] input, float[] expected)
     {
         var layers = ctx.Weights.Layers;
         var buffers = ctx.Buffers;
@@ -173,7 +173,7 @@ public class SupervisedTrainer
         {
             float[] layerInput = bi == 0 ? input : buffers.Outputs[bi - 1];
             CompensateLayerError(ctx, layerInput, bi);
-        }
+        } 
 
         return outputErrors;
     }
@@ -212,9 +212,11 @@ public class SupervisedTrainer
         var computer = ctx.Computers[^1];
         var layers = ctx.Weights.Layers;
 
-        computer.Error.CalculateErrors(output, expected, errorBuffer, ProcessingRange.From(errorBuffer));
-        computer.Compensate.Compensate(layers[^1], previousOutput, ctx.LearningRate, 
-            errorBuffer, output, ProcessingRange.From(errorBuffer));
+        var range = ProcessingRange.From(errorBuffer);
+
+        computer.Error.CalculateErrors(output, expected, errorBuffer, range);
+        computer.Compensate.Compensate(layers[^1], previousOutput, 
+            ctx.LearningRate, errorBuffer, output, range);
 
         return errorBuffer;
     }

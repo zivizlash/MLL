@@ -198,6 +198,8 @@ public class Program
         //var config = ManualConfig.Union(DefaultConfig.Instance, new BenchConfig());
         //BenchmarkRunner.Run<NaiveVsVectorBench>(config);
 
-        BenchmarkRunner.Run<NaiveVsVectorizedSubstractBench>(DefaultConfig.Instance);
+        BenchmarkRunner.Run<GpuVsCpu>();
+
+        //BenchmarkRunner.Run<NaiveVsVectorizedSubstractBench>(DefaultConfig.Instance);
     }
 }

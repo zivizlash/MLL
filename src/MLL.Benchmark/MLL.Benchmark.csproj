@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MLL.Computers\MLL.Computers.csproj" />
+    <ProjectReference Include="..\MLL.Cuda\MLL.Cuda.csproj" />
   </ItemGroup>
 
 </Project>

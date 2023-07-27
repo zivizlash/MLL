@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MLL.Computers\MLL.Computers.csproj" />
+    <ProjectReference Include="..\MLL.Cuda\MLL.Cuda.csproj" />
     <ProjectReference Include="..\MLL.Files\MLL.Files.csproj" />
     <ProjectReference Include="..\MLL.Repository\MLL.Repository.csproj" />
     <ProjectReference Include="..\MLL.Statistics\MLL.Statistics.csproj" />
